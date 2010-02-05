@@ -1,0 +1,14 @@
+Source: cloud-utils
+Section: admin
+Priority: extra
+Maintainer: Scott Moser <smoser@ubuntu.com>
+Build-Depends: cdbs, debhelper (>= 7)
+XS-Python-Version: all
+Standards-Version: 3.8.3
+
+Package: cloud-utils
+Architecture: all
+Depends: euca2ools, file, e2fsprogs (>=1.4), ${misc:Depends}
+Description: Miscellaneous utilities for cloud usage
+ This package provides some different tools for making interacting with
+ a cloud easier.

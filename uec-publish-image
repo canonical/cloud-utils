@@ -1,0 +1,291 @@
+#!/bin/bash
+# vi: ts=4 noexpandtab
+
+TMPD=""
+RENAME_D=""
+VERBOSITY=0
+IMAGE_TYPES=( auto image kernel ramdisk vmlinuz initrd )
+
+error() { echo "$@" 1>&2; }
+errorp() { printf "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+failp() { [ $# -eq 0 ] || errorp "$@"; exit 1; }
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] arch image bucket
+
+   arch           : one of i386 or x86_64
+   image          : the image to upload and register
+   bucket         : bucket to publish image to
+
+   options:
+      -l|--add-launch <user_id>   : user_id can be "all", or "none"
+         --dry-run                : only report what would be done
+         --allow-existing         : if a image is already registered
+                                    simply report as if work was done
+      -o|--output <file>          : write registered id and manifest to file
+      -r|--rename <publish_path>  : publish to bucket/<publish_path>
+                                    default: bucket/<basename(image)>
+      -t|--type   <type>          : type is one of kernel/ramdisk/image
+      -v|--verbose                : increase verbosity
+
+   if type is 'image', then:
+      -i|--ramdisk  ari           : the ari to register image with
+      -k|--kernel   aki           : the aki to register image with
+EOF
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
+cleanup() {
+	local x=""
+	for x in "${RENAME_D}" "${TMPD}"; do
+		[ -z "${x}" -o ! -d "${x}" ] || rm -Rf "${x}"
+	done
+	return 0
+}
+
+debug() {
+	local level=${1}
+	shift;
+	[ "${level}" -gt "${VERBOSITY}" ] && return
+	error "$(date):" "${@}"
+}
+run() {
+	local dir="${1}" pre=${2} msg=${3};
+	shift 3;
+	[ -e "${dir}/stamp.${pre}" ] &&
+		{ debug 1 "skipping ${pre}"; return 0; }
+	debug 1 "${msg}"
+	echo "$@" > "${dir}/${pre}.cmd"
+	"$@" > "${dir}/${pre}.stdout" 2> "${dir}/${pre}.stderr" &&
+		: > "${dir}/stamp.${pre}" && return 0
+	local ret=$?
+	cat "${dir}/${pre}.stderr" 1>&2
+	return ${ret}
+}
+
+search_args() {
+	local x="" i=0 needle="$1"
+	shift;
+	for x in "${@}"; do
+		[ "${needle}" = "${x}" ] && { _RET=$i; return 0; }
+		i=$(($i+1))
+	done
+	return 1
+}
+
+checkstatus() {
+	local x="" i=0
+	for x in "$@"; do
+		[ "$x" = "0" ] || i=$(($i+1))
+	done
+	return $i
+}
+
+get_manifest_id() {
+	local str="${1}" cmp="~" tmpf="" out="" ret=1
+    out=$(euca-describe-images -a |
+	        awk '$3 '$cmp' p { printf("%s\t%s\n",$2,$3); }' "p=${str}" ;
+			checkstatus ${PIPESTATUS[@]}) || return 1
+	_RET=${out}
+	return
+}
+get_image_type() {
+	local image=${1} file_out="" img_type=""
+	file_out=$(file --uncompress "${image}") || return 1;
+	case "${file_out}" in
+		*[lL]inux\ kernel*) img_type="kernel";;
+		*LSB\ executable*gzip*) img_type="kernel";;
+		*cpio\ archive*) img_type="ramdisk";;
+		*ext[234]\ file*|*boot\ sector*) img_type="image";;
+		*) error "unable to determine image type. pass --type"; return 1;;
+	esac
+	_RET=${img_type}
+	return 0
+}
+
+short_opts="hi:k:l:no:r:t:vw:"
+long_opts="add-launch:,allow-existing,dry-run,help,kernel:,name:,output:,ramdisk:,rename:,type:,verbose,working-dir:"
+getopt_out=$(getopt --name "${0##*/}" \
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
+
+add_acl=""
+allow_existing=0
+arch=""
+bucket=""
+dry_run=0
+image=""
+img_type="auto"
+kernel=""
+output=""
+ramdisk=""
+rename=""
+name=""
+wdir_in=""
+
+while [ $# -ne 0 ]; do
+	cur=${1}; next=${2};
+	case "$cur" in
+		-d|--working-dir) wdir_in=${next}; shift;;
+		-h|--help) Usage; exit 0;;
+		-k|--kernel) kernel=${next}; shift;;
+		-l|--add-launch)
+			if [ "${next}" = "none" ]; then
+				add_acl=""
+			else
+				user=${next//-/}; # just be nice and remove '-'
+				add_acl="${add_acl:+${add_acl} }${user}";
+			fi
+			shift;;
+		   --name) name=${next}; shift;;
+		-o|--output) output="${next}"; shift;;
+		-i|--ramdisk) ramdisk=${next}; shift;;
+		-n|--dry-run) dry_run=1;;
+		-r|--rename) rename=${next}; shift;;
+		-t|--type) 
+			img_type=${next};
+			search_args "${img_type}" "${IMAGE_TYPES[@]}" ||
+				bad_Usage "image type (${next}) not in ${IMAGE_TYPES[*]}"
+			shift;;
+		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+		--allow-existing) allow_existing=1;;
+		--) shift; break;;
+		-*) bad_Usage "confused by ${cur}";;
+	esac
+	shift;
+done
+
+[ $# -lt 3 ] && bad_Usage "must provide arch, image, bucket"
+[ $# -gt 3 ] && bad_Usage "unexpected arguments: ${4}"
+arch="${1}"
+image="${2}"
+bucket="${3}"
+
+[ "${arch}" = "amd64" ] && arch=x86_64
+
+[ "$arch" = "i386" -o "$arch" = "x86_64" ] ||
+	bad_Usage "arch must be i386 or x86_64"
+
+[ -f "${image}" ] || bad_Usage "${image}: image is not a file"
+
+[ "${img_type}" = "vmlinuz" ] && img_type="kernel"
+[ "${img_type}" = "initrd" ] && img_type="ramdisk"
+
+if [ "${img_type}" = "auto" ]; then
+	get_image_type "${image}" ||
+		fail "failed to determine file type of ${image}"
+	img_type=${_RET}
+fi
+
+[ -n "${rename}" ] || rename=${image##*/}
+
+if [ ${VERBOSITY} -ge 1 -o ${dry_run} -ne 0 ]; then
+	[ -n "${kernel}" ] && krd_fmt=" %s/%s" &&
+		krd_args=( "${kernel}" "${ramdisk}" )
+	errorp "[%-6s] %s => %s/%s ${krd_fmt}\n" "${img_type}" \
+		"${image##*/}" "${bucket}" "${rename}" "${krd_args[@]}"
+	[ ${dry_run} -ne 0 ] && exit
+fi
+
+image_full=$(readlink -f "${image}") ||
+	fail "failed to get full path to ${image}"
+
+if [ -n "${wdir_in}" ]; then
+	[ -d "${wdir_in}" ] || fail "input working directory not a directory";
+	wdir=$(readlink -f "${wdir_in}") ||
+		fail "failed to realize ${wdir_in}"
+else
+	TMPD=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX) ||
+		fail "failed to make tmpdir"
+	wdir="${TMPD}"
+	trap cleanup EXIT
+fi
+
+if [ -e "${wdir}/${rename}" ]; then
+	[ "${wdir}/${rename}" -ef "${img}" ] ||
+		fail "${wdir} already contains file named ${rename}"
+fi
+
+# bundle-kernel doesn't like for file to exist in destination-dir
+# so, create it one dir under there
+RENAME_D=$(mktemp -d "${wdir}/.rename.XXXXXX") &&
+	ln -sf "${image_full}" "${RENAME_D}/${rename}" &&
+	rename_full="${RENAME_D}/${rename}" ||
+	fail "symlink failed: working-dir/rename/${rename} -> ${image_full}"
+
+reg_id=""
+
+manifest="${rename}.manifest.xml"
+
+krd_args=( );
+[ -n "${kernel}" -a "${kernel}" != "none" ] &&
+	krd_args=( "${krd_args[@]}" "--kernel" "${kernel}" )
+[ -n "${ramdisk}" -a "${ramdisk}" != "none" ] &&
+	krd_args=( "${krd_args[@]}" "--ramdisk" "${ramdisk}" )
+
+debug 1 "checking for existing registered image at ${bucket}/${manifest}"
+get_manifest_id "${bucket}/${manifest}" ||
+	fail "failed to check for existing manifest"
+if [ -n "${_RET}" ]; then
+	set -- ${_RET}
+	img_id=${1}; path=${2}
+	[ ${allow_existing} -eq 1 ] ||
+		fail "${bucket}/${manifest} already registered as ${img_id}"
+	debug 1 "using existing ${img_id} for ${bucket}/${manifest}"
+else
+	bundle_args=( "--image" "${rename_full}" )
+	case "${img_type}" in
+		kernel|ramdisk)
+			bundle_args[${#bundle_args[@]}]="--${img_type}"
+			bundle_args[${#bundle_args[@]}]="true"
+	esac
+	run "${wdir}" "bundle" "bundling ${img_type} ${image}" \
+		euca-bundle-image --destination "${wdir}" --arch "${arch}" \
+			"${bundle_args[@]}" "${krd_args[@]}" ||
+		fail "failed to bundle ${img_type} image"
+
+	run "${wdir}" "upload" "upload ${bucket}/${manifest}" \
+		euca-upload-bundle --bucket "${bucket}" \
+				--manifest "${wdir}/${manifest}" ||
+			fail "failed to upload bundle to ${bucket}/${manifest}"
+
+	junk="" img_id="";
+	run "${wdir}" "register" "register ${bucket}/${manifest}" \
+		euca-register "${bucket}/${manifest}" &&
+		read junk img_id < "${wdir}/register.stdout" &&
+		cat ${wdir}/register.stderr ${wdir}/register.stdout &&
+		[ "${img_id#???-}" != "${img_id}" ] || {
+			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
+			   [ -n "${bad}" ]; then
+				set -- ${bad}
+				bad_id=${1}
+				error "un-registering invalid $bad" >/dev/null
+				euca-deregister "${bad_id}"
+			fi
+			failp "failed to register ${manifest}.%s\n" \
+				"${junk:+ output:${junk} ${img_id}}"
+		}
+
+	debug 1 "registered at ${bucket}/${manifest} as ${img_id}"
+
+fi
+debug 1 "${img_id} ${bucket}/${manifest}"
+
+if [ -z "${output}" -o "${output}" = "-" ]; then
+	printf "%s\t%s\t%s\n" "${img_id}" "${bucket}/${manifest}"
+else
+	printf "%s\t%s\t%s\n" "${img_id}" "${bucket}/${manifest}" >> "${output}"
+fi
+
+for user in ${add_acl}; do
+	run "${wdir}" "add_user.${user}" \
+		"add ${user} to ${manifest}" \
+		euca-modify-image-attribute \
+			--launch-permission --add "${user}" "${img_id}" ||
+		fail "failed to add launch permission for ${user} to ${img_id}"
+done
+
+exit 0

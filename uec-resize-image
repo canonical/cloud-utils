@@ -1,0 +1,106 @@
+#!/bin/sh
+# resize-uec-image
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} image size [output]
+   Resize a UEC image to a new size.
+   if output is given, do not modify 'image', but create new file 'output'
+
+   New size is specified per resize2fs(8), e.g. "1G" for 1 gigabyte
+EOF
+	return 0
+}
+
+error() { echo "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+
+human2bytes() {
+   # converts size suitable for input to resize2fs to bytes
+   # s:512 byte sectors, K:kilobytes, M:megabytes, G:gigabytes
+   # none: block size of the image
+   local input=${1} defunit=${2:-1024}
+   local unit count;
+   case "$input" in
+      *s) count=${input%s}; unit=512;;
+      *K) count=${input%K}; unit=1024;;
+      *M) count=${input%M}; unit=$((1024*1024));;
+      *G) count=${input%G}; unit=$((1024*1024*1024));;
+      *)  count=${input}  ; unit=${2:-1024};;
+   esac
+   _RET=$((${count}*${unit}))
+}
+
+xtruncate() {
+   if which truncate >/dev/null 2>&1; then
+      truncate "${@}"
+   else
+      local size=${1} file=${2} blk=""
+      size=${size#--size=}
+      # this is a poor mans truncate supporting whatever human2bytes supports
+      human2bytes "${size}" && blk=$((${_RET}/512)) &&
+         dd if=/dev/zero of="${file}" obs=512 seek=${blk} count=0 2>/dev/null
+   fi
+}
+
+[ "$1" = "-h" -o "$1" = "--help" ] && { Usage; exit 0; }
+
+[ $# -eq 3 -o $# -eq 2 ] || { Usage 1>&2; exit 1; }
+
+old="$1"
+size="$2"
+new="${3:-${old}}"
+
+[ -f "${old}" ] || fail "${old}: does not exist"
+
+human2bytes "${size}" && new_size=${_RET} ||
+   fail "failed to understand ${size}"
+
+if [ ! "${old}" -ef "${new}" ]; then
+   file_out=$(file "${old}") || fail "failed to read ${old} with 'file'"
+   case "${file_out}" in
+      *gzip\ compressed*)
+         file_out_z=$(file -z "${old}")
+         case "${file_out_z}" in
+            *tar\ archive*)
+               : > "${new}" && newd=$(dirname "${new}") ||
+                  fail "failed to get full path for ${new}"
+               tmpd=$(mktemp -d "${newd}/.${0##*/}.XXXXXX") &&
+                  ( cd "${tmpd}" && tar -S --wildcards -xzf - "*.img" &&
+                    mv *.img "../${new}" ) < "${old}" || { 
+                    rm -Rf "${tmpd}";
+                    fail "failed to extract image from ${old}"
+                  }
+               rm -Rf "${tmpd}"
+               ;;
+            *)
+               zcat -f "$old" | cp --sparse=always /dev/stdin "$new";;
+         esac
+         ;;
+      *) cp --sparse=always "${old}" "${new}";;
+   esac
+   [ $? -eq 0 ] || fail "failed to cp ${old} -> ${new}"
+else
+   # if old=new (in place), it must be a simple image file
+   case "${old}" in
+      *.gz) fail "refusing work in place compressed or archive file: ${old}";;
+   esac
+fi
+
+ls_out=$(ls -l "${new}") &&
+   old_size=$(echo "${ls_out}" | awk '{print $5}') ||
+   fail "failed to get size of ${new_img}"
+
+e2fsck -fp "$new" || fail "failed to fsck ${new}"
+
+if [ "${old_size}" -lt "${new_size}" ]; then
+   xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
+fi
+
+resize2fs "$new" "$size" || fail "failed to resize ${new} -> ${size}"
+
+if [ "${old_size}" -gt "${new_size}" ]; then
+   xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
+fi
+
+exit 0

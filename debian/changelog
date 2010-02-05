@@ -1,0 +1,5 @@
+cloud-utils (0.1ubuntu1) lucid; urgency=low
+
+  * Initial release.
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 05 Feb 2010 18:37:57 -0500
