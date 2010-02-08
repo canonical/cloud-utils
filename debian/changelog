@@ -1,3 +1,9 @@
+cloud-utils (0.2) lucid; urgency=low
+
+  * fix version number to represent native package
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 08 Feb 2010 10:18:12 -0500
+
 cloud-utils (0.1ubuntu1) lucid; urgency=low
 
   * Initial release.
