@@ -1,3 +1,26 @@
+cloud-utils (0.3ubuntu1) lucid; urgency=low
+
+  [ Dustin Kirkland ]
+  * Makefile, debian/install: ditch the Makefile in favor of a debhelper
+    install
+  * uec-publish-image, uec-publish-tarball, uec-resize-image: add GPLv3
+    headers to all scripts
+  * uec-publish-image: add a note about bashisms
+  * debian/copyright, uec-query-builds: clean up trailing whitespace
+  * debian/control:
+    - improve the description
+    - depend on python, python-yaml
+  * debian/manpages, uec-publish-tarball.1, uec-query-builds.1,
+    uec-resize-image.1, uec-publish-image.1: add a first cut at manpages
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Wed, 17 Feb 2010 21:00:56 -0600
+
+cloud-utils (0.2ubuntu1) lucid; urgency=low
+
+  * add uec-query-builds for querying uec build data from uec-images.u.c
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 17 Feb 2010 17:34:27 -0500
+
 cloud-utils (0.2) lucid; urgency=low
 
   * fix version number to represent native package

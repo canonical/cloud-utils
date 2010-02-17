@@ -4,11 +4,20 @@ Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
 Build-Depends: cdbs, debhelper (>= 7)
 XS-Python-Version: all
-Standards-Version: 3.8.3
+Standards-Version: 3.8.4
 
 Package: cloud-utils
 Architecture: all
-Depends: euca2ools, file, e2fsprogs (>=1.4), ${misc:Depends}
-Description: Miscellaneous utilities for cloud usage
- This package provides some different tools for making interacting with
- a cloud easier.
+Depends: ${misc:Depends}, euca2ools, file, e2fsprogs (>=1.4), python, python-yaml
+Description: cloud image management utilities
+ This package provides a useful set of utilities for managing cloud
+ images.
+ .
+ The euca2ools package (a dependency of cloud-utils) provides an
+ Amazon EC2 API compatible set of utilities for bundling kernels,
+ ramdisks, and root filesystems, and uploading them to either EC2
+ or UEC.
+ .
+ The tasks associated with image bundling are often tedious and
+ repetitive.  The cloud-utils package provides several scripts
+ that wrap the complicated tasks with a much simpler interface.

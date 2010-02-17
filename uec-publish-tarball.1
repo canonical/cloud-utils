@@ -1,0 +1,42 @@
+.TH uec\-publish\-tarball 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
+.SH NAME
+uec\-publish\-tarball \- publish a cloud archive
+
+.SH SYNOPSIS
+.BI "uec\-publish\-tarball [OPTIONS] TARFILE BUCKET [ARCH]"
+
+.SH OPTIONS
+.TP
+.B -k | --kernel  k
+Use previously registered kernel with id 'k' specify 'none' for no kernel
+.TP
+.B -K | --kernel-file f
+Bundle, upload, use file 'f' as kernel
+.TP
+.B -r | --ramdisk r
+Use previously registered ramdisk with id 'r' specify 'none' for no ramdisk
+.TP
+.B -R | --ramdisk-file f
+Bundle, upload, use file 'f' as ramdisk
+
+.SH ARGUMENTS
+.TP
+.B TARFILE
+Target archive
+.TP
+.B BUCKET
+Target bucket
+.TP
+.B ARCH
+Image architecture; if is not provided, a name-based attempt is made to guess
+
+.SH DESCRIPTION
+Register a UEC tarball per http://uec-images.ubuntu.com
+
+.SH EXAMPLES
+  uec\-publish\-tarball lucid-uec-i386.tar.gz my-lucid-bucket i386
+
+.SH AUTHOR
+This manpage was written by Dustin Kirkland <kirkland@canonical.com> for Ubuntu systems (but may be used by others).  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
+
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.

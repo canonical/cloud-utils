@@ -1,0 +1,51 @@
+.TH uec\-publish\-image 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
+.SH NAME
+uec\-publish\-image \- publish a cloud image
+
+.SH SYNOPSIS
+.BI "uec\-publish\-image [OPTIONS] ARCH IMAGE BUCKET
+
+.SH OPTIONS
+.TP
+.B -l|--add-launch <user_id>
+user_id can be "all", or "none"
+.TP
+.B --dry-run
+only report what would be done
+.TP
+.B --allow-existing
+if a image is already registered simply report as if work was done
+.TP
+.B -o|--output <file>
+write registered id and manifest to file
+.TP
+.B -r|--rename <publish_path>
+publish to bucket/<publish_path>, default: bucket/<basename(image)>
+.TP
+.B -t|--type   <type>
+type is one of kernel/ramdisk/image
+if type is 'image', then:
+      -i|--ramdisk  ari           : the ari to register image with
+      -k|--kernel   aki           : the aki to register image with
+.TP
+.B -v|--verbose
+increase verbosity
+
+.SH ARGUMENTS
+.TP
+.B ARCH
+Target architecture, one of i386 or x86_64
+.TP
+.B IMAGE
+Target image to upload and register
+.TP
+.B BUCKET
+Target bucket to publish the image to
+
+.SH DESCRIPTION
+Publish an image to a cloud
+
+.SH AUTHOR
+This manpage was written by Dustin Kirkland <kirkland@canonical.com> for Ubuntu systems (but may be used by others).  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
+
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.
