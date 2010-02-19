@@ -214,8 +214,10 @@ bucket="${3}"
 [ -n "${ramdisk_file}" -a -n "${ramdisk}" ] &&
 	bad_Usage "--ramdisk-file is incompatible with --ramdisk"
 
-[ -f "${kernel_file}" ] || fail "${kernel_file} is not a file"
-[ -f "${ramdisk_file}" ] || fail "${ramdisk_file} is not a file"
+[ -z "${kernel_file}" -o -f "${kernel_file}" ] ||
+	fail "${kernel_file} is not a file"
+[ -z "${ramdisk_file}" -o -f "${ramdisk_file}" ] ||
+	fail "${ramdisk_file} is not a file"
 
 if [ "${img_type}" = "auto" ]; then
 	get_image_type "${image}" ||
