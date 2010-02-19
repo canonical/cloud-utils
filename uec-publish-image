@@ -248,12 +248,8 @@ fi
 
 # bundle-kernel doesn't like for file to exist in destination-dir
 # so, create it one dir under there
-#
-# due to a bug in euca2ools (LP: #522292), have to 'cp' here if ln fails
-# soft link would be nice
-RENAME_D=$(mktemp -d "${wdir}/.rename.XXXXXX") &&
-	{ ln -f "${image_full}" "${RENAME_D}/${rename}" 2>/dev/null ||
-	  cp "${image_full}" "${RENAME_D}/${rename}"; } &&
+RENAME_D=$(mktemp -d "${image_full%/*}/.rename.XXXXXX") &&
+	ln -f "${image_full}" "${RENAME_D}/${rename}" &&
 	rename_full="${RENAME_D}/${rename}" ||
 	fail "link failed: working-dir/rename/${rename} -> ${image_full}"
 
