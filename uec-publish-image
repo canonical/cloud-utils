@@ -45,14 +45,18 @@ Usage: ${0##*/} [ options ] arch image bucket
          --allow-existing         : if a image is already registered
                                     simply report as if work was done
       -o|--output <file>          : write registered id and manifest to file
-      -r|--rename <publish_path>  : publish to bucket/<publish_path>
+        |--rename <publish_path>  : publish to bucket/<publish_path>
                                     default: bucket/<basename(image)>
       -t|--type   <type>          : type is one of kernel/ramdisk/image
       -v|--verbose                : increase verbosity
 
    if type is 'image', then:
-      -i|--ramdisk  ari           : the ari to register image with
-      -k|--kernel   aki           : the aki to register image with
+      -k | --kernel  k        : use previously registered kernel with id 'k'
+                                specify 'none' for no kernel
+      -K | --kernel-file f    : bundle, upload, use file 'f' as kernel
+      -r | --ramdisk r        : use previously registered ramdisk with id 'r'
+                                specify 'none' for no ramdisk
+      -R | --ramdisk-file f   : bundle, upload, use file 'f' as ramdisk
 EOF
 }
 
@@ -125,8 +129,15 @@ get_image_type() {
 	return 0
 }
 
-short_opts="hi:k:l:no:r:t:vw:"
-long_opts="add-launch:,allow-existing,dry-run,help,kernel:,name:,output:,ramdisk:,rename:,type:,verbose,working-dir:"
+upload_register() {
+	local out=""
+	out=$(uec-publish-image "${@}") || return
+	set -- ${out}
+	_RET=${2}
+}
+
+short_opts="h:k:K:l:no:r:R:t:vw:"
+long_opts="add-launch:,allow-existing,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -140,8 +151,10 @@ dry_run=0
 image=""
 img_type="auto"
 kernel=""
+kernel_file=""
 output=""
 ramdisk=""
+ramdisk_file=""
 rename=""
 name=""
 wdir_in=""
@@ -152,6 +165,7 @@ while [ $# -ne 0 ]; do
 		-d|--working-dir) wdir_in=${next}; shift;;
 		-h|--help) Usage; exit 0;;
 		-k|--kernel) kernel=${next}; shift;;
+		-K|--kernel-file) kernel_file=${next}; shift;;
 		-l|--add-launch)
 			if [ "${next}" = "none" ]; then
 				add_acl=""
@@ -162,9 +176,10 @@ while [ $# -ne 0 ]; do
 			shift;;
 		   --name) name=${next}; shift;;
 		-o|--output) output="${next}"; shift;;
-		-i|--ramdisk) ramdisk=${next}; shift;;
+		-r|--ramdisk) ramdisk=${next}; shift;;
+		-R|--ramdisk-file) ramdisk_file=${next}; shift;;
 		-n|--dry-run) dry_run=1;;
-		-r|--rename) rename=${next}; shift;;
+		   --rename) rename=${next}; shift;;
 		-t|--type) 
 			img_type=${next};
 			search_args "${img_type}" "${IMAGE_TYPES[@]}" ||
@@ -193,6 +208,14 @@ bucket="${3}"
 
 [ "${img_type}" = "vmlinuz" ] && img_type="kernel"
 [ "${img_type}" = "initrd" ] && img_type="ramdisk"
+
+[ -n "${kernel_file}" -a -n "${kernel}" ] &&
+	bad_Usage "--kernel-file is incompatible with --kernel"
+[ -n "${ramdisk_file}" -a -n "${ramdisk}" ] &&
+	bad_Usage "--ramdisk-file is incompatible with --ramdisk"
+
+[ -f "${kernel_file}" ] || fail "${kernel_file} is not a file"
+[ -f "${ramdisk_file}" ] || fail "${ramdisk_file} is not a file"
 
 if [ "${img_type}" = "auto" ]; then
 	get_image_type "${image}" ||
@@ -239,6 +262,22 @@ RENAME_D=$(mktemp -d "${wdir}/.rename.XXXXXX") &&
 reg_id=""
 
 manifest="${rename}.manifest.xml"
+
+if [ -n "${kernel_file}" ]; then
+	debug 1 "publishing kernel ${kernel_file}"
+	upload_register --type kernel "${arch}" "${kernel_file}" "${bucket}" ||
+		fail "failed to register ${kernel_file}"
+	kernel=${_RET}
+	debug 1 "kernel registered as ${kernel}"
+fi
+
+if [ -n "${ramdisk_file}" ]; then
+	debug 1 "publishing ramdisk ${kernel_file}"
+	upload_register --type ramdisk "${arch}" "${kernel_file}" "${bucket}" ||
+		fail "failed to register ${ramdisk_file}"
+	ramdisk=${_RET}
+	debug 1 "ramdisk registered as ${ramdisk}"
+fi
 
 krd_args=( );
 [ -n "${kernel}" -a "${kernel}" != "none" ] &&

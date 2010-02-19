@@ -19,14 +19,19 @@ if a image is already registered simply report as if work was done
 .B -o|--output <file>
 write registered id and manifest to file
 .TP
-.B -r|--rename <publish_path>
+.B    --rename <publish_path>
 publish to bucket/<publish_path>, default: bucket/<basename(image)>
 .TP
 .B -t|--type   <type>
-type is one of kernel/ramdisk/image
+type is one of kernel/ramdisk/image.
 if type is 'image', then:
-      -i|--ramdisk  ari           : the ari to register image with
-      -k|--kernel   aki           : the aki to register image with
+  -k | --kernel       k : use previously registered kernel with id 'k'
+                          specify 'none' for no kernel
+  -K | --kernel-file  f : bundle, upload, use file 'f' as kernel
+  -r | --ramdisk      r : use previously registered ramdisk with id 'r'
+                          specify 'none' for no ramdisk
+  -R | --ramdisk-file f : bundle, upload, use file 'f' as ramdisk
+
 .TP
 .B -v|--verbose
 increase verbosity

@@ -3,8 +3,9 @@ cloud-utils (0.3ubuntu2) lucid; urgency=low
   * uec-publish-image: use hard link instead of soft, work around
     euca2ools bug (LP: #522292)
   * uec-publish-image: remove temp dir if --working-dir is given
+  * uec-publish-image: add --kernel-file, --ramdisk-file flags
 
- -- Scott Moser <smoser@ubuntu.com>  Thu, 18 Feb 2010 19:56:47 -0500
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 18 Feb 2010 20:17:49 -0500
 
 cloud-utils (0.3ubuntu1) lucid; urgency=low
 
