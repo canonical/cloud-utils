@@ -1,4 +1,4 @@
-cloud-utils (0.3ubuntu2) lucid; urgency=low
+cloud-utils (0.4ubuntu1) UNRELEASED; urgency=low
 
   * uec-publish-image: use hard link instead of soft, work around
     euca2ools bug (LP: #522292)
