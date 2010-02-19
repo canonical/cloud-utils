@@ -1,3 +1,9 @@
+cloud-utils (0.3ubuntu2) lucid; urgency=low
+
+  * use hard link instead of soft, work around euca2ools bug (LP: #522292)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 18 Feb 2010 19:43:58 -0500
+
 cloud-utils (0.3ubuntu1) lucid; urgency=low
 
   [ Dustin Kirkland ]
