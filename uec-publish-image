@@ -221,8 +221,8 @@ else
 	TMPD=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX) ||
 		fail "failed to make tmpdir"
 	wdir="${TMPD}"
-	trap cleanup EXIT
 fi
+trap cleanup EXIT
 
 if [ -e "${wdir}/${rename}" ]; then
 	[ "${wdir}/${rename}" -ef "${img}" ] ||
