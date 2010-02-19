@@ -54,7 +54,7 @@ upload_register() {
 	local out=""
 	out=$(uec-publish-image "${@}") || return
 	set -- ${out}
-	_RET=${2}
+	_RET=${1}
 }
 
 

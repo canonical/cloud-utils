@@ -133,7 +133,7 @@ upload_register() {
 	local out=""
 	out=$(uec-publish-image "${@}") || return
 	set -- ${out}
-	_RET=${2}
+	_RET=${1}
 }
 
 short_opts="h:k:K:l:no:r:R:t:vw:"
@@ -227,14 +227,6 @@ fi
 
 [ -n "${rename}" ] || rename=${image##*/}
 
-if [ ${VERBOSITY} -ge 1 -o ${dry_run} -ne 0 ]; then
-	[ -n "${kernel}" ] && krd_fmt=" %s/%s" &&
-		krd_args=( "${kernel}" "${ramdisk}" )
-	errorp "[%-6s] %s => %s/%s ${krd_fmt}\n" "${img_type}" \
-		"${image##*/}" "${bucket}" "${rename}" "${krd_args[@]}"
-	[ ${dry_run} -ne 0 ] && exit
-fi
-
 image_full=$(readlink -f "${image}") ||
 	fail "failed to get full path to ${image}"
 
@@ -256,8 +248,12 @@ fi
 
 # bundle-kernel doesn't like for file to exist in destination-dir
 # so, create it one dir under there
+#
+# due to a bug in euca2ools (LP: #522292), have to 'cp' here if ln fails
+# soft link would be nice
 RENAME_D=$(mktemp -d "${wdir}/.rename.XXXXXX") &&
-	ln -f "${image_full}" "${RENAME_D}/${rename}" &&
+	{ ln -f "${image_full}" "${RENAME_D}/${rename}" 2>/dev/null ||
+	  cp "${image_full}" "${RENAME_D}/${rename}"; } &&
 	rename_full="${RENAME_D}/${rename}" ||
 	fail "link failed: working-dir/rename/${rename} -> ${image_full}"
 
@@ -265,20 +261,46 @@ reg_id=""
 
 manifest="${rename}.manifest.xml"
 
+# set up "pass through" args to go through to kernel/ramdisk publishing
+pthr=( )
+[ $VERBOSITY -eq 0 ] || pthr[${#pthr[@]}]="--verbose"
+[ ${allow_existing} -eq 0 ] || pthr[${#pthr[@]}]="--allow-existing"
+[ -z "${add_acl}" ] ||
+	{ pthr[${#pthr[@]}]="--add-launch"; pthr[${#pthr[@]}]="${add_acl}"; }
+[ ${dry_run} -eq 0 ] || pthr[${#pthr[@]}]="--dry-run"
+
 if [ -n "${kernel_file}" ]; then
 	debug 1 "publishing kernel ${kernel_file}"
-	upload_register --type kernel "${arch}" "${kernel_file}" "${bucket}" ||
+	upload_register --type kernel "${pthr[@]}" \
+		"${arch}" "${kernel_file}" "${bucket}" ||
 		fail "failed to register ${kernel_file}"
 	kernel=${_RET}
 	debug 1 "kernel registered as ${kernel}"
 fi
 
 if [ -n "${ramdisk_file}" ]; then
-	debug 1 "publishing ramdisk ${kernel_file}"
-	upload_register --type ramdisk "${arch}" "${kernel_file}" "${bucket}" ||
+	debug 1 "publishing ramdisk ${ramdisk_file}"
+	upload_register --type ramdisk "${pthr[@]}" \
+		"${arch}" "${ramdisk_file}" "${bucket}" ||
 		fail "failed to register ${ramdisk_file}"
 	ramdisk=${_RET}
 	debug 1 "ramdisk registered as ${ramdisk}"
+fi
+
+if [ ${VERBOSITY} -ge 1 -o ${dry_run} -ne 0 ]; then
+	[ -n "${kernel}" ] && krd_fmt=" %s/%s" &&
+		krd_args=( "${kernel}" "${ramdisk:-none}" )
+	errorp "[%-6s] %s => %s/%s ${krd_fmt}\n" "${img_type}" \
+		"${image##*/}" "${bucket}" "${rename}" "${krd_args[@]}"
+	if [ ${dry_run} -ne 0 ]; then
+		case "${img_type}" in
+			kernel) pre="eki";;
+			ramdisk) pre="eri";;
+			image) pre="emi";;
+		esac
+		printf "%s\t%s\n" "${pre}-xxxxxxxx" "${bucket}/${rename##*/}"
+		exit
+	fi
 fi
 
 krd_args=( );
@@ -317,7 +339,7 @@ else
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
 		euca-register "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
-		cat ${wdir}/register.stderr ${wdir}/register.stdout &&
+		cat ${wdir}/register.stderr &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
 			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
 			   [ -n "${bad}" ]; then
