@@ -113,7 +113,7 @@ def handle_config(option, opt_str, value, parser):
         f.close()
     except:
         raise optparse.OptionValueError("unable to open %s" % value)
-    for n in result_fields:
+    for n in result_fields + ( "stream", ):
         if n in cfg:
             setattr(parser.values,n,cfg[n])
     return

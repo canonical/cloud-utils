@@ -1,3 +1,12 @@
+cloud-utils (0.6-0ubuntu1) lucid; urgency=low
+
+  * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
+    ssh-import-lp-id, ssh-import-lp-id.1:
+    - add a utility and a binary package for conveniently importing
+      public ssh keys from Launchpad by a LP user id, LP: #524226
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 23 Feb 2010 20:32:40 -0600
+
 cloud-utils (0.5-0ubuntu1) lucid; urgency=low
 
   [ Scott Moser ]
@@ -12,7 +21,7 @@ cloud-utils (0.4-0ubuntu1) lucid; urgency=low
 
   * Fix package versioning
 
- -- Dustin Kirkland < kirkland@ubuntu.com>   Thu, 18 Feb 2010 15:04:39 -0600
+ -- Dustin Kirkland < kirkland@ubuntu.com>  Thu, 18 Feb 2010 15:04:39 -0600
 
 cloud-utils (0.3ubuntu1) lucid; urgency=low
 

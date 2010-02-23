@@ -1,0 +1,85 @@
+#!/bin/sh
+#
+#    ssh-import-lp-id - authorize a user by fetching their key
+#                       from Launchpad.net
+#
+#    Copyright (C) 2010 Canonical Ltd.
+#
+#    Author: Dustin Kirkland <kirkland@canonical.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, version 3 of the License.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Abort on any unhandled error
+set -e
+
+error() {
+	printf "ERROR: %s\n" "$@" 1>&2
+	exit 1
+}
+
+warn() {
+	printf "WARNING: %s\n" "$@" 1>&2
+}
+
+info() {
+	printf "INFO: %s\n" "$@"
+}
+
+url_encode() {
+	# from http://andy.wordpress.com/2008/09/17/urlencode-in-bash-with-perl/
+	printf "%s" "$1" | perl -pe's/([^-_.~A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg'
+}
+
+validate_keys() {
+	# Prune invalid characters and blank lines
+	sed -i -e 's/[^a-zA-Z0-9@: .\/=+-]//g' -e '/^$/d' "$1"
+	# Count lines
+	lines=$(cat "$1" | wc -l)
+	# Count valid keys
+	keys=$(grep -c "^ssh-[dr]sa [a-zA-Z0-9: .\/=+-]\+= " "$1")
+	# Validate counts match, and >0
+	[ $lines -gt 0 ] && [ $keys -eq $lines ]
+}
+
+# The following URL *must* be an https address with a valid, signed certificate!!!
+URL="https://launchpad.net/~%s/+sshkeys"
+
+# Only support writing to this user's authorized_keys file
+DIR="$HOME/.ssh"
+FILE="$DIR"/authorized_keys
+
+mkdir -m 0700 "$DIR" 2>/dev/null || true
+[ -d "$DIR" ] || error "Cannot create directory [$DIR]"
+
+rc=0
+tmp=$(mktemp)
+trap "rm -f $tmp" EXIT HUP INT QUIT TERM
+for i in "$@"; do
+	i=$(url_encode "$i") || error "Failed encoding [$i]"
+	url=$(printf "$URL" "$i")
+	if env -i wget --quiet -O- "$url" > "$tmp"; then
+		echo >> "$tmp" # needed for wc
+		if ! validate_keys "$tmp"; then
+			warn "Invalid keys at [$url]"
+			continue
+		fi
+		cat "$FILE" >> "$tmp" || error "Could not write to [$tmp]"
+		# Prune duplicate entries
+		sort -u "$tmp" > "$FILE" || error "Could not sort [$FILE]"
+		info "Successfully authorized [$i]"
+	else
+		rc=$?
+		warn "Failed to retrieve key for [$i] from [$url]"
+	fi
+done
+exit $rc
