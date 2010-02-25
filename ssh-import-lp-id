@@ -55,17 +55,20 @@ validate_keys() {
 URL="https://launchpad.net/~%s/+sshkeys"
 
 # Only support writing to this user's authorized_keys file
-uid=$(id -u) || error "Cannot determine user id"
-[ -z "$uid" ] && error "User id cannot be empty"
-pwline=$(getent passwd "$uid") || error "Cannot get passwd entry"
-HOME=$(echo "$pwline" | awk -F: '{print $6}') || error "Cannot determine home directory"
-[ -z "$HOME" ] && error "Home directory cannot be empty"
+if [ -z "$HOME" ]; then
+	uid=$(id -u) || error "Cannot determine user id"
+	[ -n "$uid" ] || error "User id cannot be empty"
+	pwline=$(getent passwd "$uid") || error "Cannot get passwd entry"
+	HOME=$(echo "$pwline" | awk -F: '{print $6}') || error "Cannot determine home directory"
+	[ -n "$HOME" ] || error "Home directory cannot be empty"
+fi
 
 DIR="$HOME/.ssh"
 FILE="$DIR"/authorized_keys
 
 mkdir -m 0700 "$DIR" 2>/dev/null || true
 [ -d "$DIR" ] || error "Cannot create directory [$DIR]"
+[ -w "$DIR" ] || error "Cannot write to directory [$DIR]"
 
 rc=0
 tmp=$(mktemp)
