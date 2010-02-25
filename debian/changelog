@@ -1,3 +1,9 @@
+cloud-utils (0.7-0ubuntu1) UNRELEASED; urgency=low
+
+  * ssh-import-lp-id: ensure that $HOME is set properly, LP: #528029
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 25 Feb 2010 15:52:46 -0600
+
 cloud-utils (0.6-0ubuntu1) lucid; urgency=low
 
   * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
