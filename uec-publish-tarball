@@ -110,6 +110,11 @@ fi
 [ -f "${tarball}" ] && tbf=$(readlink -f "${tarball}") ||
 	fail "bad tarball: ${tarball}";
 
+# before extracting the tarball, try to verify that the environment
+# is set up, by invoking another euca command (LP: #526504)
+euca-describe-images >/dev/null ||
+	fail "Unable to run euca-describe-images.  Is euca2ools environment set up?"
+
 TMPD=$(mktemp -d ${TEMPDIR:-/tmp}/${0##*/}.XXXXXX) || fail "failed make temp"
 trap cleanup EXIT
 
