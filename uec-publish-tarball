@@ -147,12 +147,6 @@ error "kernel : ${eki:-${kernel}}"
 error "ramdisk: ${eri:-${ramdisk}}"
 error "image  : ${image##*/}"
 
-tmp_rd=${TMPD}/tmp-ramdisk
-tmp_kn=${TMPD}/tmp-kernel
-tmp_im=${TMPD}/tmp-image
-
-mkdir ${tmp_rd} ${tmp_kn} ${tmp_im}
-
 if [ -n "${kernel}" ]; then
 	log "bundle/upload kernel"
 	upload_register --type kernel "${iarch}" "${kernel}" "${bucket}" ||
