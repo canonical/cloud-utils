@@ -45,6 +45,10 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
                               specify 'none' for no ramdisk
       -R | --ramdisk-file f   bundle, upload, use file 'f' as ramdisk
 
+           --resize  s        resize the image to 's' bundling uploading
+                              's' must be valid input to uec-resize-image
+
+
    Example:
    - ${0##*/} lucid-uec-i386.tar.gz my-lucid-bucket i386
 EOF
@@ -59,11 +63,11 @@ upload_register() {
 
 
 short_opts="hk:K:r:R:"
-long_opts="help,kernel:,kernel-file:,ramdisk:,ramdisk-file:"
+long_opts="help,kernel:,kernel-file:,ramdisk:,ramdisk-file:,resize:"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
-    --options "${short_opts}" --long "${long_opts}" -- "$@") &&
-    eval set -- "${getopt_out}" ||
-    bad_Usage
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
 
 ramdisk=""
 kernel=""
@@ -71,6 +75,7 @@ eki=""
 eri=""
 image=""
 emi=""
+resize=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -87,6 +92,7 @@ while [ $# -ne 0 ]; do
 			[ -f "${next}" ] && ramdisk=$(readlink -f "${next}") ||
 				fail "failed to get path to ${next}"
 			shift;;
+		--resize) resize=${next}; shift;;
 	esac
 	shift;
 done
@@ -109,6 +115,11 @@ fi
 
 [ -f "${tarball}" ] && tbf=$(readlink -f "${tarball}") ||
 	fail "bad tarball: ${tarball}";
+
+# before extracting the tarball, try to verify that the environment
+# is set up, by invoking another euca command (LP: #526504)
+euca-describe-images >/dev/null ||
+	fail "Unable to run euca-describe-images.  Is euca2ools environment set up?"
 
 TMPD=$(mktemp -d ${TEMPDIR:-/tmp}/${0##*/}.XXXXXX) || fail "failed make temp"
 trap cleanup EXIT
@@ -142,11 +153,11 @@ error "kernel : ${eki:-${kernel}}"
 error "ramdisk: ${eri:-${ramdisk}}"
 error "image  : ${image##*/}"
 
-tmp_rd=${TMPD}/tmp-ramdisk
-tmp_kn=${TMPD}/tmp-kernel
-tmp_im=${TMPD}/tmp-image
-
-mkdir ${tmp_rd} ${tmp_kn} ${tmp_im}
+if [ -n "${resize}" ]; then
+	log "resizing ${image##*/} to ${resize}"
+	uec-resize-image "${image}" "${resize}" ||
+		fail "failed to resize image file to ${resize}"
+fi
 
 if [ -n "${kernel}" ]; then
 	log "bundle/upload kernel"
@@ -162,6 +173,7 @@ if [ -n "${ramdisk}" ]; then
 	eri=${_RET}
 fi
 
+log "bundle/upload image"
 upload_register --type image "${iarch}" "${image}" "${bucket}" \
 	--kernel "${eki}" --ramdisk "${eri}" ||
 		fail "failed bundle/upload/register of image"

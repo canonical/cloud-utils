@@ -248,8 +248,8 @@ fi
 
 # bundle-kernel doesn't like for file to exist in destination-dir
 # so, create it one dir under there
-RENAME_D=$(mktemp -d "${image_full%/*}/.rename.XXXXXX") &&
-	ln -f "${image_full}" "${RENAME_D}/${rename}" &&
+RENAME_D=$(mktemp -d "${wdir}/.rename.XXXXXX") &&
+	ln -s "${image_full}" "${RENAME_D}/${rename}" &&
 	rename_full="${RENAME_D}/${rename}" ||
 	fail "link failed: working-dir/rename/${rename} -> ${image_full}"
 
@@ -324,7 +324,7 @@ else
 	run "${wdir}" "bundle" "bundling ${img_type} ${image}" \
 		euca-bundle-image --destination "${wdir}" --arch "${arch}" \
 			"${bundle_args[@]}" "${krd_args[@]}" ||
-		fail "failed to bundle ${img_type} image"
+		fail "failed to bundle ${img_type} ${image}"
 
 	run "${wdir}" "upload" "upload ${bucket}/${manifest}" \
 		euca-upload-bundle --bucket "${bucket}" \

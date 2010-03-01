@@ -1,3 +1,12 @@
+cloud-utils (0.8-0ubuntu1) lucid; urgency=low
+
+  * uec-publish-image: return to using symbolic link for renaming 
+    (LP: #522292 is fixed)
+  * uec-publish-tarball: fail before extracting tarball if environment
+    is not set up for euca2ools (LP: #526504)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Mar 2010 12:02:53 -0500
+
 cloud-utils (0.7-0ubuntu1) lucid; urgency=low
 
   * ssh-import-lp-id: ensure that $HOME is set properly, LP: #528029;
