@@ -324,7 +324,7 @@ else
 	run "${wdir}" "bundle" "bundling ${img_type} ${image}" \
 		euca-bundle-image --destination "${wdir}" --arch "${arch}" \
 			"${bundle_args[@]}" "${krd_args[@]}" ||
-		fail "failed to bundle ${img_type} image"
+		fail "failed to bundle ${img_type} ${image}"
 
 	run "${wdir}" "upload" "upload ${bucket}/${manifest}" \
 		euca-upload-bundle --bucket "${bucket}" \
