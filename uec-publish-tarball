@@ -61,9 +61,9 @@ upload_register() {
 short_opts="hk:K:r:R:"
 long_opts="help,kernel:,kernel-file:,ramdisk:,ramdisk-file:"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
-    --options "${short_opts}" --long "${long_opts}" -- "$@") &&
-    eval set -- "${getopt_out}" ||
-    bad_Usage
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
 
 ramdisk=""
 kernel=""
