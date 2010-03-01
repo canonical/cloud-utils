@@ -1,3 +1,10 @@
+cloud-utils (0.8-0ubuntu1) UNRELEASED; urgency=low
+
+  * uec-publish-image: return to using symbolic link for renaming 
+    (LP: #522292 is fixed)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Mar 2010 12:02:53 -0500
+
 cloud-utils (0.7-0ubuntu1) lucid; urgency=low
 
   * ssh-import-lp-id: ensure that $HOME is set properly, LP: #528029;
