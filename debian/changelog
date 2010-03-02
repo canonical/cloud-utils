@@ -1,3 +1,16 @@
+cloud-utils (0.9-0ubuntu1) lucid; urgency=low
+
+  * ssh-import-lp-id:
+    - ensure that authorized_keys gets created with the right permissions
+      if it does not yet exist, LP: #531144
+    - drop the sort -u, as this is actually incorrect behavior (rearranging
+      the order of an existing authorized_keys file, even if to prune
+      duplicate entries, is wrong); this does mean that duplicate entries
+      might creep into the file, but the behavior is the same as
+      ssh-copy-id in this sense, LP: #531145
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 02 Mar 2010 23:53:05 -0600
+
 cloud-utils (0.8-0ubuntu1) lucid; urgency=low
 
   * uec-publish-image: return to using symbolic link for renaming 
