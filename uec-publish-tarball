@@ -173,6 +173,7 @@ if [ -n "${ramdisk}" ]; then
 	eri=${_RET}
 fi
 
+log "bundle/upload image"
 upload_register --type image "${iarch}" "${image}" "${bucket}" \
 	--kernel "${eki}" --ramdisk "${eri}" ||
 		fail "failed bundle/upload/register of image"
