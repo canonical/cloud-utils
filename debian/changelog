@@ -1,3 +1,11 @@
+cloud-utils (0.9-0ubuntu1) UNRELEASED; urgency=low
+
+  * ssh-import-lp-id:
+    - ensure that authorized_keys gets created with the right permissions
+      if it does not yet exist
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 02 Mar 2010 23:14:29 -0600
+
 cloud-utils (0.8-0ubuntu1) lucid; urgency=low
 
   * uec-publish-image: return to using symbolic link for renaming 

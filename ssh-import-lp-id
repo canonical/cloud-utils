@@ -79,6 +79,7 @@ FILE="$DIR"/authorized_keys
 mkdir -m 0700 "$DIR" 2>/dev/null || true
 [ -d "$DIR" ] || error "Cannot create directory [$DIR]"
 [ -w "$DIR" ] || error "Cannot write to directory [$DIR]"
+[ -e "$FILE" ] || (umask 0177 && touch "$FILE") || error "Cannot create [$FILE]"
 
 rc=0
 tmp=$(mktemp)
