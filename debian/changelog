@@ -1,4 +1,4 @@
-cloud-utils (0.8-0ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.8-0ubuntu1) lucid; urgency=low
 
   * uec-publish-image: return to using symbolic link for renaming 
     (LP: #522292 is fixed)
