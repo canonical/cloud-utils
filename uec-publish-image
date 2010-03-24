@@ -354,9 +354,9 @@ fi
 debug 1 "${img_id} ${bucket}/${manifest}"
 
 if [ -z "${output}" -o "${output}" = "-" ]; then
-	printf "%s\t%s\t%s\n" "${img_id}" "${bucket}/${manifest}"
+	printf "%s\t%s\n" "${img_id}" "${bucket}/${manifest}"
 else
-	printf "%s\t%s\t%s\n" "${img_id}" "${bucket}/${manifest}" >> "${output}"
+	printf "%s\t%s\n" "${img_id}" "${bucket}/${manifest}" >> "${output}"
 fi
 
 for user in ${add_acl}; do
