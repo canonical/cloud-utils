@@ -5,9 +5,10 @@ cloud-utils (0.10-0ubuntu1) UNRELEASED; urgency=low
   * uec-publish-image:
     - remove trailing slash on bucket input which caused failed register
     - remove trailing tab in output
+    - on error, make sure user sees command output
   * uec-resize-image: make quiet by default, add --verbose,-v
 
- -- Scott Moser <smoser@ubuntu.com>  Tue, 23 Mar 2010 12:22:49 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 24 Mar 2010 17:59:33 -0400
 
 cloud-utils (0.9-0ubuntu1) lucid; urgency=low
 

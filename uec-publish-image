@@ -85,6 +85,7 @@ run() {
 	"$@" > "${dir}/${pre}.stdout" 2> "${dir}/${pre}.stderr" &&
 		: > "${dir}/stamp.${pre}" && return 0
 	local ret=$?
+	cat "${dir}/${pre}.stdout"
 	cat "${dir}/${pre}.stderr" 1>&2
 	return ${ret}
 }
@@ -109,7 +110,7 @@ checkstatus() {
 
 get_manifest_id() {
 	local str="${1}" cmp="~" tmpf="" out="" ret=1
-    out=$(euca-describe-images -a |
+	out=$(euca-describe-images -a |
 	        awk '$3 '$cmp' p { printf("%s\t%s\n",$2,$3); }' "p=${str}" ;
 			checkstatus ${PIPESTATUS[@]}) || return 1
 	_RET=${out}
@@ -338,7 +339,6 @@ else
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
 		euca-register "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
-		cat ${wdir}/register.stderr &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
 			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
 			   [ -n "${bad}" ]; then
@@ -347,8 +347,7 @@ else
 				error "un-registering invalid $bad" >/dev/null
 				euca-deregister "${bad_id}"
 			fi
-			failp "failed to register ${manifest}.%s\n" \
-				"${junk:+ output:${junk} ${img_id}}"
+			fail "failed to register ${manifest}.%s"
 		}
 
 	debug 1 "registered at ${bucket}/${manifest} as ${img_id}"
