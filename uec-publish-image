@@ -199,6 +199,9 @@ arch="${1}"
 image="${2}"
 bucket="${3}"
 
+# remove any trailing slashes on bucket
+while [ "${bucket%/}" != "${bucket}" ]; do bucket=${bucket%/}; done
+
 [ "${arch}" = "amd64" ] && arch=x86_64
 
 [ "$arch" = "i386" -o "$arch" = "x86_64" ] ||
