@@ -1,0 +1,70 @@
+#!/usr/bin/python
+#
+#    uec-run-instances - wrapper for euca-run-instance that supports
+#      -l|--launchpad-id option, for injecting public ssh keys
+#      retrievable from Launchpad.net
+#    Copyright (C) 2010 Canonical Ltd.
+#
+#    Authors: Dustin Kirkland <kirkland@canonical.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, version 3 of the License.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import os, string, sys
+
+def usage():
+	usage = "\n\
+Usage:\n\
+  uec-run-instances [-l|--launchpad-id lp_id_1,lp_id_2,lp_id_3]\n\
+                    [euca-run-instances options]\n\
+\n\
+  This program is a wrapper script for euca-run-instances(1) that takes one\n\
+  additional option, -l|--launchpad-id.  With this option, a user can\n\
+  specify a comma-separated list of Launchpad.net usernames.  Once the\n\
+  instance is booted, the cloud-init boot script will retrieve the\n\
+  public ssh keys of the specified users from Launchpad.net using\n\
+  ssh-import-lp-id(1).\n\
+\n\
+  All other options besides [-l|--launchpad-id] are simply passed\n\
+  on to euca-run-instances(1).\n"
+	print(usage)
+	sys.exit(1)
+
+if len(sys.argv) < 2:
+	usage()
+
+lp_ids = ""
+user_data_str = ""
+i = 0
+args = sys.argv
+del(args[i])
+while i < len(args):
+	if args[i] == "-l" or args[i] == "--launchpad-id":
+		del(args[i])
+		lp_ids = args[i]
+		del(args[i])
+	i += 1
+
+if len(lp_ids) > 0:
+	i = 1
+	while i < len(args):
+		if args[i] == "-d" or args[i] == "--user-data" or args[i] == "-f" or args[i] == "--user-data-file":
+			print("ERROR: User data is not supported with the -l|--launchpad-id option")
+			sys.exit(1)
+		i += 1
+	lp_ids = string.replace(lp_ids, ",", " ")
+	args.insert(0, "#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id %s" % lp_ids)
+	args.insert(0, "-d")
+
+args.insert(0, "euca-run-instances")
+os.execvp("euca-run-instances", args)

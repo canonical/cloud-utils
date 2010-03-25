@@ -1,5 +1,6 @@
 cloud-utils (0.10-0ubuntu1) UNRELEASED; urgency=low
 
+  [ Scott Moser ]
   * ssh-import-lp-id: allow dss keys
   * uec-publish-tarball: add -q/--quiet flag
   * uec-publish-image:
@@ -8,6 +9,11 @@ cloud-utils (0.10-0ubuntu1) UNRELEASED; urgency=low
     - on error, make sure user sees command output
     - add -B/--device-block-mapping pass through to euca-bundle-image
   * uec-resize-image: make quiet by default, add --verbose,-v
+
+  [ Dustin Kirkland ]
+  * debian/install, debian/manpages, uec-run-instances,
+    uec-run-instances.1: add a wrapper for euca-run-instances that
+    can easily/cleanly inject ssh keys from Launchpad.net, LP: #524101
 
  -- Scott Moser <smoser@ubuntu.com>  Wed, 24 Mar 2010 21:17:27 -0400
 

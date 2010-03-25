@@ -2,3 +2,4 @@ uec-publish-image.1
 uec-publish-tarball.1
 uec-query-builds.1
 uec-resize-image.1
+uec-run-instances.1
