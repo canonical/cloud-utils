@@ -57,6 +57,7 @@ Usage: ${0##*/} [ options ] arch image bucket
       -r | --ramdisk r        : use previously registered ramdisk with id 'r'
                                 specify 'none' for no ramdisk
       -R | --ramdisk-file f   : bundle, upload, use file 'f' as ramdisk
+      -B | --block-device-mapping m : specify block device mapping in bundle
 EOF
 }
 
@@ -85,6 +86,7 @@ run() {
 	"$@" > "${dir}/${pre}.stdout" 2> "${dir}/${pre}.stderr" &&
 		: > "${dir}/stamp.${pre}" && return 0
 	local ret=$?
+	echo "failed: ${*}"
 	cat "${dir}/${pre}.stdout"
 	cat "${dir}/${pre}.stderr" 1>&2
 	return ${ret}
@@ -137,8 +139,8 @@ upload_register() {
 	_RET=${1}
 }
 
-short_opts="h:k:K:l:no:r:R:t:vw:"
-long_opts="add-launch:,allow-existing,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,type:,verbose,working-dir:"
+short_opts="B:h:k:K:l:no:r:R:t:vw:"
+long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -159,12 +161,14 @@ ramdisk_file=""
 rename=""
 name=""
 wdir_in=""
+dev_mapping=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
 		-d|--working-dir) wdir_in=${next}; shift;;
 		-h|--help) Usage; exit 0;;
+		-B|--block-device-mapping) dev_mapping=${next}; shift;;
 		-k|--kernel) kernel=${next}; shift;;
 		-K|--kernel-file) kernel_file=${next}; shift;;
 		-l|--add-launch)
@@ -228,6 +232,9 @@ if [ "${img_type}" = "auto" ]; then
 		fail "failed to determine file type of ${image}"
 	img_type=${_RET}
 fi
+
+[ -n "${dev_mapping}" -a "${img_type}" != "image" ] &&
+	fail "-B/--block-device-mapping can only be specified for --type=image"
 
 [ -n "${rename}" ] || rename=${image##*/}
 
@@ -320,6 +327,9 @@ if [ -n "${_RET}" ]; then
 	debug 1 "using existing ${img_id} for ${bucket}/${manifest}"
 else
 	bundle_args=( "--image" "${rename_full}" )
+	[ -n "${dev_mapping}" ] &&
+		bundle_args[${#bundle_args[@]}]="--block-device-mapping=${dev_mapping}"
+
 	case "${img_type}" in
 		kernel|ramdisk)
 			bundle_args[${#bundle_args[@]}]="--${img_type}"
