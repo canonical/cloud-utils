@@ -9,6 +9,7 @@ cloud-utils (0.10-0ubuntu1) UNRELEASED; urgency=low
     - on error, make sure user sees command output
     - add -B/--device-block-mapping pass through to euca-bundle-image
   * uec-resize-image: make quiet by default, add --verbose,-v
+  * uec-query-builds: support querying 'latest-ec2'
 
   [ Dustin Kirkland ]
   * debian/install, debian/manpages, uec-run-instances,

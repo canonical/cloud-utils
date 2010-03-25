@@ -53,8 +53,8 @@ for i in range(len(result_fields)):
     fields[result_fields[i]]=i
 
 qtype_summary="summary"
-qtype_current="current"
 qtype_all="all"
+qtype_ec2_current="ec2_current"
 
 def limiter(data,limits):
     ret=[ ]
@@ -78,7 +78,7 @@ def get_data(opts, type):
     if type == qtype_summary:
         checkopts(opts, ( "stream", "base_url" ))
         url = "%s/%s.latest.txt" % (opts.base_url, opts.stream )
-    elif type == qtype_current:
+    elif type == qtype_ec2_current:
         checkopts(opts, ( "stream", "suite", "build_name", "base_url" ))
         url = "%s/%s/%s/%s.current.txt" % \
             (opts.base_url, opts.suite, opts.build_name, opts.stream )
@@ -120,7 +120,7 @@ def handle_config(option, opt_str, value, parser):
 
 def main():
     parser = optparse.OptionParser()
-    modes = ( "is-update-available", "latest" )
+    modes = ( "is-update-available", "latest", "latest-ec2" )
 
     parser.add_option("--suite", dest="suite", metavar="SUITE",
         help="suite to query ('hardy', 'karmic', 'lucid')")
@@ -145,6 +145,15 @@ def main():
         action="callback", callback=handle_config, type="string",
         help="yaml config file to read")
 
+    parser.add_option("--region", dest="ec2_region", metavar="REGION",
+        help="the ec2 region to query")
+
+    parser.add_option("--img-type", dest="img_type", metavar="TYPE",
+        help="the ec2 image type (one of: ebs, instance)")
+
+    parser.add_option("--arch", dest="arch", metavar="ARCH",
+        help="the architecture. (one of: i386, amd64)")
+
     #parser.add_option("-v","--verbose", dest="verbose",
     #    action="store_true", default=False,
     #    help="increase verbosity")
@@ -159,6 +168,8 @@ def main():
         output = sys.stdout
     else:
         output=open(opts.output_fname,"w")
+
+    if opts.arch == "x86_64": opts.arch="amd64"
 
     if opts.system_suite:
         cmd=['lsb_release', '--codename', '--short' ]
@@ -191,6 +202,14 @@ def main():
                 output.write("%s\n" % '\t'.join(result))
             else:
                 output.write("")
+    elif args[0] == "latest-ec2":
+        checkopts(opts, ("stream", "base_url", "build_name", "suite" ))
+        data = get_data(opts,qtype_ec2_current)
+        limits = { "region": opts.ec2_region,
+            "img_type" : opts.img_type , "arch": opts.arch }
+        result = limiter(data,limits)
+        for row in limiter(data,limits):
+            output.write("%s\n" % '\t'.join(row))
     else:
         parser.error("Unknown mode %s" % args[0])
 
