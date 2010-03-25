@@ -1,0 +1,24 @@
+.TH uec-run-instances 1 "24 Mar 2010" cloud-utils "cloud-utils"
+.SH NAME
+\fBuec-run-instances\fP - wrapper for euca-run-instances that supports an option for injecting public ssh keys retrievable from \fILaunchpad.net\fP
+
+.SH SYNOPSIS
+.BI "uec-run-instances [-l|--launchpad-id lp_id_1,lp_id_2,lp_id_3] [euca-run-instances options]
+
+.SH DESCRIPTION
+This program is a wrapper script for \fBeuca-run-instances\fP(1) that takes one additional option, \fB-l|--launchpad-id\fP.
+
+With this option, a user can specify a comma-separated list of \fILaunchpad.net\fP usernames.
+
+Once the instance is booted, the cloud-init boot script will retrieve the public ssh keys of the specified users from Launchpad.net using \fBssh-import-lp-id\fP(1).
+
+All other options besides \fB-l|--launchpad-id\fP are simply passed on to \fBeuca-run-instances\fP(1).
+
+.SH SEE ALSO
+\fBeuca-run-instances\fP(1), \fBssh-import-lp-id\fP(1)
+
+.SH AUTHOR
+This manpage and the utility was written by Dustin Kirkland <kirkland@canonical.com> for Ubuntu systems (but may be used by others).  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
+
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.
+

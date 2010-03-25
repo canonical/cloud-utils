@@ -21,11 +21,14 @@
 
 Usage() {
 	cat <<EOF
-Usage: ${0##*/} image size [output]
+Usage: ${0##*/} [ options ] image size [output]
    Resize a UEC image to a new size.
    if output is given, do not modify 'image', but create new file 'output'
 
    New size is specified per resize2fs(8), e.g. "1G" for 1 gigabyte
+
+   options:
+      -v | --verbose    show command output
 EOF
 	return 0
 }
@@ -61,7 +64,22 @@ xtruncate() {
    fi
 }
 
+runcmd() {
+   local output=$1
+   shift;
+   if [ "$output" = "0" ]; then
+      local out="" ret=0;
+      out=$("${@}" 2>&1) || { ret=$?; error "${out}"; return $ret; }
+   else
+      "$@"
+   fi
+}
+
 [ "$1" = "-h" -o "$1" = "--help" ] && { Usage; exit 0; }
+
+verbose=0
+[ "$1" = "-v" -o "$1" = "--verbose" ] &&
+   { verbose=1; shift; }
 
 [ $# -eq 3 -o $# -eq 2 ] || { Usage 1>&2; exit 1; }
 
@@ -109,16 +127,20 @@ ls_out=$(ls -l "${new}") &&
    old_size=$(echo "${ls_out}" | awk '{print $5}') ||
    fail "failed to get size of ${new_img}"
 
-e2fsck -fp "$new" || fail "failed to fsck ${new}"
+runcmd "${verbose}" e2fsck -fp "${new}" ||
+   fail "failed to fsck ${new}"
 
 if [ "${old_size}" -lt "${new_size}" ]; then
    xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
 fi
 
-resize2fs "$new" "$size" || fail "failed to resize ${new} -> ${size}"
+runcmd "${verbose}" resize2fs "$new" "$size" ||
+   fail "failed to resize ${new} -> ${size}"
 
 if [ "${old_size}" -gt "${new_size}" ]; then
    xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
 fi
+
+echo "resized ${new} to ${size}"
 
 exit 0

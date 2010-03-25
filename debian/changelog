@@ -1,3 +1,23 @@
+cloud-utils (0.10-0ubuntu1) lucid; urgency=low
+
+  [ Scott Moser ]
+  * ssh-import-lp-id: allow dss keys
+  * uec-publish-tarball: add -q/--quiet flag
+  * uec-publish-image:
+    - remove trailing slash on bucket input which caused failed register
+    - remove trailing tab in output
+    - on error, make sure user sees command output
+    - add -B/--device-block-mapping pass through to euca-bundle-image
+  * uec-resize-image: make quiet by default, add --verbose,-v
+  * uec-query-builds: support querying 'latest-ec2'
+
+  [ Dustin Kirkland ]
+  * debian/install, debian/manpages, uec-run-instances,
+    uec-run-instances.1: add a wrapper for euca-run-instances that
+    can easily/cleanly inject ssh keys from Launchpad.net, LP: #524101
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 25 Mar 2010 21:53:59 -0700
+
 cloud-utils (0.9-0ubuntu1) lucid; urgency=low
 
   * ssh-import-lp-id:

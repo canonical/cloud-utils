@@ -52,11 +52,11 @@ url_encode() {
 
 validate_keys() {
 	# Prune invalid characters and blank lines
-	sed -i -e 's/[^a-zA-Z0-9@: .\/=+-]//g' -e '/^$/d' "$1"
+	sed -i -e 's/[^a-zA-Z0-9@: \r.\/=+-]//g' -e '/^$/d' "$1"
 	# Count lines
-	lines=$(cat "$1" | wc -l)
+	lines=$(wc -l < "${1}")
 	# Count valid keys
-	keys=$(grep -c "^ssh-[dr]sa [a-zA-Z0-9: .\/=+-]\+= " "$1")
+	keys=$(grep -c "^ssh-[dr]s[sa] [a-zA-Z0-9: .\/=+-]\+= " "$1")
 	# Validate counts match, and >0
 	[ $lines -gt 0 ] && [ $keys -eq $lines ]
 }
