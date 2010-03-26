@@ -3,14 +3,21 @@
 uec\-query\-builds \- request information about available cloud images builds
 
 .SH SYNOPSIS
-.BI "uec\-query\-builds [is-update-available|latest]
+.BI "uec\-query\-builds mode [options]
 
-.SH OPTIONS
-.TP
-.B is-update-available
+.SH MODES
 
 .TP
 .B latest
+list information about the latest build available
+
+.TP
+.B is-update-available
+indicate if there is a newer build available
+
+.TP
+.B latest-ec2
+list information for the latest builds on ec2
 
 .SH DESCRIPTION
 Request information about available cloud images, the latest version, and if updates are available.
