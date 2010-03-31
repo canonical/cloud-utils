@@ -196,12 +196,16 @@ def main():
             sys.stderr.write("Received multiple matching results for %s:%s\n" \
                 % ( opts.build_name, opts.suite ))
             sys.exit(1)
-        else:
+        elif len(result) == 1:
             result=result[0]
             if serial_gt(result[fields["serial"]],opts.serial):
                 output.write("%s\n" % '\t'.join(result))
             else:
                 output.write("")
+        else:
+            sys.stderr.write("Received no matching results for %s:%s\n" \
+                % ( opts.build_name, opts.suite ))
+            sys.exit(1)
     elif args[0] == "latest-ec2":
         checkopts(opts, ("stream", "base_url", "build_name", "suite" ))
         data = get_data(opts,qtype_ec2_current)

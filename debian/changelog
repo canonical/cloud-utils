@@ -1,3 +1,9 @@
+cloud-utils (0.11-0ubuntu1) UNRELEASED; urgency=low
+
+  * uec-query-builds: do not throw IndexError on no builds available
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 31 Mar 2010 04:46:00 -0400
+
 cloud-utils (0.10-0ubuntu1) lucid; urgency=low
 
   [ Scott Moser ]
