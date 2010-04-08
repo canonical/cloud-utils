@@ -357,7 +357,7 @@ else
 				error "un-registering invalid $bad" >/dev/null
 				euca-deregister "${bad_id}"
 			fi
-			fail "failed to register ${manifest}.%s"
+			fail "failed to register ${manifest}"
 		}
 
 	debug 1 "registered at ${bucket}/${manifest} as ${img_id}"
