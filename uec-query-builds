@@ -17,8 +17,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Send the contents of a directory as a MIME message."""
-
 import optparse
 import urllib2
 import yaml
@@ -56,6 +54,14 @@ qtype_summary="summary"
 qtype_all="all"
 qtype_ec2_current="ec2_current"
 
+class MissingArgumentException(Exception):
+    pass
+
+def exitMissingArgument(parser,missingArgumentException):
+    parser.print_help()
+    sys.stderr.write("%s\n" % str(missingArgumentException))
+    sys.exit(1)
+
 def limiter(data,limits):
     ret=[ ]
     for row in data:
@@ -72,7 +78,7 @@ def limiter(data,limits):
 def checkopts(options, req):
     for f in req:
         if getattr(options, f, None) is None:
-            raise Exception("must provide argument for %s" % f)
+            raise MissingArgumentException("must provide argument for %s" % f)
 
 def get_data(opts, type):
     if type == qtype_summary:
@@ -181,15 +187,22 @@ def main():
         opts.suite = stdout.strip()
 
     if args[0] == "latest":
-        data = get_data(opts,qtype_summary)
-        limits = { "build_name": opts.build_name, "suite" : opts.suite }
+        try:
+            data = get_data(opts,qtype_summary)
+            limits = { "build_name": opts.build_name, "suite" : opts.suite }
+        except MissingArgumentException as e:
+            exitMissingArgument(parser,e)
+
         for row in limiter(data,limits):
             output.write("%s\n" % '\t'.join(row))
 
     elif args[0] == "is-update-available":
-        checkopts(opts,
-            ( "stream", "base_url", "build_name", "suite", "serial" ))
-        data = get_data(opts,qtype_summary)
+        try:
+            checkopts(opts,
+                ( "stream", "base_url", "build_name", "suite", "serial" ))
+            data = get_data(opts,qtype_summary)
+        except MissingArgumentException as e:
+            exitMissingArgument(parser,e)
         limits = { "build_name": opts.build_name, "suite" : opts.suite }
         result = limiter(data,limits)
         if len(result) > 1:
@@ -207,8 +220,11 @@ def main():
                 % ( opts.build_name, opts.suite ))
             sys.exit(1)
     elif args[0] == "latest-ec2":
-        checkopts(opts, ("stream", "base_url", "build_name", "suite" ))
-        data = get_data(opts,qtype_ec2_current)
+        try:
+            checkopts(opts, ("stream", "base_url", "build_name", "suite" ))
+            data = get_data(opts,qtype_ec2_current)
+        except MissingArgumentException as e:
+            exitMissingArgument(parser,e)
         limits = { "region": opts.ec2_region,
             "img_type" : opts.img_type , "arch": opts.arch }
         result = limiter(data,limits)

@@ -1,8 +1,11 @@
 cloud-utils (0.11-0ubuntu1) UNRELEASED; urgency=low
 
-  * uec-query-builds: do not throw IndexError on no builds available
-  * uec-publish-image: remove error trailing '%s' in error message
-  * uec-publish-tarball: let stdout through on failure of uec-publish-image
+  * uec-query-builds: do not throw IndexError on no builds available,
+    or Exception on bad usage, LP: #559236
+  * uec-publish-image: remove error trailing '%s' in error message,
+    LP: #559244
+  * uec-publish-tarball: send stdout through on failure of uec-publish-image,
+    LP: #559244
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 08 Apr 2010 17:02:05 -0400
 
