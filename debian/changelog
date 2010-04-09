@@ -1,3 +1,14 @@
+cloud-utils (0.11-0ubuntu1) lucid; urgency=low
+
+  * uec-query-builds: do not throw IndexError on no builds available,
+    or Exception on bad usage, LP: #559236
+  * uec-publish-image: remove error trailing '%s' in error message,
+    LP: #559244
+  * uec-publish-tarball: send stdout through on failure of uec-publish-image,
+    LP: #559244
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 09 Apr 2010 10:03:29 -0400
+
 cloud-utils (0.10-0ubuntu1) lucid; urgency=low
 
   [ Scott Moser ]

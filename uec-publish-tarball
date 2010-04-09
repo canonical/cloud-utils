@@ -61,8 +61,12 @@ EOF
 }
 
 upload_register() {
-	local out=""
-	out=$(uec-publish-image "${@}") || return
+	local out="" ret=0
+	out=$(uec-publish-image "${@}") || {
+		ret=$?
+		printf "%s" "${out}"
+		return $ret
+	}
 	set -- ${out}
 	_RET=${1}
 }
