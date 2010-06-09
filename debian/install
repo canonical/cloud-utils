@@ -3,3 +3,4 @@ uec-publish-tarball /usr/bin
 uec-query-builds /usr/bin
 uec-resize-image /usr/bin
 uec-run-instances /usr/bin
+ec2metadata /usr/bin
