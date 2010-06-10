@@ -1,8 +1,9 @@
-cloud-utils (0.11-0ubuntu2) UNRELEASED; urgency=low
+cloud-utils (0.12-0ubuntu1) UNRELEASED; urgency=low
 
   * ec2metadata: bring in ec2metadata (LP: #547019)
+  * uec-run-instances-and-wait: initial command 
 
- -- Scott Moser <smoser@ubuntu.com>  Wed, 09 Jun 2010 15:26:34 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 10 Jun 2010 17:00:22 -0400
 
 cloud-utils (0.11-0ubuntu1) lucid; urgency=low
 
