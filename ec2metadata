@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# vi: ts=4 expandtab
+# vi: ts=4 noexpandtab
 #
 #    Query and display EC2 metadata related to the AMI instance
 #    Copyright (c) 2009 Canonical Ltd. (Canonical Contributor Agreement 2.5)
