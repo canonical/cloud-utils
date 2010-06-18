@@ -1,4 +1,4 @@
-cloud-utils (0.12ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.12ubuntu1) maverick; urgency=low
 
   * ec2metadata: bring in ec2metadata (LP: #547019)
 
