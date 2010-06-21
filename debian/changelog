@@ -1,6 +1,12 @@
 cloud-utils (0.12-0ubuntu1) UNRELEASED; urgency=low
 
+  [ Scott Moser ]
   * ec2metadata: bring in ec2metadata (LP: #547019)
+
+  [ Dustin Kirkland ]
+  * ssh-import-lp-id: handle multi-line ssh public keys in Launchpad,
+    LP: #596938; thanks to Jos Boumans for the elegant snippet of perl that
+    fixes this
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 10 Jun 2010 17:00:22 -0400
 

@@ -87,7 +87,7 @@ trap "rm -f $tmp" EXIT HUP INT QUIT TERM
 for i in "$@"; do
 	i=$(url_encode "$i") || error "Failed encoding [$i]"
 	url=$(printf "$URL" "$i")
-	if env -i wget --quiet -O- "$url" > "$tmp"; then
+	if env -i wget --quiet -O- "$url" | perl -pe's/[\r\n]//g unless /=\s/' > "$tmp"; then
 		echo >> "$tmp" # needed for wc
 		if ! validate_keys "$tmp"; then
 			warn "Invalid keys at [$url]"
