@@ -1,8 +1,12 @@
-cloud-utils (0.13ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.13ubuntu1) maverick; urgency=low
   [ Dustin Kirkland ]
   * ssh-import-lp-id: handle multi-line ssh public keys in Launchpad,
     LP: #596938; thanks to Jos Boumans for the elegant snippet of perl that
     fixes this
+  [ Clint Byrum ]
+  * uec-run-instances: rewritten command with much larger scope
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 24 Jun 2010 20:40:09 -0400
 
 cloud-utils (0.12ubuntu1) maverick; urgency=low
 

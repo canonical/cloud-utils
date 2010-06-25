@@ -1,11 +1,11 @@
 #!/usr/bin/python
+# vi:ts=4 noexpandtab
 #
-#    uec-run-instances - wrapper for euca-run-instance that supports
-#      -l|--launchpad-id option, for injecting public ssh keys
-#      retrievable from Launchpad.net
 #    Copyright (C) 2010 Canonical Ltd.
 #
 #    Authors: Dustin Kirkland <kirkland@canonical.com>
+#             Scott Moser <scott.moser@canonical.com>
+#             Clint Byrum <clint.byrum@canonical.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,51 +20,587 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import os, string, sys
+import os
+import string
+import sys
+import signal
+import re
+import base64
+from optparse import OptionParser
+from socket import getaddrinfo
+import time
+import logging
+from paramiko import SSHClient, AutoAddPolicy, AuthenticationException
+import paramiko
+from subprocess import Popen, PIPE
 
-def usage():
-	usage = "\n\
-Usage:\n\
-  uec-run-instances [-l|--launchpad-id lp_id_1,lp_id_2,lp_id_3]\n\
-                    [euca-run-instances options]\n\
-\n\
-  This program is a wrapper script for euca-run-instances(1) that takes one\n\
-  additional option, -l|--launchpad-id.  With this option, a user can\n\
-  specify a comma-separated list of Launchpad.net usernames.  Once the\n\
-  instance is booted, the cloud-init boot script will retrieve the\n\
-  public ssh keys of the specified users from Launchpad.net using\n\
-  ssh-import-lp-id(1).\n\
-\n\
-  All other options besides [-l|--launchpad-id] are simply passed\n\
-  on to euca-run-instances(1).\n"
-	print(usage)
+finished = "FINISHED"
+
+class SafeConnectException(Exception):
+	pass
+
+class Instance(object):
+	pass
+
+class TemporaryMissingHostKeyPolicy(AutoAddPolicy):
+	""" does not save to known_hosts, but does save the keys in an array """
+	def __init__(self):
+		self._keys = []
+		AutoAddPolicy.__init__(self)
+
+	def missing_host_key(self, client, hostname, key):
+		self._keys.append(key)
+
+	def getKeys(self):
+		return self._keys
+
+class PermanentMissingHostKeyPolicy(TemporaryMissingHostKeyPolicy):
+	""" also has the behavor of the parent AutoAddPolicy """
+	def missing_host_key(self, client, hostname, key):
+#TemporaryMissingHostKeyPolicy.missing_host_key(self, client, hostname, key)
+		self._keys.append(key)
+		AutoAddPolicy.missing_host_key(self, client, hostname, key)
+
+class ConsoleFingerprintScanner(object):
+	def __init__(self, instance_id, hostname, provider, options, sleeptime=30):
+		self.state = "working"
+		self.instance_id = instance_id
+		self.hostname = hostname
+		self.provider = provider
+		self.sleeptime = sleeptime
+		self.fingerprint = None
+		self.options = options
+		self.logger = logging.getLogger('console-scanner(%s)' % instance_id)
+
+	def scan(self):
+		self.logger.debug('scraping fingerprints for instance_id = %s', self.instance_id)
+		try:
+			while self.fingerprint is None:
+				console_data = self.get_console_output()
+				self.fingerprint = self.get_fingerprints_in_console_data(console_data)
+				if self.fingerprint is not None:
+					self.fingerprint = (int(self.fingerprint[0]), self.fingerprint[1], self.fingerprint[3])
+				else:
+					self.logger.debug('sleeping %d seconds', self.options.sleep_time)
+					time.sleep(self.options.sleep_time)
+		except None:
+			pass
+		return self.fingerprint
+
+	def get_console_output(self):
+		cmd = '%s-get-console-output' % self.provider
+		args = [ cmd ]
+		args.append(self.instance_id)
+
+		self.logger.debug('running %s', args)
+		rconsole = Popen(args, stdout=PIPE)
+
+		ret = []
+		try:
+			for line in rconsole.stdout:
+				ret.append(line.strip())
+		finally:
+			cmdout = rconsole.wait()
+
+		if bool(cmdout):
+			raise Exception('%s failed with return code = %d', cmd, cmdout)
+		
+		return ret
+
+	def get_fingerprints_in_console_data(self, output):
+		# return an empty list on "no keys found"
+		# return a list of key fingerprint data on success
+		#  where each key fingerprint data is an array like:
+		#   (2048 c7:c8:1d:0f:d9:40:20:f9:47:6a:f9:1d:6f:0a:8a:fe localhost (RSA))
+		begin_marker="-----BEGIN SSH HOST KEY FINGERPRINTS----"
+		end_marker="----END SSH HOST KEY FINGERPRINTS-----"
+		i = 0
+		while i < len(output):
+			if output[i].find(begin_marker) > -1:
+				while i < len(output) and output[i].find(end_marker) == -1:
+					self.logger.debug(output[i].strip())
+					toks = output[i].split(" ")
+					self.logger.debug(toks)
+					if len(toks) == 5: toks=toks[1:] # rip off "ec2:"
+					if len(toks) == 4 and toks[3] == "(RSA)":
+						self.logger.debug('found %s on line %d', toks, i)
+						return((toks))
+					i=i+1
+				break
+			i=i+1
+		self.logger.debug('did not find any fingerprints in output! (lines=%d)', i)
+		return None
+
+class SshKeyScanner(object):
+	def __init__(self, instance_id, hostname, options, sleeptime=30):
+		self.state = "working"
+		self.instance_id = instance_id
+		self.hostname = hostname
+		self.sleeptime = sleeptime
+		self.fingerprint = None
+		self.keys = None
+		self.options = options
+		self.port = 22
+		self.logger = logging.getLogger('ssh-key-scanner(%s)' % instance_id)
+		self.client = None
+		self.connected = False
+
+	def scan(self):
+		self.logger.debug('getting fingerprints for %s', self.hostname)
+		try:
+			fingerprints = self.get_fingerprints_for_host()
+			self.logger.debug('fingerprints = %s', fingerprints)
+			if(len(fingerprints)>0):
+				self.state = "finished"
+				self.fingerprint = fingerprints[0]
+		except None:
+			pass
+		return self.fingerprint
+
+	def get_fingerprints_for_host(self):
+		# return an empty list on "no keys found"
+		# return a list of key fingerprint data on success
+		#  where each key fingerprint data is an array like:
+		#   (2048 c7:c8:1d:0f:d9:40:20:f9:47:6a:f9:1d:6f:0a:8a:fe localhost (RSA))
+
+		# use paramiko here
+		self.client = SSHClient()
+		client = self.client
+		client.set_log_channel('ssh-key-scanner(%s)' % self.instance_id)
+
+		if self.options.known_hosts is not None:
+			policy = PermanentMissingHostKeyPolicy()
+			""" This step ensures we save the keys, otherwise that step will be
+			    skipped in AutoAddPolicy.missing_host_key """
+			for path in self.options.known_hosts:
+				if not os.path.isfile(path):
+					# if the file doesn't exist, then
+					# create it empty
+					fp = open(path,"w")
+					fp.close()
+				client.load_host_keys(path)
+		else:
+			policy = TemporaryMissingHostKeyPolicy()
+		client.set_missing_host_key_policy(policy)
+
+		pkey = None
+		if self.options.privkey is not None:
+			# TODO support password protected key file
+			pkey = paramiko.RSAKey.from_private_key_file(self.options.privkey)
+
+		retries = 0
+
+		allkeys = []
+
+		while 1:
+			try:
+				client.connect(self.hostname,self.port,username=self.options.ssh_user,pkey=pkey)
+				self.connected = True
+				break
+			except AuthenticationException as (message):
+				self.logger.warning('auth failed (non fatal) %s', message)
+				break
+			except Exception as (e):
+				retries += 1
+				if retries > 5:
+					raise Exception('gave up after retrying ssh %d times' % retries)
+				self.logger.info(e)
+				self.logger.debug('retry #%d... sleeping %d seconds..', retries, self.options.sleep_time)
+				time.sleep(self.options.sleep_time)
+
+
+		rlist = []
+
+		allkeys.extend(policy.getKeys())
+		allkeys.append(client.get_transport().get_remote_server_key())
+
+		for key in allkeys:
+
+			if type(key) == paramiko.RSAKey or type(key) == paramiko.PKey:
+				keytype = '(RSA)'
+			elif type(key) == paramiko.DSSKey:
+				keytype = '(DSA)'
+			else:
+				raise Exception('Cannot handle type %s == %s' % (type(key).__name__, key))
+
+			fp = key.get_fingerprint().encode("hex")
+			fp = ':'.join(re.findall('..', fp))
+			rlist.append((key.get_bits(), fp, keytype))
+
+		return rlist
+
+	def run_commands(self):
+		if self.options.ssh_run_cmd is not None and len(self.options.ssh_run_cmd):
+			if not self.connected:
+				self.logger.critical('cannot run command, ssh did not connect')
+				sys.exit(1)
+			ecmd = ' '.join(self.options.ssh_run_cmd)
+			self.logger.debug('running %s', ecmd)
+			inouterr = self.client.exec_command(ecmd)
+			try:
+				for line in inouterr[1]:
+					print line,
+			except:
+				pass
+			try:
+				for line in inouterr[2]:
+					print >> sys.stderr(line)
+			except:
+				pass
+
+		if self.connected:
+			self.client.close()
+			self.connected = False
+
+def get_auto_instance_type(ami_id, provider):
+	cmd = '%s-describe-images' % provider
+	args = [ cmd , ami_id ]
+	logging.debug('running %s', args)
+	rimages = Popen(args, stdout=PIPE)
+	deftype = { 'i386' : 'm1.small', 'x86_64' : 'm1.large' }
+	
+	try:
+		for line in rimages.stdout:
+			# Just in case there are %'s, don't confusee logging
+			# XXX print these out instead
+			logging.debug(line.replace('%','%%').strip())
+			parts = line.split("\t")
+			if parts[0] == 'IMAGE':
+				itype = parts[7]
+				if itype in deftype:
+					logging.info('auto instance type = %s', deftype[itype])
+					return deftype[itype]
+	finally:
+		rcode = rimages.wait()
+
+	logging.warning('ami not found, returning default m1.small')
+	return("m1.small")
+
+def timeout_handler(signum, frame):
+	logging.critical('timeout reached, exiting')
 	sys.exit(1)
 
-if len(sys.argv) < 2:
-	usage()
+def handle_runargs(option, opt_str, value, parser):
+	delim=getattr(parser.values,"runargs_delim",None)
+	cur=getattr(parser.values,"runargs",[])
+	if cur is None: cur = []
+	cur.extend(value.split(delim))
+	setattr(parser.values,"runargs",cur)
+	return
 
-lp_ids = ""
-user_data_str = ""
-i = 0
-args = sys.argv
-del(args[i])
-while i < len(args):
-	if args[i] == "-l" or args[i] == "--launchpad-id":
-		del(args[i])
-		lp_ids = args[i]
-		del(args[i])
-	i += 1
+def main():
+	parser = OptionParser(usage="usage: %prog [options] ids|(-- raw args for provider scripts)")
+	parser.add_option("-t", "--instance-type", dest="inst_type",
+		help="instance type", metavar="TYPE",
+		default="auto")
+	parser.add_option("-n", "--instance-count", dest="count",
+		help="instance count", metavar="TYPE", type="int",
+		default=1)
+	parser.add_option("", "--ssh-privkey", dest="privkey",
+		help="private key to connect with (ssh -i)", metavar="id_rsa",
+		default=None)
+	parser.add_option("", "--ssh-pubkey", dest="pubkey",
+		help="public key to insert into image)", metavar="id_rsa.pub",
+		default=None)
+	parser.add_option("", "--ssh-run-cmd", dest="ssh_run_cmd", action="append", nargs=0,
+		help="run this command when ssh'ing", default=None)
+	parser.add_option("","--ssh-user", dest="ssh_user",
+		help="connect with ssh as user", default=None)
+	parser.add_option("", "--associate-ip", dest="ip",
+		help="associate elastic IP with instance", metavar="IP_ADDR",
+		default=None)
+	parser.add_option("", "--known-hosts", dest="known_hosts", action="append",
+		help="write host keys to specified known_hosts file. Specify multiple times to read keys from multiple files (only updates last one)",
+		metavar="KnownHosts", default=None)
+	parser.add_option("-l", "--launchpad-id", dest="launchpad_id", action="append",
+		help="launchpad ids to pull SSH keys from (multiple times adds to the list)",
+		metavar="lpid", default=None)
+	parser.add_option("-i", "--instance-ids", dest="instance_ids", action="store_true",
+		help="expect instance ids instead of ami ids, skips -run-instances", default=False)
+	parser.add_option("", "--all-instances", dest="all_instances", action="store_true",
+		help="query all instances already defined (running/pending/terminated/etc)", default=False)
+	parser.add_option("","--run-args", dest="runargs", action="callback",
+		callback=handle_runargs, type="string",
+ 		help="pass option through to run-instances")
+	parser.add_option("","--run-args-delim", dest="runargs_delim",
+		help="split run-args options with delimiter",
+		default=None)
+	parser.add_option("","--verify-ssh", dest="verify_ssh", action="store_true",
+		help="verify SSH keys against console output (implies --wait-for=ssh)",
+		default=False)
+	parser.add_option("","--wait-for", dest="wait_for",
+		help="wait for one of: ssh , running",default=None)
+	parser.add_option("-p","--provider", dest="provider",
+		help="either euca or ec2", default=None)
+	parser.add_option("-v", "--verbose", action="count", dest="loglevel",
+		help="increase logging level", default=3)
+	parser.add_option("-q", "--quiet", action="store_true", dest="quiet",
+		help="produce no output or error messages", default=False)
+	parser.add_option("", "--sleep-time", dest="sleep_time",
+		help="seconds to sleep between polling", default=2)
+	parser.add_option("", "--teardown", dest="teardown", action="store_true",
+		help="terminate instances at the end", default=False)
 
-if len(lp_ids) > 0:
-	i = 1
-	while i < len(args):
-		if args[i] == "-d" or args[i] == "--user-data" or args[i] == "-f" or args[i] == "--user-data-file":
-			print("ERROR: User data is not supported with the -l|--launchpad-id option")
-			sys.exit(1)
-		i += 1
-	lp_ids = string.replace(lp_ids, ",", " ")
-	args.insert(0, "#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id %s" % lp_ids)
-	args.insert(0, "-d")
+	(options, args) = parser.parse_args()
 
-args.insert(0, "euca-run-instances")
-os.execvp("euca-run-instances", args)
+	if len(args) < 1 and not options.all_instances:
+		parser.error('you must pass at least one ami ID')
+
+	# loglevel should be *reduced* every time -v is passed, see logging docs for more
+	if options.quiet:
+		sys.stderr = open('/dev/null','w')
+		sys.stdout = sys.stderr
+	else:
+		loglevel = 6 - options.loglevel
+		if loglevel < 1:
+			loglevel = 1
+		# logging module levels are 0,10,20,30 ...
+		loglevel = loglevel * 10
+
+		logging.basicConfig(level=loglevel,format="%(asctime)s %(name)s/%(levelname)s: %(message)s",stream=sys.stderr)
+
+		logging.debug("loglevel = %d", loglevel)
+
+	provider = options.provider
+	if options.provider is None:
+		provider = os.getenv('EC2PRE','euca')
+
+	if options.ssh_run_cmd == [()]:
+		options.ssh_run_cmd = args
+
+	if options.known_hosts is None:
+		options.known_hosts = [ os.path.expanduser('~/.ssh/known_hosts') ]
+	
+	if options.known_hosts is not None and len(options.known_hosts):
+		path = None
+		for path in options.known_hosts:
+			if not os.access(path, os.R_OK):
+				logging.warning('known_hosts file %s is not readable!', path)
+		# paramiko writes to the last one
+		if not os.access(path, os.W_OK):
+			logging.critical('known_hosts file %s is not writable!', path)
+
+	logging.debug("provider = %s", provider)
+
+	logging.debug("instance type is %s", options.inst_type)
+
+	if options.instance_ids or options.all_instances:
+
+		if options.all_instances:
+			pending_instance_ids = ['']
+		else:
+			pending_instance_ids = args
+
+	else:
+
+		if len(args) < 1:
+			raise Exception('you must pass at least one AMI ID')
+
+		ami_id = args[0]
+		del(args[0])
+
+		logging.debug("ami_id = %s", ami_id)
+
+		if options.inst_type == "auto":
+			options.inst_type = get_auto_instance_type(ami_id, provider)
+
+		pending_instance_ids = []
+
+		cmd = '%s-run-instances' % provider
+
+		run_inst_args = [ cmd ]
+
+		# these variables pass through to run-instances
+		run_inst_pt = {
+			"instance-count" : options.count,
+			"instance-type" : options.inst_type,
+			 }
+
+		for key, val in run_inst_pt.iteritems():
+			if key is not None and key != "":
+				run_inst_args.append("--%s=%s" % (key,val))
+
+		if options.launchpad_id:
+			run_inst_args.append('-d')
+			run_inst_args.append(
+					"#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id " + ','.join(options.launchpad_id))
+
+		if options.runargs is not None:
+			run_inst_args.extend(options.runargs)
+		
+		run_inst_args.append(ami_id)
+
+		# run-instances with pass through args
+		logging.debug("executing %s",run_inst_args)
+		logging.info("starting instances with ami_id = %s", ami_id)
+
+		rinstances = Popen(run_inst_args, stdout=PIPE)
+#INSTANCE	i-32697259	ami-2d4aa444			pending		0		m1.small	2010-06-18T18:28:21+0000	us-east-1b	aki-754aa41c			monitoring-disabled					instance-store		
+		try:
+			for line in rinstances.stdout:
+				# Just in case there are %'s, don't confusee logging
+				# XXX print these out instead
+				logging.debug(line.replace('%','%%').strip())
+				parts = line.split("\t")
+				if parts[0] == 'INSTANCE':
+					pending_instance_ids.append(parts[1])
+		finally:
+			rcode = rinstances.wait()
+
+		logging.debug("command returned %d", rcode)
+		logging.info("instances started: %s", pending_instance_ids)
+
+		if bool(rcode):
+			raise Exception('%s failed' % cmd)
+	
+	if len(pending_instance_ids) < 1:
+		raise Exception('no instances were started!')
+	
+	cmd = '%s-describe-instances' % provider
+
+	instances = []
+
+	timeout_date = time.time() + 600
+
+	signal.signal(signal.SIGALRM, timeout_handler)
+	signal.alarm(600)
+
+	logging.debug("timeout at %s", time.ctime(timeout_date))
+
+	# We must wait for ssh to run commands
+	if options.verify_ssh and not options.wait_for == 'ssh':
+		logging.info('--verify-ssh implies --wait-for=ssh')
+		options.wait_for = 'ssh'
+
+	if options.ssh_run_cmd and not options.wait_for == 'ssh':
+		logging.info('--ssh-run-cmd implies --wait-for=ssh')
+		options.wait_for = 'ssh'
+
+	while len(pending_instance_ids):
+		new_pending_instance_ids = []
+		describe_inst_args = [ cmd ]
+
+		# remove '', confuses underlying commands
+		pids = []
+		for iid in pending_instance_ids:
+			if len(iid):
+				pids.append(iid)
+		if len(pids):
+			describe_inst_args.extend(pending_instance_ids)
+
+		logging.debug('running %s',describe_inst_args)
+		rdescribe = Popen(describe_inst_args, stdout=PIPE)
+		try:
+			for line in rdescribe.stdout:
+				logging.debug(line.replace('%','%%').strip())
+				parts = line.split("\t")
+				if parts[0] == 'INSTANCE':
+					iid = parts[1]
+					istatus = parts[5]
+					if istatus == 'terminated':
+						logging.debug('%s is terminated, ignoring...', iid)
+					elif istatus != 'running' and options.wait_for:
+						logging.warning('%s is %s', iid, istatus)
+						new_pending_instance_ids.append(iid)
+					else:
+						logging.info("%s %s", iid, istatus)
+						inst = Instance()
+						inst.id = iid
+						inst.hostname = parts[3]
+						inst.output = line
+						instances.append(inst)
+		finally:
+			rcode = rdescribe.wait()
+
+		pending_instance_ids = new_pending_instance_ids
+
+		logging.debug("command returned %d", rcode)
+		logging.debug("pending instances: %s", pending_instance_ids)
+
+		if bool(rcode):
+			raise Exception('%s failed' % cmd)
+
+		if len(pending_instance_ids):
+			logging.debug('sleeping %d seconds', options.sleep_time)
+			time.sleep(options.sleep_time)
+
+	if options.ip:
+		ips = options.ip.split(',')
+		if len(ips) < len(instances):
+			logging.warning('only %d ips given, some instances will not get an ip', len(ips))
+		elif len(ips) > len(instances):
+			logging.warning('%d ips given, some ips will not be associated', len(ips))
+
+		rcmds = []
+		ips.reverse()
+		for inst in instances:
+			cmd = '%s-associate-address' % provider
+			if len(ips) < 1:
+				break
+			ip = ips.pop()
+			aargs = [ cmd , '-i', inst.id, ip ]
+			logging.debug('running %s',aargs)
+			rassociate = Popen(aargs, stdout=PIPE)
+			rcmds.append(rassociate)
+		for rcmd in rcmds:
+			# dump stdin into the inst object
+			try:
+				for line in rcmd.stdout:
+					logging.info(line)
+			finally:
+				ret = rcmd.wait()
+				if bool(ret):
+					logging.debug('associate-ip returned %d', ret)
+
+	if options.wait_for == 'ssh':
+		logging.info('waiting for ssh access')
+		for inst in instances:
+			pid = os.fork()
+			if pid == 0:
+				ssh_key_scan = SshKeyScanner(inst.id, inst.hostname, options)
+				ssh_fingerprint = ssh_key_scan.scan()
+				if options.verify_ssh:
+					# For ec2, it can take 3.5 minutes or more to get console output, do this last, and only if
+					# we have to.
+					cons_fp_scan = ConsoleFingerprintScanner(inst.id, inst.hostname, provider, options)
+					console_fingerprint = cons_fp_scan.scan()
+
+					if console_fingerprint == ssh_fingerprint:
+						logging.debug('fingerprint match made for iid = %s',inst.id)
+					else:
+						raise Exception('fingerprints do not match for iid = %s' % inst.id)
+				ssh_key_scan.run_commands()
+				raise SystemExit
+			else:
+				logging.debug('child pid for %s is %d', inst.id, pid)
+				inst.child = pid
+		logging.info('Waiting for %d children', len(instances))
+		final_instances = []
+
+		for inst in instances:
+			try:
+				(pid, status) = os.waitpid(inst.child, 0)
+			except:
+				logging.critical('%s - %d doesn\'t exist anymore?', inst.id, pid)
+			logging.debug('%d returned status %d', pid, status)
+			if not bool(status):
+				final_instances.append(inst)
+		instances = final_instances
+
+	""" If we reach here, all has happened in the expected manner so
+	    we should produce the expected output which is instance-id\\tip\\n """
+
+	final_instance_ids = []
+	for inst in instances:
+		final_instance_ids.append(inst.id)
+	
+	if options.teardown:
+		terminate = [ '%s-terminate-instances' % provider ]
+		terminate.extend(final_instance_ids)
+		logging.debug('running %s', terminate)
+		logging.info('terminating instances...')
+		rterm = Popen(terminate,stdout=sys.stderr,stderr=sys.stderr)
+		rterm.wait()
+			
+if __name__ == "__main__":
+	main()
