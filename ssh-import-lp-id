@@ -59,7 +59,7 @@ validate_keys() {
 	# Count lines
 	lines=$(wc -l < "${1}")
 	# Count valid keys
-	keys=$(grep -c "^ssh-[dr]s[sa] [a-zA-Z0-9: .\/=+-]\+= " "$1")
+	keys=$(grep -c "^ssh-[dr]s[sa] [a-zA-Z0-9: .\/=+-]\+ " "$1")
 	# Validate counts match, and >0
 	[ $lines -gt 0 ] && [ $keys -eq $lines ]
 }
