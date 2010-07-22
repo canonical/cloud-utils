@@ -1,10 +1,10 @@
-cloud-utils (0.14-0ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.14-0ubuntu1) maverick; urgency=low
 
   * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
     ssh-import-lp-id, ssh-import-lp-id.1: purge ssh-import* from this
     source package, now pushed to openssh-server 1:5.5p1-4ubuntu3
 
- -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 22 Jul 2010 15:22:08 +0200
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 22 Jul 2010 15:25:41 +0200
 
 cloud-utils (0.13ubuntu1) maverick; urgency=low
   [ Dustin Kirkland ]
