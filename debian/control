@@ -21,16 +21,3 @@ Description: cloud image management utilities
  The tasks associated with image bundling are often tedious and
  repetitive.  The cloud-utils package provides several scripts
  that wrap the complicated tasks with a much simpler interface.
-
-Package: ssh-import
-Architecture: all
-Depends: ${misc:Depends}, wget
-Enhances: openssh-server, cloud-init
-Description: import SSH public keys from Launchpad.net
- This package provides the ssh-import-lp-id utility, which
- downloads one or more SSH public keys from Launchpad.net
- by Launchpad user id.
- .
- This is often useful in cloud environments, and virtual machines
- where one user wants to share an instance with another user knowing
- only their Launchpad ID.
