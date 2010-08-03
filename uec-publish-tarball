@@ -54,6 +54,7 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
            --resize  s        resize the image to 's' bundling uploading
                               's' must be valid input to uec-resize-image
       -q | --quiet            be quiet, only output published ids
+      -l | --use-loader       use the loader kernel rather than linux kernel
 
    Example:
    - ${0##*/} lucid-uec-i386.tar.gz my-lucid-bucket i386
@@ -72,8 +73,8 @@ upload_register() {
 }
 
 
-short_opts="hk:K:qr:R:"
-long_opts="help,kernel:,kernel-file:,quiet,ramdisk:,ramdisk-file:,resize:"
+short_opts="hlk:K:qr:R:"
+long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,resize:"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -81,11 +82,13 @@ getopt_out=$(getopt --name "${0##*/}" --shell sh \
 
 ramdisk=""
 kernel=""
+loader=""
 eki=""
 eri=""
 image=""
 emi=""
 resize=""
+use_loader=0
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -103,6 +106,7 @@ while [ $# -ne 0 ]; do
 			[ -f "${next}" ] && ramdisk=$(readlink -f "${next}") ||
 				fail "failed to get path to ${next}"
 			shift;;
+		--use-loader) use_loader=1;;
 		--resize) resize=${next}; shift;;
 	esac
 	shift;
@@ -113,6 +117,9 @@ bucket=${2}
 arch=${3}
 
 [ $# -eq 3 -o $# -eq 2 ] || bad_Usage
+
+[ -n "${eki}" -a ${use_loader} -ne 0 ] &&
+	bad_Usage "--use-loader is incompatible with --kernel"
 
 if [ -z "${arch}" ]; then
 	case "${tarball}" in
@@ -149,10 +156,23 @@ for x in *; do
 		*initrd*)
 			[ -z "${ramdisk}" -a -z "${eri}" ] && ramdisk=${x};;
 		*.img) image=${x};;
+		*-loader) [ -z "${loader}" ] && loader=${x};;
 	esac
 done
 
 [ -z "${image}" ] && fail "can't find image";
+
+[ -z "${loader}" -a ${use_loader} -eq 1 ] &&
+	fail "--use-loader specified, but no loader found in tarball"
+
+# if loader was found, and no kernel given (or found)
+# then set kernel to loader
+if [ -n "${loader}" ] &&
+   { [ ${use_loader} -eq 1 ] || [ -z "${kernel}" -a -z "${eki}" ]; } ; then
+	debug 1 "using loader ${loader##*/} as kernel"
+	kernel=${loader}
+fi
+
 [ -n "${kernel}" -o -n "${eki}" ] ||
 	bad_Usage "can't find kernel. specify '--kernel none' to register none";
 [ -n "${ramdisk}" -o -n "${eri}" ] || {

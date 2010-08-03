@@ -1,3 +1,10 @@
+cloud-utils (0.15-0ubuntu1) UNRELEASED; urgency=low
+
+  * uec-publish-tarball: support --loader flag to use the loader
+    image rather than linux kernel in uec tarballs
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 03 Aug 2010 16:12:47 -0400
+
 cloud-utils (0.14-0ubuntu1) maverick; urgency=low
 
   * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
