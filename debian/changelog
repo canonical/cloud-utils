@@ -1,4 +1,4 @@
-cloud-utils (0.15-0ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.15ubuntu1) maverick; urgency=low
 
   * uec-publish-tarball: support --loader flag to use the loader
     image rather than linux kernel in uec tarballs
