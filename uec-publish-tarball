@@ -47,14 +47,16 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
       -k | --kernel  k        use previously registered kernel with id 'k'
                               specify 'none' for no kernel
       -K | --kernel-file f    bundle, upload, use file 'f' as kernel
+           --rename-kernel k  rename kernel to 'k' (applies to loader)
       -r | --ramdisk r        use previously registered ramdisk with id 'r'
                               specify 'none' for no ramdisk
       -R | --ramdisk-file f   bundle, upload, use file 'f' as ramdisk
-
+           --rename-ramdisk r rename ramdisk to 'r'
            --resize  s        resize the image to 's' bundling uploading
                               's' must be valid input to uec-resize-image
       -q | --quiet            be quiet, only output published ids
       -l | --use-loader       use the loader kernel rather than linux kernel
+           --rename-image f   rename image to 'f' before publishing
 
    Example:
    - ${0##*/} lucid-uec-i386.tar.gz my-lucid-bucket i386
@@ -74,7 +76,7 @@ upload_register() {
 
 
 short_opts="hlk:K:qr:R:"
-long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,resize:"
+long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -89,6 +91,9 @@ image=""
 emi=""
 resize=""
 use_loader=0
+rename_image=""
+rename_kernel=""
+rename_ramdisk=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -106,6 +111,9 @@ while [ $# -ne 0 ]; do
 			[ -f "${next}" ] && ramdisk=$(readlink -f "${next}") ||
 				fail "failed to get path to ${next}"
 			shift;;
+           --rename-image) rename_image=${next}; shift;;
+           --rename-kernel) rename_kernel=${next}; shift;;
+           --rename-ramdisk) rename_ramdisk=${next}; shift;;
 		--use-loader) use_loader=1;;
 		--resize) resize=${next}; shift;;
 	esac
@@ -194,20 +202,26 @@ fi
 
 if [ -n "${kernel}" ]; then
 	log 1 "bundle/upload kernel"
-	upload_register --type kernel "${iarch}" "${kernel}" "${bucket}" ||
+	upload_register --type kernel \
+		"${rename_kernel:+--rename=${rename_kernel}}" \
+		"${iarch}" "${kernel}" "${bucket}" ||
 		fail "failed to upload kernel"
 	eki=${_RET}
 fi
 
 if [ -n "${ramdisk}" ]; then
 	log 1 "bundle/upload ramdisk"
-	upload_register --type ramdisk "${iarch}" "${ramdisk}" "${bucket}" ||
+	upload_register --type ramdisk \
+		"${rename_ramdisk:+--rename=${rename_ramdisk}}" \
+		"${iarch}" "${ramdisk}" "${bucket}" ||
 		fail "failed ramdisk bundle/upload"
 	eri=${_RET}
 fi
 
 log 1 "bundle/upload image"
-upload_register --type image "${iarch}" "${image}" "${bucket}" \
+upload_register --type image \
+	"${rename_image:+--rename=${rename_image}}" \
+	"${iarch}" "${image}" "${bucket}" \
 	--kernel "${eki}" --ramdisk "${eri}" ||
 		fail "failed bundle/upload/register of image"
 emi=${_RET}
