@@ -203,7 +203,7 @@ fi
 if [ -n "${kernel}" ]; then
 	log 1 "bundle/upload kernel"
 	upload_register --type kernel \
-		"${rename_kernel:+--rename=${rename_kernel}}" \
+		${rename_kernel:+"--rename=${rename_kernel}"} \
 		"${iarch}" "${kernel}" "${bucket}" ||
 		fail "failed to upload kernel"
 	eki=${_RET}
@@ -212,7 +212,7 @@ fi
 if [ -n "${ramdisk}" ]; then
 	log 1 "bundle/upload ramdisk"
 	upload_register --type ramdisk \
-		"${rename_ramdisk:+--rename=${rename_ramdisk}}" \
+		${rename_ramdisk:+"--rename=${rename_ramdisk}"} \
 		"${iarch}" "${ramdisk}" "${bucket}" ||
 		fail "failed ramdisk bundle/upload"
 	eri=${_RET}
@@ -220,7 +220,7 @@ fi
 
 log 1 "bundle/upload image"
 upload_register --type image \
-	"${rename_image:+--rename=${rename_image}}" \
+	${rename_image:+"--rename=${rename_image}"} \
 	"${iarch}" "${image}" "${bucket}" \
 	--kernel "${eki}" --ramdisk "${eri}" ||
 		fail "failed bundle/upload/register of image"
