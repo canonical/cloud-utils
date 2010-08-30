@@ -1,3 +1,9 @@
+cloud-utils (0.15ubuntu2) UNRELEASED; urgency=low
+
+  * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 30 Aug 2010 13:54:43 -0400
+
 cloud-utils (0.15ubuntu1) maverick; urgency=low
 
   * uec-publish-tarball: support --loader flag to use the loader
