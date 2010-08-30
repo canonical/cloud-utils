@@ -423,7 +423,7 @@ def main():
 		if options.launchpad_id:
 			run_inst_args.append('-d')
 			run_inst_args.append(
-					"#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id " + ','.join(options.launchpad_id))
+					"#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id " + ' '.join(options.launchpad_id))
 
 		if options.runargs is not None:
 			run_inst_args.extend(options.runargs)

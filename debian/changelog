@@ -1,8 +1,9 @@
 cloud-utils (0.15ubuntu2) UNRELEASED; urgency=low
 
   * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
+  * uec-run-instances: fix multiple launchpad-ids. (LP: #621473)
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 30 Aug 2010 13:54:43 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 30 Aug 2010 13:56:19 -0400
 
 cloud-utils (0.15ubuntu1) maverick; urgency=low
 
