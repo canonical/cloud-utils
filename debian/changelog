@@ -1,4 +1,4 @@
-cloud-utils (0.15ubuntu2) UNRELEASED; urgency=low
+cloud-utils (0.16ubuntu1) UNRELEASED; urgency=low
 
   * uec-run-instances: fix multiple launchpad-ids. (LP: #621473)
 
