@@ -1,4 +1,4 @@
-cloud-utils (0.16ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.16ubuntu1) maverick; urgency=low
 
   * uec-run-instances: fix multiple launchpad-ids. (LP: #621473)
   * uec-run-instances: depend on python-paramiko. (LP: #646823)
