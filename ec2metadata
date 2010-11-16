@@ -95,7 +95,7 @@ class EC2Metadata:
 		return False
 
 	def _get(self, uri):
-		url = 'http://%s/%s/%s/' % (self.addr, self.api, uri)
+		url = 'http://%s/%s/%s' % (self.addr, self.api, uri)
 		value = urllib.urlopen(url).read()
 		if "404 - Not Found" in value:
 			return None
