@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# vi: ts=4 expandtab
+# vi: ts=4 noexpandtab
 #
 #    Copyright (C) 2009-2010 Canonical Ltd.
 #
@@ -44,8 +44,15 @@ import subprocess
 BASE_URL="http://uec-images.ubuntu.com/query/"
 result_fields = (
 	"suite", "build_name", "name", "serial", "img_type",
-	"arch", "region", "ami", "aki", "ari"
+	"arch", "region", "ami", "aki", "ari", "virtualization_type",
 )
+
+# in query data, if a field is not set, use this value
+#   (when virtualization-type was added to data, the default for
+#    an empty value in that field is 'paravirtual')
+defaults = { }
+defaults["virtualization_type"]="paravirtual"
+
 fields = { }
 for i in range(len(result_fields)):
 	fields[result_fields[i]]=i
@@ -54,13 +61,85 @@ qtype_summary="summary"
 qtype_all="all"
 qtype_ec2_current="ec2_current"
 
+vocabularies = [
+	("suite", {
+		"hardy": "hardy",
+		"karmic": "karmic",
+		"latest": "maverick",
+		"lucid": "lucid",
+		"maverick": "maverick",
+		"natty": "natty",
+	}),
+	("arch", {
+		"i386": "i386",
+		"amd64": "amd64",
+		"x86_64": "x86_64",
+		"64": "amd64",
+		"32": "i386"}),
+	("img_type", {"instance": "instance", "ebs": "ebs"}),
+	("build_name", {"server": "server", "desktop": "desktop"}),
+	("stream", {"daily": "daily", "released": "released"}),
+	("ec2_region", {
+		"us-east-1": "us-east-1",
+		"east": "us-east-1",
+		"us": "us-east-1",
+		"us-west-1": "us-west-1",
+		"west": "us-west-1",
+		"eu-west-1": "eu-west-1",
+		"eu": "eu-west-1",
+		"ap-southeast-1": "ap-southeast-1",
+		"southeast": "ap-southeast-1",
+		"ap": "ap-southeast-1"}),
+	("virtualization_type", {
+		"pvm": "paravirtual",
+		"hvm": "hvm",
+		"paravirtual" : "paravirtual" }),
+	]
+
+
 class MissingArgumentException(Exception):
 	pass
+
+class DuplicateArgumentException(Exception):
+	pass
+
+class UnknownArgumentException(Exception):
+	pass
+
 
 def exitMissingArgument(parser,missingArgumentException):
 	parser.print_help()
 	sys.stderr.write("%s\n" % str(missingArgumentException))
 	sys.exit(1)
+
+def parse_args(args, options):
+	d = {}
+	unknown = [ ]
+	for arg in args:
+		found = False
+		for name, values in vocabularies:
+			if arg in values:
+				if name in d:
+					raise DuplicateArgumentException(
+						"%s specified multiple times (%s, %s)"%(
+							name, d[name], arg))
+				d[name] = values[arg]
+				found = True
+				break
+		if not found:
+			print "adding %s" % arg
+			unknown.append(arg)
+
+	if len(unknown) > 1:
+		raise UnknownArgumentException("unrecognized strings: %s" % unknown)
+ 	elif len(unknown) == 1:
+		if "suite" in d or options.suite:
+			raise UnknownArgumentException("unrecognized string: %s" % unknown[0])
+		d["suite"]=unknown[0]
+		
+
+	for k, v in d.items():
+		setattr(options, k, v)
 
 def limiter(data,limits):
 	ret=[ ]
@@ -69,7 +148,16 @@ def limiter(data,limits):
 		for name, val in limits.iteritems():
 			#print "name = %s, val = %s" % (name,val)
 			if name not in fields: continue
-			if val is not None and val != row[fields[name]]:
+			ind=result_fields.index(name)
+			try:
+				rowval=row[ind]
+			except:
+				try:
+					rowval=defaults[name]
+				except:
+					rowval=None
+			#print "val=%s name=%s rowval=%s" % (val,name,rowval)
+			if val is not None and val != rowval:
 				match = False
 				break
 		if match is True: ret.append(row)
@@ -131,7 +219,7 @@ def main():
 	parser.add_option("--suite", dest="suite", metavar="SUITE",
 		help="suite to query ('hardy', 'karmic', 'lucid')")
 	parser.add_option("--build-name", dest="build_name",
-		metavar="BUILD_NAME",
+		metavar="BUILD_NAME", default="server",
 		help="build name ('server', 'desktop' ..)")
 	parser.add_option("--stream", dest="stream", metavar="STREAM",
 		default="released",
@@ -160,6 +248,10 @@ def main():
 	parser.add_option("--arch", dest="arch", metavar="ARCH",
 		help="the architecture. (one of: i386, amd64)")
 
+	parser.add_option("--virtualization-type", dest="virtualization_type",
+		metavar="VTYPE", default="pvm",
+		help="the virtualization type (one of 'pvm' or 'hvm')")
+
 	#parser.add_option("-v","--verbose", dest="verbose",
 	#	action="store_true", default=False,
 	#	help="increase verbosity")
@@ -185,6 +277,11 @@ def main():
 			sys.error("Failed to get suite from system");
 			sys.exit(1)
 		opts.suite = stdout.strip()
+
+	if opts.virtualization_type == "pvm":
+		opts.virtualization_type = "paravirtual"
+
+	parse_args(args[1:], opts)
 
 	if args[0] == "latest":
 		try:
@@ -226,7 +323,8 @@ def main():
 		except MissingArgumentException as e:
 			exitMissingArgument(parser,e)
 		limits = { "region": opts.ec2_region,
-			"img_type" : opts.img_type , "arch": opts.arch }
+			"img_type" : opts.img_type , "arch": opts.arch, 
+			"virtualization_type" : opts.virtualization_type }
 		result = limiter(data,limits)
 		for row in limiter(data,limits):
 			output.write("%s\n" % '\t'.join(row))
