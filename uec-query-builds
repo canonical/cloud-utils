@@ -76,7 +76,11 @@ vocabularies = [
 		"x86_64": "x86_64",
 		"64": "amd64",
 		"32": "i386"}),
-	("img_type", {"instance": "instance", "ebs": "ebs"}),
+	("img_type", {
+		"instance": "instance-store",
+		"instance-store": "instance-store",
+		"ebs": "ebs"}
+	),
 	("build_name", {"server": "server", "desktop": "desktop"}),
 	("stream", {"daily": "daily", "released": "released"}),
 	("ec2_region", {
