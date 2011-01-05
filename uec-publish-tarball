@@ -155,9 +155,10 @@ start=$PWD
 cd "${TMPD}"
 
 log 1 "extracting image"
-tar -S -xzf "${tbf}" || fail "failed extract ${tarball}"
+tar -S -xvzf "${tbf}" >list.out || fail "failed extract ${tarball}";
 
-for x in *; do
+while read x; do
+	[ -f "${x}" ] || continue
 	case "$x" in
 		*vmlinuz*)
 			[ -z "${kernel}" -a -z "${eki}" ] && kernel=${x};;
@@ -166,7 +167,7 @@ for x in *; do
 		*.img) image=${x};;
 		*-loader) [ -z "${loader}" ] && loader=${x};;
 	esac
-done
+done < list.out
 
 [ -z "${image}" ] && fail "can't find image";
 
