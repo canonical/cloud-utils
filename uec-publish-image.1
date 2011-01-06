@@ -48,6 +48,13 @@ Target image to upload and register
 .B BUCKET
 Target bucket to publish the image to
 
+.SH ENVIRONMENT
+Behavior of this program can be modified by environment variables as described below:
+
+.TP
+.B EC2PRE
+Underlying tools will be invoked using this prefix.  The default is 'euca-', which results in using tools like 'euca-register' and 'euca-bundle-image'.  To use the ec2-api-tools or ec2-ami-tools, set EC2PRE='ec2-'
+
 .SH DESCRIPTION
 Publish an image to a cloud
 

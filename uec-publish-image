@@ -21,6 +21,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+EC2PRE=${EC2PRE:-euca-}
 TMPD=""
 RENAME_D=""
 VERBOSITY=0
@@ -112,7 +113,7 @@ checkstatus() {
 
 get_manifest_id() {
 	local str="${1}" cmp="~" tmpf="" out="" ret=1
-	out=$(euca-describe-images -a |
+	out=$(${EC2PRE}describe-images -a |
 	        awk '$3 '$cmp' p { printf("%s\t%s\n",$2,$3); }' "p=${str}" ;
 			checkstatus ${PIPESTATUS[@]}) || return 1
 	_RET=${out}
@@ -336,18 +337,18 @@ else
 			bundle_args[${#bundle_args[@]}]="true"
 	esac
 	run "${wdir}" "bundle" "bundling ${img_type} ${image}" \
-		euca-bundle-image --destination "${wdir}" --arch "${arch}" \
+		${EC2PRE}bundle-image --destination "${wdir}" --arch "${arch}" \
 			"${bundle_args[@]}" "${krd_args[@]}" ||
 		fail "failed to bundle ${img_type} ${image}"
 
 	run "${wdir}" "upload" "upload ${bucket}/${manifest}" \
-		euca-upload-bundle --bucket "${bucket}" \
+		${EC2PRE}upload-bundle --bucket "${bucket}" \
 				--manifest "${wdir}/${manifest}" ||
 			fail "failed to upload bundle to ${bucket}/${manifest}"
 
 	junk="" img_id="";
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
-		euca-register "${bucket}/${manifest}" &&
+		${EC2PRE}register "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
 			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
@@ -355,7 +356,7 @@ else
 				set -- ${bad}
 				bad_id=${1}
 				error "un-registering invalid $bad" >/dev/null
-				euca-deregister "${bad_id}"
+				${EC2PRE}deregister "${bad_id}"
 			fi
 			fail "failed to register ${manifest}"
 		}
@@ -374,7 +375,7 @@ fi
 for user in ${add_acl}; do
 	run "${wdir}" "add_user.${user}" \
 		"add ${user} to ${manifest}" \
-		euca-modify-image-attribute \
+		${EC2PRE}modify-image-attribute \
 			--launch-permission --add "${user}" "${img_id}" ||
 		fail "failed to add launch permission for ${user} to ${img_id}"
 done
