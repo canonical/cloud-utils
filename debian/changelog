@@ -1,4 +1,4 @@
-cloud-utils (0.17ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.17ubuntu1) natty; urgency=low
 
   * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
   * add support for shorter syntax in uec-query-builds
@@ -6,7 +6,7 @@ cloud-utils (0.17ubuntu1) UNRELEASED; urgency=low
   * move write-mime-multipart from cloud-init to cloud-init-multipart
     in cloud-utils
 
- -- Scott Moser <smoser@ubuntu.com>  Fri, 24 Sep 2010 10:16:21 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 11 Jan 2011 09:40:28 -0500
 
 cloud-utils (0.16ubuntu1) maverick; urgency=low
 
