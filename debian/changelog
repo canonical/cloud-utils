@@ -3,6 +3,8 @@ cloud-utils (0.17ubuntu1) UNRELEASED; urgency=low
   * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
   * add support for shorter syntax in uec-query-builds
   * fix ec2metadata under Eucalyptus (LP: #676144)
+  * move write-mime-multipart from cloud-init to cloud-init-multipart
+    in cloud-utils
 
  -- Scott Moser <smoser@ubuntu.com>  Fri, 24 Sep 2010 10:16:21 -0400
 
