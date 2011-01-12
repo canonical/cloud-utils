@@ -4,3 +4,4 @@ uec-query-builds /usr/bin
 uec-resize-image /usr/bin
 uec-run-instances /usr/bin
 ec2metadata /usr/bin
+write-mime-multipart /usr/bin

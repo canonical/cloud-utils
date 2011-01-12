@@ -1,0 +1,37 @@
+.TH write-mime-multipart 1 "11 Jan 2011" cloud-utils "cloud-utils"
+.SH NAME
+\fBwrite-mime-multipart\fP - utilty for creating mime-multipart files, likely for use via user data and cloud-init.
+
+.SH SYNOPSIS
+.BI "write-mime-multipart [options]
+
+.SH DESCRIPTION
+This program is intended to help write data that can be consumed by cloud-init.  cloud-init reads mime multipart as user-data.
+
+.TP
+.B -h | --help
+Show usage message
+
+.TP
+.B -o | --output FILE
+write output to FILE [default is stdout]
+
+.TP
+.B -z | --gzip
+compress output with gzip
+
+.TP
+.B -d | --default DEFTYPE
+if not provided assume mime-type of DEFTYPE [default is 'text/plain']
+
+.TP
+.B --delim DELIM
+use delimiter DELIM [default is ':']
+
+.SH EXAMPLES
+  write\-mime\-multipart --gzip --output=combined-userdata.txt boothook.txt:text/cloud-boothook include-file.txt:text/x-include-url
+
+.SH AUTHOR
+This manpage and the utility was written by Scott Moser <scott.moser@canonical.com>.  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
+
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.

@@ -1,3 +1,9 @@
+cloud-utils (0.18ubuntu1) UNRELEASED; urgency=low
+
+  * include write-mime-multipart into the packaging, with man page
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 11 Jan 2011 19:30:32 -0500
+
 cloud-utils (0.17ubuntu1) natty; urgency=low
 
   * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
