@@ -1,3 +1,10 @@
+cloud-utils (0.20ubuntu1) UNRELEASED; urgency=low
+
+  * uec-publish-image: use --name in euca-register
+  * fix for debug so '-v' will give some info (previously needed -vv)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 13 Jan 2011 15:28:23 -0500
+
 cloud-utils (0.19ubuntu1) natty; urgency=low
 
   * uec-publish-image: fix using ec2-api-tools and ec2-ami-tools

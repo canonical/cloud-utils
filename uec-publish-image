@@ -52,7 +52,6 @@ Usage: ${0##*/} [ options ] arch image bucket
       -v|--verbose                : increase verbosity
          --name   <name>          : register with '--name'.
                                     default: basename(publish_path)
-                                    (only with ec2-api-tools)
 
    if type is 'image', then:
       -k | --kernel  k        : use previously registered kernel with id 'k'
@@ -77,7 +76,7 @@ cleanup() {
 debug() {
 	local level=${1}
 	shift;
-	[ "${level}" -gt "${VERBOSITY}" ] && return
+	[ "${level}" -ge "${VERBOSITY}" ] && return
 	error "$(date):" "${@}"
 }
 run() {
@@ -320,6 +319,11 @@ krd_args=( );
 [ -n "${ramdisk}" -a "${ramdisk}" != "none" ] &&
 	krd_args=( "${krd_args[@]}" "--ramdisk" "${ramdisk}" )
 
+if [ -z "${name}" ]; then
+	name=${rename}
+	debug 1 "using ${name} for --name"
+fi
+
 if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
 	req="EC2_CERT EC2_PRIVATE_KEY EC2_USER_ID EC2_ACCESS_KEY EC2_SECRET_KEY"
 	for env_name in ${req}; do
@@ -332,11 +336,6 @@ if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
 	ex_upload_args=( --access-key "${EC2_ACCESS_KEY}" 
 	                 --secret-key "${EC2_SECRET_KEY}" )
 
-	if [ -z "${name}" ]; then
-		name=${rename}
-		debug 1 "using ${name} for --name"
-	fi
-	ex_register_args=( --name "${name}" )
 fi
 
 debug 1 "checking for existing registered image at ${bucket}/${manifest}"
@@ -372,7 +371,8 @@ else
 
 	junk="" img_id="";
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
-		${EC2PRE}register "${ex_register_args[@]}" "${bucket}/${manifest}" &&
+		${EC2PRE}register --name "${name}" \
+			"${ex_register_args[@]}" "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
 			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
