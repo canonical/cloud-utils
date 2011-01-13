@@ -50,6 +50,9 @@ Usage: ${0##*/} [ options ] arch image bucket
                                     default: bucket/<basename(image)>
       -t|--type   <type>          : type is one of kernel/ramdisk/image
       -v|--verbose                : increase verbosity
+         --name   <name>          : register with '--name'.
+                                    default: basename(publish_path)
+                                    (only with ec2-api-tools)
 
    if type is 'image', then:
       -k | --kernel  k        : use previously registered kernel with id 'k'
@@ -317,6 +320,25 @@ krd_args=( );
 [ -n "${ramdisk}" -a "${ramdisk}" != "none" ] &&
 	krd_args=( "${krd_args[@]}" "--ramdisk" "${ramdisk}" )
 
+if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
+	req="EC2_CERT EC2_PRIVATE_KEY EC2_USER_ID EC2_ACCESS_KEY EC2_SECRET_KEY"
+	for env_name in ${req}; do
+		[ -n "${!env_name}" ] ||
+			fail "when using ec2- tools, you must set env: ${req}"
+	done
+	ex_bundle_args=( --cert "${EC2_CERT}" 
+	                 --privatekey "${EC2_PRIVATE_KEY}" 
+	                 --user "${EC2_USER_ID}" )
+	ex_upload_args=( --access-key "${EC2_ACCESS_KEY}" 
+	                 --secret-key "${EC2_SECRET_KEY}" )
+
+	if [ -z "${name}" ]; then
+		name=${rename}
+		debug 1 "using ${name} for --name"
+	fi
+	ex_register_args=( --name "${name}" )
+fi
+
 debug 1 "checking for existing registered image at ${bucket}/${manifest}"
 get_manifest_id "${bucket}/${manifest}" ||
 	fail "failed to check for existing manifest"
@@ -338,17 +360,19 @@ else
 	esac
 	run "${wdir}" "bundle" "bundling ${img_type} ${image}" \
 		${EC2PRE}bundle-image --destination "${wdir}" --arch "${arch}" \
+			"${ex_bundle_args[@]}" \
 			"${bundle_args[@]}" "${krd_args[@]}" ||
 		fail "failed to bundle ${img_type} ${image}"
 
 	run "${wdir}" "upload" "upload ${bucket}/${manifest}" \
 		${EC2PRE}upload-bundle --bucket "${bucket}" \
+				"${ex_upload_args[@]}" \
 				--manifest "${wdir}/${manifest}" ||
 			fail "failed to upload bundle to ${bucket}/${manifest}"
 
 	junk="" img_id="";
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
-		${EC2PRE}register "${bucket}/${manifest}" &&
+		${EC2PRE}register "${ex_register_args[@]}" "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
 			if bad=$(get_manifest_id "${bucket}/${manifest}") &&

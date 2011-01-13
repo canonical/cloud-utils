@@ -1,3 +1,9 @@
+cloud-utils (0.19ubuntu1) UNRELEASED; urgency=low
+
+  * uec-publish-image: fix using ec2-api-tools and ec2-ami-tools
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 13 Jan 2011 13:52:28 -0500
+
 cloud-utils (0.18ubuntu1) natty; urgency=low
 
   * include write-mime-multipart into the packaging, with man page
