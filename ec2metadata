@@ -34,7 +34,7 @@ Options:
     --ami-id                display the ami id
     --ami-launch-index      display the ami launch index
     --ami-manifest-path     display the ami manifest path
-    --ancestor-ami-id       display the ami ancestor id
+    --ancestor-ami-ids      display the ami ancestor id
     --product-codes         display the ami associated product codes
     --availability-zone     display the ami placement zone
 
@@ -62,7 +62,7 @@ import urllib
 import socket
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
-            'ancestor-ami-id', 'availability-zone', 'block-device-mapping',
+            'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
             'instance-id', 'instance-type', 'local-hostname', 'local-ipv4',
             'kernel-id', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reserveration-id', 'security-groups',

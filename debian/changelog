@@ -2,6 +2,7 @@ cloud-utils (0.20ubuntu1) UNRELEASED; urgency=low
 
   * uec-publish-image: use --name in euca-register
   * fix for debug so '-v' will give some info (previously needed -vv)
+  * fix for ancestor-ami-ids retrieval (LP: #706651)
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 13 Jan 2011 15:28:23 -0500
 
