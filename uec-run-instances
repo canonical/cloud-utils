@@ -1,11 +1,11 @@
 #!/usr/bin/python
-# vi:ts=4 noexpandtab
 #
 #    Copyright (C) 2010 Canonical Ltd.
 #
 #    Authors: Dustin Kirkland <kirkland@canonical.com>
 #             Scott Moser <scott.moser@canonical.com>
 #             Clint Byrum <clint.byrum@canonical.com>
+#             Tom Ellis <tom.ellis@canonical.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -309,6 +309,9 @@ def main():
 	parser.add_option("", "--associate-ip", dest="ip",
 		help="associate elastic IP with instance", metavar="IP_ADDR",
 		default=None)
+	parser.add_option("", "--attach-volume", dest="vol",
+		help="attach EBS volume with instance", metavar="VOLUME_ID",
+		default=None)
 	parser.add_option("", "--known-hosts", dest="known_hosts", action="append",
 		help="write host keys to specified known_hosts file. Specify multiple times to read keys from multiple files (only updates last one)",
 		metavar="KnownHosts", default=None)
@@ -502,6 +505,9 @@ def main():
 					elif istatus != 'running' and options.wait_for:
 						logging.warning('%s is %s', iid, istatus)
 						new_pending_instance_ids.append(iid)
+					elif istatus != 'running' and options.vol:
+						logging.warning('%s is %s', iid, istatus)
+						new_pending_instance_ids.append(iid)
 					else:
 						logging.info("%s %s", iid, istatus)
 						inst = Instance()
@@ -551,6 +557,39 @@ def main():
 				ret = rcmd.wait()
 				if bool(ret):
 					logging.debug('associate-ip returned %d', ret)
+
+    if options.vol:
+		# as you can start multiple instances, support multiple vols like ips, instead of multiple volumes on one instance
+		vols = options.vol.split(',')
+		if len(vols) < len(instances):
+			logging.warning('only %d volumes given, some instances will not get a volume attached', len(vols))
+		elif len(vols) > len(instances):
+			logging.warning('%d volumes given, some volumes will not be associated', len(vols))
+		
+		rcmds = []
+		vols.reverse()
+		for inst in instances:
+			# instance needs to be 'running' not 'pending' before attaching volume, otherwise it fails
+			logging.info('waiting for instance to run')
+			cmd = '%s-attach-volume' % provider
+			if len(vols) < 1:
+				break
+			vol = vols.pop()
+			dev = '/dev/sdb'
+			args = [ cmd , '-i', inst.id, '-d', dev, vol ]
+			logging.debug('running %s',args)
+			logging.info("attaching volume with id = %s to instance id = %s", vol, inst.id)
+			rattach = Popen(args, stdout=PIPE)
+			rcmds.append(rattach)
+		for rcmd in rcmds:
+			# dump stdin into the inst object
+			try:
+				for line in rcmd.stdout:
+					logging.info(line)
+			finally:
+				ret = rcmd.wait()
+				if bool(ret):
+					logging.debug('attach-volume returned %d', ret)
 
 	if options.wait_for == 'ssh':
 		logging.info('waiting for ssh access')
@@ -604,3 +643,5 @@ def main():
 			
 if __name__ == "__main__":
 	main()
+
+# vi:ts=4 noexpandtab
