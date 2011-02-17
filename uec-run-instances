@@ -558,7 +558,7 @@ def main():
 				if bool(ret):
 					logging.debug('associate-ip returned %d', ret)
 
-    if options.vol:
+	if options.vol:
 		# as you can start multiple instances, support multiple vols like ips, instead of multiple volumes on one instance
 		vols = options.vol.split(',')
 		if len(vols) < len(instances):
