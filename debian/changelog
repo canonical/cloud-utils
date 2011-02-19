@@ -1,4 +1,4 @@
-cloud-utils (0.20ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.20ubuntu1) natty; urgency=low
 
   * uec-publish-image: use --name in euca-register
   * uec-publish-image: fix for debug so '-v' will give some info
@@ -6,7 +6,7 @@ cloud-utils (0.20ubuntu1) UNRELEASED; urgency=low
   * ec2metadata: fix for ancestor-ami-ids retrieval (LP: #706651)
   * uec-run-instances: add '--attach-volume'
 
- -- Scott Moser <smoser@ubuntu.com>  Thu, 13 Jan 2011 15:28:23 -0500
+ -- Scott Moser <smoser@ubuntu.com>  Sat, 19 Feb 2011 01:17:35 -0500
 
 cloud-utils (0.19ubuntu1) natty; urgency=low
 
