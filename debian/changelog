@@ -1,3 +1,10 @@
+cloud-utils (0.20ubuntu2) UNRELEASED; urgency=low
+
+  * make uec-publish-tarball read TMPDIR, and fall back to
+    value of TEMPDIR.
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 22 Feb 2011 11:13:27 -0500
+
 cloud-utils (0.20ubuntu1) natty; urgency=low
 
   * uec-publish-image: use --name in euca-register

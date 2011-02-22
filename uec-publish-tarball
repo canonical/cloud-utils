@@ -148,7 +148,8 @@ fi
 ${EC2PRE}describe-images >/dev/null ||
 	fail "Unable to run ${EC2PRE}-describe-images.  Is environment for ${EC2PRE} set up?"
 
-TMPD=$(mktemp -d ${TEMPDIR:-/tmp}/${0##*/}.XXXXXX) || fail "failed make temp"
+utmp=${TEMPDIR:-${TMPDIR:-/tmp}}
+TMPD=$(mktemp -d "${utmp}/${0##*/}.XXXXXX") || fail "failed make temp"
 trap cleanup EXIT
 
 start=$PWD
