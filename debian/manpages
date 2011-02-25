@@ -4,3 +4,4 @@ uec-query-builds.1
 uec-resize-image.1
 uec-run-instances.1
 write-mime-multipart.1
+growpart.1
