@@ -1,0 +1,56 @@
+.TH growpart 1 "25 Feb 2011" cloud\-utils "cloud\-utils"
+.SH NAME
+growpart \- extend a partition in a partition table to fill available space
+
+.SH SYNOPSIS
+.BI "growpart [OPTIONS] DISK PARTITION\-NUMBER"
+
+growpart partition
+   rewrite partition table so that partition takes up all the space it can
+   options:
+    -h | --help      print Usage an exit
+         --fudge F   if part could be resized, but change would be
+                     less than 'F', do not resize (default: 20480)
+    -N | --dry-run   only report what would be done, show new 'sfdisk -d'
+    -v | --verbose   increase verbosity / debug
+
+.SH OPTIONS
+.TP
+.B -h | --help
+Show usage and exit
+.TP
+.B -N | --dry-run
+Only report what would be done
+.TP
+.B      --fudge COUNT
+Only modify partition table if the given partition would grow more than COUNT sectors (512 bytes).  The default value is 20480 indicating that no change will be made unless more than 10M of space would be gained.
+.TP
+.B -v | --verbose
+Give more information to stderr.
+.TP
+.B -r | --ramdisk r
+Use previously registered ramdisk with id 'r' specify 'none' for no ramdisk
+
+.SH ARGUMENTS
+.TP
+.B DISK
+The device or disk image to operate on
+.TP
+.B PARTITION\-NUMBER
+The number of the partition to resize (counting from 1)
+
+.SH DESCRIPTION
+Rewrite a the partition table in a disk or disk image so that the given partition takes up as much space as it can.  After running, the partition will end at the end of the disk, or at the beginning of the next partition.
+
+.SH EXAMPLES
+.TP
+Extend partition 1 in /dev/sda to fill empty space until end of disk or next partitiong
+   growpart /dev/sda 1
+.TP
+Extend partition 2 in disk image my.image.
+   growpart my.image 2
+
+.SH AUTHOR
+This manpage was written by Scott Moser <smoser@canonical.com> for Ubuntu systems (but may be used by others).  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
+
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL.
