@@ -128,7 +128,7 @@ tot=$((${cyl}*${heads}*${sectors}))
 
 debug 1 "geometry is $CHS. total size=${tot}"
 sfdisk ${CHS} -uS -d "${disk}" > "${dump_out}" 2>"${err}" ||
-	fail "failed to dump sfdisk info for ${isk}"
+	fail "failed to dump sfdisk info for ${disk}"
 
 {
 echo "## sfdisk ${CHS} -uS -d ${disk}"; 
