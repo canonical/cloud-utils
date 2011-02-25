@@ -102,7 +102,7 @@ done
 
 [ -e "${disk}" ] || { fail "${disk}: does not exist"; }
 
-[ "${part#*[^0-9]}" != "${part}" ] || fail "partition-number must be a number"
+[ "${part#*[!0-9]}" = "${part}" ] || fail "partition-number must be a number"
 
 mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
