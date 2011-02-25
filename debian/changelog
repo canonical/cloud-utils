@@ -4,9 +4,9 @@ cloud-utils (0.21ubuntu1) UNRELEASED; urgency=low
     read 'TEMPDIR' environment variable.  Fall back to using
     that if TMPDIR is not set.
   * add utility 'growpart' for rewriting a partition table
-    so that a given partition uses available space
+    so that a given partition uses available space (LP: #725127)
 
- -- Scott Moser <smoser@ubuntu.com>  Tue, 22 Feb 2011 11:13:27 -0500
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 25 Feb 2011 12:22:36 -0500
 
 cloud-utils (0.20ubuntu1) natty; urgency=low
 
