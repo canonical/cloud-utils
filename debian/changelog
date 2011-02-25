@@ -1,4 +1,4 @@
-cloud-utils (0.21ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.21ubuntu1) natty; urgency=low
 
   * make uec-publish-tarball read TMPDIR. Previously it
     read 'TEMPDIR' environment variable.  Fall back to using
@@ -6,7 +6,7 @@ cloud-utils (0.21ubuntu1) UNRELEASED; urgency=low
   * add utility 'growpart' for rewriting a partition table
     so that a given partition uses available space (LP: #725127)
 
- -- Scott Moser <smoser@ubuntu.com>  Fri, 25 Feb 2011 12:22:36 -0500
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 25 Feb 2011 12:54:46 -0500
 
 cloud-utils (0.20ubuntu1) natty; urgency=low
 
