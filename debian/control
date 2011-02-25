@@ -9,7 +9,7 @@ Standards-Version: 3.8.4
 Package: cloud-utils
 Architecture: all
 Depends: ${misc:Depends}, euca2ools, file, e2fsprogs (>=1.4), python,
- python-yaml, python-paramiko
+ python-yaml, python-paramiko, util-linux (>= 2.17.2)
 Description: cloud image management utilities
  This package provides a useful set of utilities for managing cloud
  images.
