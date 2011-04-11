@@ -371,7 +371,7 @@ else
 
 	junk="" img_id="";
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
-		${EC2PRE}register --name "${name}" \
+		${EC2PRE}register ${name:+--name "${name}"} \
 			"${ex_register_args[@]}" "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
