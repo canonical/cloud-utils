@@ -138,7 +138,7 @@ if [ -z "${arch}" ]; then
 	esac
 fi
 
-[ $arch = "amd64" ] && iarch=x86_64 || iarch=i386
+[ "$arch" = "amd64" ] && iarch="x86_64" || iarch="${arch}"
 
 [ -f "${tarball}" ] && tbf=$(readlink -f "${tarball}") ||
 	fail "bad tarball: ${tarball}";
