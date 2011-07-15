@@ -1,4 +1,4 @@
-cloud-utils (0.22ubuntu1) UNRELEASED; urgency=low
+cloud-utils (0.22ubuntu1) oneiric; urgency=low
 
   * uec-publish-tarball: accept x86_64 as valid arch input, and pass provided
     arch un-modified to uec-publish-image rather than always changing to 'i386'
@@ -8,7 +8,7 @@ cloud-utils (0.22ubuntu1) UNRELEASED; urgency=low
     self.
   * uec-publish-image: register as bucket/basename rather than basename
 
- -- Scott Moser <smoser@ubuntu.com>  Tue, 24 May 2011 12:35:11 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 15 Jul 2011 12:14:21 -0400
 
 cloud-utils (0.21ubuntu1) natty; urgency=low
 
