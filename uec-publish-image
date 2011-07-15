@@ -51,7 +51,7 @@ Usage: ${0##*/} [ options ] arch image bucket
       -t|--type   <type>          : type is one of kernel/ramdisk/image
       -v|--verbose                : increase verbosity
          --name   <name>          : register with '--name'.
-                                    default: basename(publish_path)
+                                    default: publish_path
 
    if type is 'image', then:
       -k | --kernel  k        : use previously registered kernel with id 'k'
@@ -114,9 +114,10 @@ checkstatus() {
 }
 
 get_manifest_id() {
-	local str="${1}" cmp="~" tmpf="" out="" ret=1
-	out=$(${EC2PRE}describe-images -a |
-	        awk '$3 '$cmp' p { printf("%s\t%s\n",$2,$3); }' "p=${str}" ;
+	local tmpf="" out="" ret=1 m1="${1}" m2="${2}"
+	out=$(${EC2PRE}describe-images -o self |
+	        awk '$3 ~ m1 || $3 ~ m2 { printf("%s\t%s\n",$2,$3); }' \
+				"m1=$m1" "m2=${m2:-^$}"
 			checkstatus ${PIPESTATUS[@]}) || return 1
 	_RET=${out}
 	return
@@ -241,6 +242,11 @@ fi
 
 [ -n "${rename}" ] || rename=${image##*/}
 
+if [ -z "${name}" ]; then
+	name="${bucket}/${rename}"
+	debug 1 "using ${name} for --name"
+fi
+
 image_full=$(readlink -f "${image}") ||
 	fail "failed to get full path to ${image}"
 
@@ -319,11 +325,6 @@ krd_args=( );
 [ -n "${ramdisk}" -a "${ramdisk}" != "none" ] &&
 	krd_args=( "${krd_args[@]}" "--ramdisk" "${ramdisk}" )
 
-if [ -z "${name}" ]; then
-	name=${rename}
-	debug 1 "using ${name} for --name"
-fi
-
 if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
 	req="EC2_CERT EC2_PRIVATE_KEY EC2_USER_ID EC2_ACCESS_KEY EC2_SECRET_KEY"
 	for env_name in ${req}; do
@@ -339,13 +340,13 @@ if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
 fi
 
 debug 1 "checking for existing registered image at ${bucket}/${manifest}"
-get_manifest_id "${bucket}/${manifest}" ||
+get_manifest_id "^${bucket}/${manifest}" "/$name$" ||
 	fail "failed to check for existing manifest"
 if [ -n "${_RET}" ]; then
 	set -- ${_RET}
 	img_id=${1}; path=${2}
 	[ ${allow_existing} -eq 1 ] ||
-		fail "${bucket}/${manifest} already registered as ${img_id}"
+		fail "${path} already registered as ${img_id}"
 	debug 1 "using existing ${img_id} for ${bucket}/${manifest}"
 else
 	bundle_args=( "--image" "${rename_full}" )
@@ -375,7 +376,7 @@ else
 			"${ex_register_args[@]}" "${bucket}/${manifest}" &&
 		read junk img_id < "${wdir}/register.stdout" &&
 		[ "${img_id#???-}" != "${img_id}" ] || {
-			if bad=$(get_manifest_id "${bucket}/${manifest}") &&
+			if bad=$(get_manifest_id "${bucket}/${manifest}" "/${name}") &&
 			   [ -n "${bad}" ]; then
 				set -- ${bad}
 				bad_id=${1}

@@ -1,7 +1,12 @@
 cloud-utils (0.22ubuntu1) UNRELEASED; urgency=low
 
-  * accept x86_64 as valid arch input, and pass provided arch un-modified
-    to uec-publish-image rather than always changing to 'i386' (LP: #779812)
+  * uec-publish-tarball: accept x86_64 as valid arch input, and pass provided
+    arch un-modified to uec-publish-image rather than always changing to 'i386'
+    (LP: #779812)
+  * uec-publish-image: improve searching for existing image.  Handle searching
+    for either the name or the manifest path, and only search images owned by
+    self.
+  * uec-publish-image: register as bucket/basename rather than basename
 
  -- Scott Moser <smoser@ubuntu.com>  Tue, 24 May 2011 12:35:11 -0400
 
