@@ -1,9 +1,9 @@
-.TH uec\-publish\-tarball 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
+.TH cloud\-publish\-tarball 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
 .SH NAME
-uec\-publish\-tarball \- publish a cloud archive
+cloud\-publish\-tarball \- publish a cloud archive
 
 .SH SYNOPSIS
-.BI "uec\-publish\-tarball [OPTIONS] TARFILE BUCKET [ARCH]"
+.BI "cloud\-publish\-tarball [OPTIONS] TARFILE BUCKET [ARCH]"
 
 .SH OPTIONS
 .TP
@@ -50,10 +50,10 @@ Behavior of this program can be modified by environment variables as described b
 Underlying tools will be invoked using this prefix.  The default is 'euca-', which results in using tools like 'euca-register' and 'euca-bundle-image'.  To use the ec2-api-tools or ec2-ami-tools, set EC2PRE='ec2-'
 
 .SH DESCRIPTION
-Register a UEC tarball per http://uec-images.ubuntu.com
+Register a Ubuntu Cloud image tarball per http://cloud-images.ubuntu.com
 
 .SH EXAMPLES
-  uec\-publish\-tarball lucid-uec-i386.tar.gz my-lucid-bucket i386
+  cloud\-publish\-tarball lucid-cloud-i386.tar.gz my-lucid-bucket i386
 
 .SH AUTHOR
 This manpage was written by Dustin Kirkland <kirkland@canonical.com> for Ubuntu systems (but may be used by others).  Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.

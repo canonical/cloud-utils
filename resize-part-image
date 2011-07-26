@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#    uec-resize-image - resize a uec image
+#    cloud-resize-image - resize a cloud image
 #
 #    Copyright (C) 2010 Canonical Ltd.
 #
@@ -22,7 +22,7 @@
 Usage() {
 	cat <<EOF
 Usage: ${0##*/} [ options ] image size [output]
-   Resize a UEC image to a new size.
+   Resize a partition image and contained filesystem to a new size.
    if output is given, do not modify 'image', but create new file 'output'
 
    New size is specified per resize2fs(8), e.g. "1G" for 1 gigabyte
@@ -80,6 +80,10 @@ runcmd() {
 verbose=0
 [ "$1" = "-v" -o "$1" = "--verbose" ] &&
    { verbose=1; shift; }
+
+[ "${CLOUD_UTILS_WARN_RESIZE:-0}" = "0" ] && _n="${0##*/}" &&
+	[ "${_n#uec}" != "${_n}" ] && export CLOUD_UTILS_WARN_RESIZE=1 &&
+	error "WARNING: uec-resize-image is now 'resize-part-image'. Please update your tools or docs."
 
 [ $# -eq 3 -o $# -eq 2 ] || { Usage 1>&2; exit 1; }
 

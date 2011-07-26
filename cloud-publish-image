@@ -2,7 +2,7 @@
 # vi: ts=4 noexpandtab
 # This script uses bash arrays; do not switch to /bin/sh
 #
-#    uec-publish-image - wrapper for uec image publishing
+#    cloud-publish-image - wrapper for cloud image publishing
 #
 #    Copyright (C) 2010 Canonical Ltd.
 #
@@ -138,10 +138,14 @@ get_image_type() {
 
 upload_register() {
 	local out=""
-	out=$(uec-publish-image "${@}") || return
+	out=$(cloud-publish-image "${@}") || return
 	set -- ${out}
 	_RET=${1}
 }
+
+[ "${CLOUD_UTILS_WARN_UEC:-0}" = "0" ] && _n="${0##*/}" &&
+	[ "${_n#uec}" != "${_n}" ] && export CLOUD_UTILS_WARN_UEC=1 &&
+	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs"
 
 short_opts="B:h:k:K:l:no:r:R:t:vw:"
 long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,type:,verbose,working-dir:"

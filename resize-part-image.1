@@ -1,9 +1,9 @@
-.TH uec\-resize\-image 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
+.TH cloud\-resize\-image 1 "17 Feb 2010" cloud\-utils "cloud\-utils"
 .SH NAME
-uec\-resize\-image \- resize a cloud image
+resize\-part\-image \- resize a partition image
 
 .SH SYNOPSIS
-.BI "uec\-resize\-image [ options ] IMAGE SIZE [OUTPUT]"
+.BI "resize\-part\-image [ options ] IMAGE SIZE [OUTPUT]"
 
 .SH OPTIONS
 .TP
@@ -20,7 +20,7 @@ New size is specified per resize2fs(8), e.g. "1G" for 1 gigabyte
 If OUTPUT filname is given, do not modify 'IMAGE', but create new file 'OUTPUT'
 
 .SH DESCRIPTION
-Resize a UEC image to a new size.
+Resize a partition image to a new size.
 
 .SH "SEE ALSO"
 .PD 0

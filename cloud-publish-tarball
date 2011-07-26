@@ -1,7 +1,7 @@
 #!/bin/sh
 # vi: ts=4 noexpandtab
 #
-#    uec-publish-tarball - wrapper for publishing uec tarballs
+#    cloud-publish-tarball - wrapper for publishing cloud tarballs
 #
 #    Copyright (C) 2010 Canonical Ltd.
 #
@@ -41,7 +41,7 @@ Usage() {
 	cat <<EOF
 Usage: ${0##*/} [ options ] tarfile bucket [arch]
 
-   register a UEC tarball (ie, per http://uec-images.ubuntu.com)
+   register a UEC tarball (ie, per http://cloud-images.ubuntu.com)
    if arch is not provided, a name-based attempt is made to guess
 
    options:
@@ -54,19 +54,19 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
       -R | --ramdisk-file f   bundle, upload, use file 'f' as ramdisk
            --rename-ramdisk r rename ramdisk to 'r'
            --resize  s        resize the image to 's' bundling uploading
-                              's' must be valid input to uec-resize-image
+                              's' must be valid input to cloud-resize-image
       -q | --quiet            be quiet, only output published ids
       -l | --use-loader       use the loader kernel rather than linux kernel
            --rename-image f   rename image to 'f' before publishing
 
    Example:
-   - ${0##*/} lucid-uec-i386.tar.gz my-lucid-bucket i386
+   - ${0##*/} lucid-cloud-i386.tar.gz my-lucid-bucket i386
 EOF
 }
 
 upload_register() {
 	local out="" ret=0
-	out=$(uec-publish-image "${@}") || {
+	out=$(cloud-publish-image "${@}") || {
 		ret=$?
 		printf "%s" "${out}"
 		return $ret
@@ -75,6 +75,9 @@ upload_register() {
 	_RET=${1}
 }
 
+[ "${CLOUD_UTILS_WARN_UEC:-0}" = "0" ] && _n="${0##*/}" && [ "${_n#uec}" != "${_n}" ] &&
+	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs" &&
+	export CLOUD_UTILS_WARN_UEC=1
 
 short_opts="hlk:K:qr:R:"
 long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:"
@@ -197,7 +200,7 @@ debug 1 "image  : ${image##*/}"
 
 if [ -n "${resize}" ]; then
 	log 1 "resizing ${image##*/} to ${resize}"
-	out=$(uec-resize-image "${image}" "${resize}" 2>&1) || {
+	out=$(resize-part-image "${image}" "${resize}" 2>&1) || {
 		error "${out}";
 		fail "failed to resize image file to ${resize}";
 	}
