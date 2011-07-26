@@ -19,8 +19,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Query and display EC2 metadata
+instdata_host = "169.254.169.254"
+instdata_ver = "2008-02-01"
+instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
+
+__doc__ = """
+Query and display EC2 metadata.
 
 If no options are provided, all options will be displayed
 
@@ -53,13 +57,16 @@ Options:
     --public-keys           display the openssh public keys
     --user-data             display the user data (not actually metadata)
 
-"""
+    -u | --url URL          use URL (default: %s)
+
+""" % instdata_url
 
 import sys
 import time
 import getopt
 import urllib
 import socket
+import urlparse
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
@@ -74,12 +81,16 @@ class Error(Exception):
 class EC2Metadata:
 	"""Class for querying metadata from EC2"""
 
-	def __init__(self, addr='169.254.169.254', api='2008-02-01'):
-		self.addr = addr
-		self.api = api
+	def __init__(self, burl=instdata_url):
+		self.burl = burl
 
-		if not self._test_connectivity(self.addr, 80):
-			raise Error("could not establish connection to: %s" % self.addr)
+		s = urlparse.urlsplit(burl)
+		addr = s.netloc.split(":")[0]
+		port = s.port
+		if s.port == None:
+			port = 80
+		if not self._test_connectivity(addr, port):
+			raise Error("could not establish connection to: %s:%s" % (addr, port))
 
 	@staticmethod
 	def _test_connectivity(addr, port):
@@ -95,7 +106,7 @@ class EC2Metadata:
 		return False
 
 	def _get(self, uri):
-		url = 'http://%s/%s/%s' % (self.addr, self.api, uri)
+		url = "%s/%s" % (self.burl, uri)
 		value = urllib.urlopen(url).read()
 		if "404 - Not Found" in value:
 			return None
@@ -133,10 +144,10 @@ def get(metaopt):
 	m = EC2Metadata()
 	return m.get(metaopt)
 
-def display(metaopts, prefix=False):
+def display(metaopts, burl, prefix=False):
 	"""primitive: display metaopts (list) values with optional prefix"""
 
-	m = EC2Metadata()
+	m = EC2Metadata(burl)
 	for metaopt in metaopts:
 		value = m.get(metaopt)
 		if not value:
@@ -162,22 +173,27 @@ def main():
 	try:
 		getopt_metaopts = METAOPTS[:]
 		getopt_metaopts.append('help')
-		opts, args = getopt.gnu_getopt(sys.argv[1:], "h", getopt_metaopts)
+		getopt_metaopts.append('url=')
+		opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
 	except getopt.GetoptError, e:
 		usage(e)
 
-	if len(opts) == 0:
-		display(METAOPTS, prefix=True)
-		return
+	burl = instdata_url
 
 	metaopts = []
 	for opt, val in opts:
 		if opt in ('-h', '--help'):
 			usage()
+		if opt in ('-u', '--url'):
+			burl = val
+			continue
 
 		metaopts.append(opt.replace('--', ''))
 
-	display(metaopts)
+	if len(metaopts) == 0:
+		metaopts = METAOPTS
+
+	display(metaopts, burl)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,9 @@
+cloud-utils (0.22ubuntu2) oneiric; urgency=low
+
+  * ec2metadata: add '--url' flag for specifying metadata service url
+
+ -- smoser <smoser@brickies.net>  Tue, 26 Jul 2011 12:24:10 -0400
+
 cloud-utils (0.22ubuntu1) oneiric; urgency=low
 
   * uec-publish-tarball: accept x86_64 as valid arch input, and pass provided
