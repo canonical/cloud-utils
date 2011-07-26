@@ -3,6 +3,7 @@ cloud-utils (0.22ubuntu2) oneiric; urgency=low
   * ec2metadata: add '--url' flag for specifying metadata service url
   * ec2metadata: update to use metadata api version 2011-01-01
     This adds 'instance-action', 'mac', 'profile'
+  * ec2metadata: use urllib2 and correctly identify HTTPErrors
 
  -- smoser <smoser@brickies.net>  Tue, 26 Jul 2011 12:24:10 -0400
 

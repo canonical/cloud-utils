@@ -68,7 +68,7 @@ Options:
 import sys
 import time
 import getopt
-import urllib
+import urllib2
 import socket
 import urlparse
 
@@ -112,9 +112,16 @@ class EC2Metadata:
 
 	def _get(self, uri):
 		url = "%s/%s" % (self.burl, uri)
-		value = urllib.urlopen(url).read()
-		if "404 - Not Found" in value:
-			return None
+		try:
+			resp = urllib2.urlopen(urllib2.Request(url))
+			value = resp.read()
+		except urllib2.HTTPError as e:
+			if e.code == 404:
+				return None
+			# Eucalyptus may raise a 500 (Internal Server Error)
+			if e.code == 500:
+				return None
+			raise
 
 		return value
 
