@@ -20,7 +20,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 instdata_host = "169.254.169.254"
-instdata_ver = "2008-02-01"
+instdata_ver = "2011-01-01"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
 
 __doc__ = """
@@ -54,6 +54,10 @@ Options:
     --block-device-mapping  display the block device id
     --security-groups       display the security groups
 
+    --mac                   display the instance mac address
+    --profile               display the instance profile
+    --instance-action       display the instance-action
+
     --public-keys           display the openssh public keys
     --user-data             display the user data (not actually metadata)
 
@@ -70,8 +74,9 @@ import urlparse
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
-            'instance-id', 'instance-type', 'local-hostname', 'local-ipv4',
-            'kernel-id', 'product-codes', 'public-hostname', 'public-ipv4',
+            'instance-action', 'instance-id', 'instance-type', 
+            'local-hostname', 'local-ipv4', 'kernel-id', 'mac',
+            'profile', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reserveration-id', 'security-groups',
             'user-data']
 
