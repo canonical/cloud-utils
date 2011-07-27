@@ -1,4 +1,4 @@
-cloud-utils (0.23-0ubuntu1) oneiric; urgency=low
+cloud-utils (0.23-0ubuntu1) unreleased; urgency=low
 
   * New upstream release (first upstream release separate from Ubuntu)
   * ec2metadata: add '--url' flag for specifying metadata service url
