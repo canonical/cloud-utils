@@ -1,4 +1,4 @@
-cloud-utils (0.23-0ubuntu1) unreleased; urgency=low
+cloud-utils (0.23-0ubuntu1) oneiric; urgency=low
 
   * New upstream release (first upstream release separate from Ubuntu)
   * ec2metadata: add '--url' flag for specifying metadata service url
@@ -12,7 +12,7 @@ cloud-utils (0.23-0ubuntu1) unreleased; urgency=low
     - uec-resize-image: renamed to resize-part-image
   * uec-query-builds: removed
 
- -- smoser <smoser@brickies.net>  Tue, 26 Jul 2011 12:24:10 -0400
+ -- smoser <smoser@brickies.net>  Tue, 26 Jul 2011 22:15:46 -0400
 
 cloud-utils (0.22ubuntu1) oneiric; urgency=low
 
