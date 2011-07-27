@@ -22,5 +22,6 @@ out=${topdir}/$name-${tag}.tar.gz
 
 cd ${tmpd} && 
    bzr branch -r "tag:${tag}" "${topdir}" ./cloud-init-${tag} &&
+   rm -rf cloud-init-${tag}/debian &&
    tar czf "${out}" cloud-init-${tag}/ --exclude cloud-init-${tag}/.bzr &&
    echo "wrote ${out}"
