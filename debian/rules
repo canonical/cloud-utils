@@ -1,8 +1,10 @@
 #!/usr/bin/make -f
 
 include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/makefile.mk
 
 OUT_D = $(CURDIR)/debian/cloud-utils
+DEB_MAKE_INSTALL_TARGET = install PREFIX=/usr DESTDIR=$(OUT_D)
 
 binary-post-install/cloud-utils::
 	ln -s cloud-publish-tarball $(OUT_D)/usr/bin/uec-publish-tarball 
