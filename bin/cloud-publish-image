@@ -167,7 +167,7 @@ output=""
 ramdisk=""
 ramdisk_file=""
 rename=""
-name=""
+name=__unset__
 wdir_in=""
 dev_mapping=""
 
@@ -246,9 +246,12 @@ fi
 
 [ -n "${rename}" ] || rename=${image##*/}
 
-if [ -z "${name}" ]; then
+if [ "${name}" = "__unset__" ]; then
 	name="${bucket}/${rename}"
 	debug 1 "using ${name} for --name"
+elif [ -z "${name}" -o "${name}" == "none" ]; then
+	# if user passed in '--name=""' or '--name=none", do not pass --name
+	name=""
 fi
 
 image_full=$(readlink -f "${image}") ||
