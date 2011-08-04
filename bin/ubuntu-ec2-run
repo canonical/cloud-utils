@@ -86,7 +86,7 @@ dry_run = False
 for arg in sys.argv[1:]:
    if arg in aliases:
       query_cmd.append(arg)
-   if arg == "--dry-run":
+   elif arg == "--dry-run":
       dry_run = True
    else:
       ri_cmd.append(arg)
