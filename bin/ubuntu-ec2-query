@@ -26,7 +26,7 @@ Usage: ${0##*/} [ options ] criteria
    Examples:
    - get the latest ami matching default criteria for release 'n'
      $ ${0##*/} -v n
-     release=natty bname=server store=ebs region=us-east-1 arch=amd64 ptype=paravirtual stream=released
+     us-east-1/ebs/ubuntu-natty-11.04-amd64-server-20110426
      ami-1aad5273
    - get an instance-store image in i386 image in us-west-1
      $ ${0##*/} lucid i386 instance us-west-1
