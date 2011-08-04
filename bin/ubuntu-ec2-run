@@ -65,7 +65,7 @@ if pre.strip() == pre:
 else:
    ri_cmd = [ pre.strip(), "run-instances" ]
 
-query_cmd = [ "ubuntu-ec2-query", "--format", "%{ami}" ]
+query_cmd = [ "ubuntu-cloudimg-query", "--format", "%{ami}" ]
 
 # each arg_group is a list of arguments and a default if not found
 # ec2-run-instances default instance-type is m1.small
