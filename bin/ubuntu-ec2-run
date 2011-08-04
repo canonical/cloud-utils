@@ -71,13 +71,15 @@ query_cmd = [ "ubuntu-cloudimg-query", "--format", "%{ami}" ]
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
    (("--region",), None),
-   (("--instance-type", "-t"), "m1.small"),
+   (("--instance-type", "-t"), "t1.micro"),
 )
 
 for (opts, default) in arg_groups:
    arg_value = get_argopt(sys.argv, opts)
    if arg_value == None:
       arg_value = default
+      if default != None:
+         ri_cmd.append("%s=%s" % (opts[0], default))
    if arg_value != None:
       query_cmd.append(arg_value)
 
