@@ -78,7 +78,7 @@ isrel() {
 			[ -n "$o" ] && _RET="$o" && return 0
 	done
 	dlcache "$url" "$out" "$cache" "$age" &&
-		o=$(awk '-F\t' '$1 ~ r { print $1 }' "r=^$cand" "$out")  &&
+		o=$(awk '-F\t' '$1 ~ r { print $1; exit(0); }' "r=^$cand" "$out")  &&
 		[ -n "$o" ] && _RET="$o" && return 0
 	return 1
 }
