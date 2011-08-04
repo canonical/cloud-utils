@@ -1,0 +1,234 @@
+#!/bin/sh
+
+VERBOSITY=0
+TEMP_D=""
+NAME="ubuntu-ec2-query"
+DOT_D="$HOME/.$NAME"
+CACHE_D="$HOME/.cache/$NAME"
+cachelife=86400
+
+error() { echo "$@" 1>&2; }
+errorp() { printf "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+failp() { [ $# -eq 0 ] || errorp "$@"; exit 1; }
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] criteria
+
+   Get the latest Ubuntu ami meeting certain criteria
+
+   options:
+      -o | --output FILE    output to file rather than stdout
+      -f | --format format  change output to 'format'.
+                            default: '%{ami}'
+
+   Examples:
+   - get the latest ami matching default criteria for release 'n'
+     $ ${0##*/} -v n
+     release=natty bname=server store=ebs region=us-east-1 arch=amd64 ptype=paravirtual stream=released
+     ami-1aad5273
+   - get an instance-store image in i386 image in us-west-1
+     $ ${0##*/} lucid i386 instance us-west-1
+     ami-73c69436
+   - get the latest daily build of the devel release in eu-west-1
+     $ EC2_REGION=eu-west-1 ${0##*/} daily amd64 ebs o
+
+EOF
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
+cleanup() {
+	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+
+cache_valid() {
+	local file="$1" date="$2"
+	[ -n "$file" -a -e "$file" ] || return 1
+	touch --date "${date}" "${TEMP_D}/ts"
+	[ "$file" -nt "$TEMP_D/ts" ]
+}
+
+dlcache() {
+	local url="$1" out="$2" cfilename="$3" age="$4"
+	local cachef="${CACHE_D}/$cfilename"
+	local timeout="now - $age seconds"
+	[ -n "$cfilename" ] || cachef=""
+	if cache_valid "$cachef" "$timeout"; then
+		cp -a "$cachef" "$out"
+		return
+	fi
+	wget -q "${url}" -O "${out}" || return 1
+	{ [ -z "$cachef" ] || cp "${out}" "${cachef}"; } ||
+		return 1
+}
+
+debug() {
+	local level=${1}; shift;
+	[ "${level}" -gt "${VERBOSITY}" ] && return
+	error "${@}"
+}
+
+isrel() {
+	local cand="$1" url="$2" out="$3" cache="$4" age="$5"
+	local o="" f=""
+	for f in "$out" "$CACHE_D/$cache"; do
+		[ -f "${f}" ] &&
+			o=$(awk '-F\t' '$1 ~ r { print $1; exit(0); }' "r=^$cand" "$f") &&
+			[ -n "$o" ] && _RET="$o" && return 0
+	done
+	dlcache "$url" "$out" "$cache" "$age" &&
+		o=$(awk '-F\t' '$1 ~ r { print $1 }' "r=^$cand" "$out")  &&
+		[ -n "$o" ] && _RET="$o" && return 0
+	return 1
+}
+subst() {
+	local cur="$1"; shift;
+	while [ $# -ne 0 ]; do
+      while [ "${cur#*${1}}" != "${cur}" ]; do
+         cur="${cur%%${1}*}${2}${cur#*${1}}"
+      done
+		shift 2
+	done
+	_RET=${cur}
+}
+
+short_opts="f:ho:v"
+long_opts="format:,help,no-cache,output:,verbose"
+getopt_out=$(getopt --name "${0##*/}" \
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
+
+## <<insert default variables here>>
+output="-"
+format='%{ami}'
+burl="https://cloud-images.ubuntu.com/query"
+store="ebs"
+region_default="${EC2_REGION:-us-east-1}"
+release="lucid"
+arch="amd64"
+stream="released"
+bname="server"
+itype=""
+ptype="paravirtual"
+poss_release=""
+
+while [ $# -ne 0 ]; do
+	cur=${1}; next=${2};
+	case "$cur" in
+		-h|--help) Usage ; exit 0;;
+		-f|--format) format=${2}; shift;;
+		-o|--output) output=${2}; shift;;
+		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+		   --no-cache) cachelife=0;;
+		--) shift; break;;
+	esac
+	shift;
+done
+
+for i in "$@"; do
+	case $i in
+		lucid|karmic|hardy|maverick|natty|oneiric) r_rel=${i};;
+		rel*) stream="released";;
+		daily) stream=${i};;
+		server|desktop) bname=${i};;
+		i386|amd64|x86_64) arch=${i}; [ "${i}" = "x86_64" ] && arch="amd64";;
+		*-*-[0-9]) region=${i};;
+		ebs) store="$i";;
+		instance|instance-store) store="instance-store";;
+		hvm) ptype="hvm";;
+		para|paravirtual) ptype="paravirtual";;
+		c[cg][1-9].*)
+			ptype="hvm";
+			arch=amd64;;
+		[a-z][1-9].[0-9a-z]*|c[cg][1-9].*)
+			case "${i}" in
+				t1.micro) store=ebs;; # t1.micro does not imply arch
+				m1.small|c1.medium) arch=i386;;
+				*) arch=amd64;;
+			esac
+			;;
+		http://*|https://*) burl=${i};;
+		[hklmnopqrstuvwxyz])
+			[ -z "$p_rel" ] || fail "found 2 unknown args: $p_rel, $i";
+			p_rel=$i;;
+		*) fail "confused by argument: ${i}";;
+	esac
+done
+
+TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
+	fail "failed to make tempdir"
+trap cleanup EXIT
+
+{ [ -d "${CACHE_D}" ] || mkdir -p "${CACHE_D}"; } ||
+	fail "failed to create ${CACHE_D}"
+
+daily_latest="${TEMP_D}/daily.latest.txt"
+release_latest="${TEMP_D}/released.latest.txt"
+
+if [ -n "$p_rel" ]; then
+	[ -z "$r_rel" ] || fail "unknown arg ${p_rel}"
+	url="${burl}/daily.latest.txt"
+	isrel "$p_rel" "$url" "${daily_latest}" "daily.latest.txt" $cachelife &&
+		r_rel="${_RET}" || fail "bad input $p_rel"
+fi
+[ -n "$r_rel" ] && release=$r_rel
+
+if [ -z "${region}" ]; then
+	if [ -n "${EC2_URL}" ]; then
+		case "${EC2_URL#*://}" in
+			*-*-[0-9].ec2.amazonaws.com*)
+				region=${EC2_URL#*://};
+				region=${region%%.*};;
+			ec2.amazonaws.com/*) region=us-east-1;;
+		esac
+	else
+		region="${region_default}"
+	fi
+fi
+
+ec2_curf="${TEMP_D}/${release}.${bname}.${stream}.current.txt"
+ec2_url="${burl}/${release}/${bname}/${stream}.current.txt"
+dl_curf="${TEMP_D}/${release}.${bname}.${stream}-dl.current.txt"
+dl_url="${burl}/${release}/${bname}/${stream}-dl.current.txt"
+
+dlcache "${dl_url}" "${dl_curf}" "${dl_curf##*/}" $cachelife ||
+	fail "failed to get ${url}"
+
+out=$(awk '-F\t' \
+	'$1 == release && $2 == bname && $5 == arch { print $4, $6, $7 }' \
+	"release=$release" "bname=$bname" "arch=$arch" "${dl_curf}") &&
+	[ -n "$out" ] || fail "failed find entry in ${dl_url}"
+set -- ${out}; serial=$1; dlpath=$2; pubname=$3
+url="${burl%/query}/${dlpath}"
+
+prefix="${store}"
+[ "${ptype}" = "hvm" ] && prefix="hvm"
+dlcache "${ec2_url}" "${ec2_curf}" "${ec2_curf##*/}" $cachelife ||
+	fail "failed to get ${ec2_url}"
+ami=$(awk '-F\t' \
+	'$1 == release && $2 == bname && $5 == store &&
+	$6 == arch && $7 == region && $11 == ptype { print $8 }' \
+	"release=$release" "bname=${bname}" \
+	"store=$store" "arch=$arch" "region=$region" "ptype=$ptype" \
+	"${ec2_curf}") && [ -n "$out" ] || fail "failed to find image"
+
+subst "$format" \
+  '%{ami}' "$ami" \
+  '%{arch}' "$arch" '%{bname}' "$bname" '%{dlpath}' "$dlpath" \
+  '%{ptype}' "$ptype" '%{pubname}' "$pubname" '%{region}' "$region" \
+  '%{release}' "$release" '%{store}' "$store" '%{stream}' "$stream" \
+  '%{url}' "$url"
+
+out=${_RET}
+[ -n "${out}" ] || fail "no ami found matching criteria"
+
+debug 1 "${region}/${prefix}/${pubname}"
+if [ -n "${output}" -a "${output}" != "-" ]; then
+	echo "$out" > "$output"
+else
+	echo "$out"
+fi
+exit
+# vi: ts=4 noexpandtab
