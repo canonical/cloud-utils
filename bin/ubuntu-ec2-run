@@ -81,14 +81,21 @@ for (opts, default) in arg_groups:
    if arg_value != None:
       query_cmd.append(arg_value)
 
+dry_run = False
+
 for arg in sys.argv[1:]:
    if arg in aliases:
       query_cmd.append(arg)
+   if arg == "--dry-run":
+      dry_run = True
    else:
       ri_cmd.append(arg)
 
 ami = subprocess.check_output(query_cmd).strip()
 ri_cmd.append(ami.strip())
 
-os.execvp(ri_cmd[0], ri_cmd)
+if dry_run:
+   print ' '.join(ri_cmd)
+else:
+   os.execvp(ri_cmd[0], ri_cmd)
 ################################################################################
