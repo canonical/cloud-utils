@@ -1,0 +1,94 @@
+#!/usr/bin/python
+#
+#    ubuntu-run-instances: ec2-run-instances that support human readable aliases for AMI's
+#
+#    Copyright (C) 2011 Dustin Kirkland <kirkland@ubuntu.com>
+#
+#    Authors: Dustin Kirkland <kirkland@ubuntu.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, version 3 of the License.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import os, string, sys, urllib2
+import subprocess
+
+aliases = [
+  "karmic", "lucid", "maverick", "natty", "oneiric",
+  "amd64", "x86_64", "i386",
+  "server", "desktop",
+  "release", "daily",
+  "ebs", "instance-store", "instance",
+  "hvm", "paravirtual", "pv",
+]
+
+def get_argopt(args, optnames):
+   ret = None
+   i = 0
+   while i < len(args):
+      cur = args[i];
+      for opt in optnames:
+         if opt.startswith("--"):
+            if cur == opt:
+               ret = args[i+1]
+               i = i + 1
+               break
+            elif cur.startswith("%s=" % opt):
+               ret = args[i].split("=")[1]
+               break
+         else:
+            if args[i] == opt:
+               ret = args[i+1]
+               i = i + 1
+               break
+      i = i + 1
+   return ret
+
+pre = "ec2-"
+for name in ("EC2_PRE", "EC2PRE"):
+   if name in os.environ:
+      pre=os.environ[name]
+
+# if the prefix is something like "myec2 "
+# then assume that 'myec2' is a command itself
+if pre.strip() == pre:
+   ri_cmd = [ "%srun-instances" % pre ]
+else:
+   ri_cmd = [ pre.strip(), "run-instances" ]
+
+query_cmd = [ "ubuntu-ec2-query", "--format", "%{ami}" ]
+
+# each arg_group is a list of arguments and a default if not found
+# ec2-run-instances default instance-type is m1.small
+arg_groups = (
+   (("--region",), None),
+   (("--instance-type", "-t"), "m1.small"),
+)
+
+for (opts, default) in arg_groups:
+   arg_value = get_argopt(sys.argv, opts)
+   if arg_value == None:
+      arg_value = default
+   if arg_value != None:
+      query_cmd.append(arg_value)
+
+for arg in sys.argv[1:]:
+   if arg in aliases:
+      query_cmd.append(arg)
+   else:
+      ri_cmd.append(arg)
+
+ami = subprocess.check_output(query_cmd).strip()
+ri_cmd.append(ami.strip())
+
+os.execvp(ri_cmd[0], ri_cmd)
+################################################################################
