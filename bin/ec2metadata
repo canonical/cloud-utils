@@ -136,6 +136,9 @@ class EC2Metadata:
 
 		if metaopt == 'public-keys':
 			data = self._get('meta-data/public-keys')
+			if data == None:
+				return None
+
 			keyids = [ line.split('=')[0] for line in data.splitlines() ]
 
 			public_keys = []
