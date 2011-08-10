@@ -193,6 +193,7 @@ def main():
 	burl = instdata_url
 
 	metaopts = []
+	prefix = False
 	for opt, val in opts:
 		if opt in ('-h', '--help'):
 			usage()
@@ -203,6 +204,7 @@ def main():
 		metaopts.append(opt.replace('--', ''))
 
 	if len(metaopts) == 0:
+		prefix = True
 		metaopts = METAOPTS
 
 	display(metaopts, burl)
