@@ -2,7 +2,7 @@
 
 VERBOSITY=0
 TEMP_D=""
-NAME="ubuntu-ec2-query"
+NAME="ubuntu-cloudimg-query"
 DOT_D="$HOME/.$NAME"
 CACHE_D="$HOME/.cache/$NAME"
 cachelife=86400
