@@ -71,24 +71,16 @@ query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n"
 # each arg_group is a list of arguments and a default if not found
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
-   (("--region",), None),
-   (("--instance-type", "-t"), "strip"),
+   ("--region",),
+   ("--instance-type", "-t"),
 )
 
-for (opts, default) in arg_groups:
+flags = { }
+for opts in arg_groups:
    arg_value = get_argopt(sys.argv, opts)
-   if arg_value == None:
-      if default == "strip":
-         # if the default is 'strip', it means do not append
-         # this to the run-instances command here in the case of
-         # 'instance-type', we explicitly append it based on query output
-         pass
-      elif default != None:
-         ri_cmd.append("%s=%s" % (opts[0], default))
-         arg_value = default
-
    if arg_value != None:
       query_cmd.append(arg_value)
+   flags[opts[0]]=arg_value
 
 dry_run = False
 
@@ -114,7 +106,9 @@ except subprocess.CalledProcessError as e:
    sys.stderr.write("  %s\n" % cmd)
    sys.exit(1)
 
-ri_cmd.append("--instance-type=%s" % itype)
+if flags.get("--instance-type",None) == None:
+   ri_cmd.append("--instance-type=%s" % itype)
+
 ri_cmd.append(ami)
 
 sys.stderr.write("# %s\n" % summary)
