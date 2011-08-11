@@ -22,8 +22,9 @@
 import os, string, sys, urllib2
 import subprocess
 
+# This could/should use `distro-info --supported`
 aliases = [
-  "karmic", "lucid", "maverick", "natty", "oneiric",
+  "lucid", "maverick", "natty", "oneiric",
   "amd64", "x86_64", "i386",
   "server", "desktop",
   "release", "daily",
