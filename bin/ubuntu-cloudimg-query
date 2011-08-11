@@ -113,6 +113,7 @@ bname="server"
 itype=""
 ptype="paravirtual"
 poss_release=""
+itypes=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -141,8 +142,10 @@ for i in "$@"; do
 		para|paravirtual) ptype="paravirtual";;
 		c[cg][1-9].*)
 			ptype="hvm";
+			itype="$i";
 			arch=amd64;;
 		[a-z][1-9].[0-9a-z]*|c[cg][1-9].*)
+			itype="$i";
 			case "${i}" in
 				t1.micro) store=ebs;; # t1.micro does not imply arch
 				m1.small|c1.medium) arch=i386;;
@@ -212,14 +215,35 @@ ami=$(awk '-F\t' \
 	$6 == arch && $7 == region && $11 == ptype { print $8 }' \
 	"release=$release" "bname=${bname}" \
 	"store=$store" "arch=$arch" "region=$region" "ptype=$ptype" \
-	"${ec2_curf}") && [ -n "$out" ] || fail "failed to find image"
+	"${ec2_curf}") && [ -n "$ami" ] || fail "failed to find ami"
+
+case "$arch:$store:$ptype" in
+	*:hvm) itypes_all="cc1.4xlarge cg1.4xlarge";;
+	i386:*) itypes_all="m1.small c1.medium";;
+	amd64:*) itypes_all="m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge";;
+esac
+[ "$store" = "ebs" ] && itypes_all="t1.micro $itypes_all"
+itypes=""
+for x in ${itype} ${itypes_all}; do
+	case ",$itypes," in
+		*,$x,*) continue;;
+	esac
+	itypes="${itypes},${x}"
+done
+itypes=${itypes#,}
+itype=${itypes%%,*}
+
+xarch=${arch}
+[ "$xarch" = "amd64" ] && xarch="x86_64"
 
 subst "$format" \
   '%{ami}' "$ami" \
   '%{arch}' "$arch" '%{bname}' "$bname" '%{dlpath}' "$dlpath" \
   '%{ptype}' "$ptype" '%{pubname}' "$pubname" '%{region}' "$region" \
   '%{release}' "$release" '%{store}' "$store" '%{stream}' "$stream" \
-  '%{url}' "$url"
+  '%{url}' "$url" \
+  '%{xarch}' "$xarch" '%{itype}' "${itype}" '%{itypes}' "$itypes" \
+  '%{summary}' "${region}/${prefix}/${pubname}"
 
 out=${_RET}
 [ -n "${out}" ] || fail "no ami found matching criteria"
