@@ -21,7 +21,7 @@ Usage: ${0##*/} [ options ] criteria
    options:
       -o | --output FILE    output to file rather than stdout
       -f | --format format  change output to 'format'.
-                            default: '%{ami}'
+                            default: '%{ami}\n'
 
    Examples:
    - get the latest ami matching default criteria for release 'n'
@@ -102,7 +102,7 @@ getopt_out=$(getopt --name "${0##*/}" \
 
 ## <<insert default variables here>>
 output="-"
-format='%{ami}'
+format='%{ami}\n'
 burl="https://cloud-images.ubuntu.com/query"
 store="ebs"
 region_default="${EC2_REGION:-us-east-1}"
@@ -250,9 +250,9 @@ out=${_RET}
 
 debug 1 "${region}/${prefix}/${pubname}"
 if [ -n "${output}" -a "${output}" != "-" ]; then
-	echo "$out" > "$output"
+	echo -n "$out" > "$output"
 else
-	echo "$out"
+	echo -n "$out"
 fi
 exit
 # vi: ts=4 noexpandtab
