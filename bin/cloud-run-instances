@@ -346,6 +346,11 @@ def main():
 
 	(options, args) = parser.parse_args()
 
+	if ( os.path.basename(sys.argv[0]).startswith("uec") and
+	     os.getenv("CLOUD_UTILS_WARN_UEC","0") == "0"):
+		sys.stderr.write("WARNING: '%s' is now 'cloud-run-instances'. %s\n" %
+			(os.path.basename(sys.argv[0]), "Please update tools or docs"))
+
 	if len(args) < 1 and not options.all_instances:
 		parser.error('you must pass at least one ami ID')
 
