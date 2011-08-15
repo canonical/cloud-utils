@@ -293,6 +293,9 @@ def main():
 	parser.add_option("-t", "--instance-type", dest="inst_type",
 		help="instance type", metavar="TYPE",
 		default="auto")
+	parser.add_option("-k", "--key", dest="keypair_name",
+		help="keypair name", metavar="TYPE",
+		default="auto")
 	parser.add_option("-n", "--instance-count", dest="count",
 		help="instance count", metavar="TYPE", type="int",
 		default=1)
@@ -422,6 +425,7 @@ def main():
 		run_inst_pt = {
 			"instance-count" : options.count,
 			"instance-type" : options.inst_type,
+			"key" : options.keypair_name,
 			 }
 
 		for key, val in run_inst_pt.iteritems():
