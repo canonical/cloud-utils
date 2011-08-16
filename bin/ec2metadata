@@ -210,7 +210,7 @@ def main():
 		prefix = True
 		metaopts = METAOPTS
 
-	display(metaopts, burl)
+	display(metaopts, burl, prefix)
 
 
 if __name__ == "__main__":
