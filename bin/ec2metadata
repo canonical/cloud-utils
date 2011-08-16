@@ -20,7 +20,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 instdata_host = "169.254.169.254"
-instdata_ver = "2011-01-01"
+instdata_ver = "2009-04-04"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
 
 __doc__ = """
