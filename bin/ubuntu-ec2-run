@@ -54,6 +54,28 @@ def get_argopt(args, optnames):
       i = i + 1
    return ret
 
+def get_block_device_mappings(itype):
+   # cleaned from http://aws.amazon.com/ec2/instance-types/
+   # t1.micro     NONE    # m2.2xlarge    850   # c1.xlarge    1690
+   # m1.small      160    # m1.large      850   # m1.xlarge    1690
+   # c1.medium     350    # cc1.4xlarge  1690   # cc1.4xlarge  1690
+   # m2.xlarge     420    # m2.4xlarge   1690   # cg1.4xlarge  1690
+   bdmaps = [ ]
+   if itype in ("t1.micro", "m1.small", "c1.medium"):
+      pass # the first one is always attached. ephemeral0=sda2
+   elif itype in ("m2.xlarge"):
+      pass # one 420 for m2.xlarge
+   elif ( itype in ("m1.large", "m2.2xlarge") or 
+          itype.startswith("cg1.") or itype.startswith("cc1.")):
+         bdmaps=[ "/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1", ]
+   elif itype in ("m1.xlarge", "m2.4xlarge", "c1.xlarge"):
+         bdmaps=[ "sdb=ephemeral0", "sdc=ephemeral1",
+                  "sdd=ephemeral2", "sde=ephemeral3", ]
+   args = [ ]
+   for m in bdmaps:
+      args.extend(("--block-device-mapping", m,))
+   return(args)
+
 pre = "ec2-"
 for name in ("EC2_PRE", "EC2PRE"):
    if name in os.environ:
@@ -66,13 +88,14 @@ if pre.strip() == pre:
 else:
    ri_cmd = [ pre.strip(), "run-instances" ]
 
-query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n" ]
+query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n%{store}\n" ]
 
 # each arg_group is a list of arguments and a default if not found
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
    ("--region",),
    ("--instance-type", "-t"),
+   ("--block-device-mapping", "-b"),
 )
 
 flags = { }
@@ -98,7 +121,7 @@ for i in query_cmd:
 cmd=cmd[1:]
 
 try:
-   (ami, itype, summary, endl) = subprocess.check_output(query_cmd).split("\n")
+   (ami, itype, summary, store, endl) = subprocess.check_output(query_cmd).split("\n")
    if endl.strip():
       sys.stderr.write("Unexpected output of command:\n  %s" % cmd)
 except subprocess.CalledProcessError as e:
@@ -108,6 +131,9 @@ except subprocess.CalledProcessError as e:
 
 if flags.get("--instance-type",None) == None:
    ri_cmd.append("--instance-type=%s" % itype)
+
+if store == "ebs" and flags.get("--block-device-mapping",None) == None:
+   ri_cmd.extend(get_block_device_mappings(itype))
 
 ri_cmd.append(ami)
 
