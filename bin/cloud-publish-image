@@ -53,6 +53,8 @@ Usage: ${0##*/} [ options ] arch image bucket
          --name   <name>          : register with '--name'.
                                     default: publish_path
 
+         --save-downloaded        : if the image is a url, save it to '.'
+
    if type is 'image', then:
       -k | --kernel  k        : use previously registered kernel with id 'k'
                                 specify 'none' for no kernel
@@ -143,12 +145,45 @@ upload_register() {
 	_RET=${1}
 }
 
+dl() {
+	# dl url, target, quiet
+	local url=${1} target=${2} quiet=${3:-1}
+	if [ -f "${url}" ]; then
+		[ "${target}" = "-" ] && { cat "$url"; return; }
+		cp "$url" "$target"
+		return
+	fi
+	local qflag="-q"
+	[ "$quiet" = "0" ] && qflag=""
+
+	wget $qflag "$url" -O "$target" ||
+		return 1
+}
+
+dl_input_image() {
+	# this downloads an image if necessary and sets _RET to location of image
+	local input="$1" save_dir="${2:-.}" ret="" quiet=1
+	[ $VERBOSITY -ge 2 ] && quiet=0
+	case "$input" in
+		file://*)
+			ret="$save_dir/${input##*/}"
+			dl "${input#file://}" "$ret" || return $?;;
+		http://*|ftp://*|https://*)
+			ret="$save_dir/${input##*/}"
+			dl "$input" "$ret" || return $?
+			;;
+		*) ret="$input";;
+	esac
+	_RET="$ret"
+}
+
+
 [ "${CLOUD_UTILS_WARN_UEC:-0}" = "0" ] && _n="${0##*/}" &&
 	[ "${_n#uec}" != "${_n}" ] && export CLOUD_UTILS_WARN_UEC=1 &&
 	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs"
 
 short_opts="B:h:k:K:l:no:r:R:t:vw:"
-long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,type:,verbose,working-dir:"
+long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -167,6 +202,7 @@ output=""
 ramdisk=""
 ramdisk_file=""
 rename=""
+save_dl=0
 name=__unset__
 wdir_in=""
 dev_mapping=""
@@ -193,6 +229,7 @@ while [ $# -ne 0 ]; do
 		-R|--ramdisk-file) ramdisk_file=${next}; shift;;
 		-n|--dry-run) dry_run=1;;
 		   --rename) rename=${next}; shift;;
+		   --save-downloaded) save_dl=1;;
 		-t|--type) 
 			img_type=${next};
 			search_args "${img_type}" "${IMAGE_TYPES[@]}" ||
@@ -220,8 +257,6 @@ while [ "${bucket%/}" != "${bucket}" ]; do bucket=${bucket%/}; done
 [ "$arch" = "i386" -o "$arch" = "x86_64" ] ||
 	bad_Usage "arch must be i386 or x86_64"
 
-[ -f "${image}" ] || bad_Usage "${image}: image is not a file"
-
 [ "${img_type}" = "vmlinuz" ] && img_type="kernel"
 [ "${img_type}" = "initrd" ] && img_type="ramdisk"
 
@@ -229,6 +264,33 @@ while [ "${bucket%/}" != "${bucket}" ]; do bucket=${bucket%/}; done
 	bad_Usage "--kernel-file is incompatible with --kernel"
 [ -n "${ramdisk_file}" -a -n "${ramdisk}" ] &&
 	bad_Usage "--ramdisk-file is incompatible with --ramdisk"
+
+if [ -n "${wdir_in}" ]; then
+	[ -d "${wdir_in}" ] || fail "input working directory not a directory";
+	wdir=$(readlink -f "${wdir_in}") ||
+		fail "failed to realize ${wdir_in}"
+else
+	TMPD=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX) ||
+		fail "failed to make tmpdir"
+	wdir="${TMPD}"
+fi
+trap cleanup EXIT
+
+save_dir="${wdir}"
+[ $save_dl -eq 1 ] && save_dir=.
+
+dl_input_image "$image" "$save_dir" && image="$_RET" ||
+	fail "failed to download image $image to $save_dir"
+
+[ -z "$kernel_file" ] ||
+	{ dl_input_image "$kernel_file" "$save_dir" && kernel_file="$_RET"; } ||
+	fail "failed to download kernel $kernel_file to $save_dir"
+
+[ -z "$ramdisk_file" ] ||
+	{ dl_input_image "$ramdisk_file" "$save_dir" && ramdisk_file="$_RET"; } ||
+	fail "failed to download ramdisk $ramdisk_file to $save_dir"
+
+[ -f "${image}" ] || bad_Usage "${image}: image is not a file"
 
 [ -z "${kernel_file}" -o -f "${kernel_file}" ] ||
 	fail "${kernel_file} is not a file"
@@ -257,19 +319,8 @@ fi
 image_full=$(readlink -f "${image}") ||
 	fail "failed to get full path to ${image}"
 
-if [ -n "${wdir_in}" ]; then
-	[ -d "${wdir_in}" ] || fail "input working directory not a directory";
-	wdir=$(readlink -f "${wdir_in}") ||
-		fail "failed to realize ${wdir_in}"
-else
-	TMPD=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX) ||
-		fail "failed to make tmpdir"
-	wdir="${TMPD}"
-fi
-trap cleanup EXIT
-
 if [ -e "${wdir}/${rename}" ]; then
-	[ "${wdir}/${rename}" -ef "${img}" ] ||
+	[ "${wdir}/${rename}" -ef "${image}" ] ||
 		fail "${wdir} already contains file named ${rename}"
 fi
 
