@@ -167,10 +167,10 @@ dl_input_image() {
 	case "$input" in
 		file://*)
 			ret="$save_dir/${input##*/}"
-			dl "${input#file://}" "$ret" || return $?;;
+			dl "${input#file://}" "$ret" $quiet || return $?;;
 		http://*|ftp://*|https://*)
 			ret="$save_dir/${input##*/}"
-			dl "$input" "$ret" || return $?
+			dl "$input" "$ret" $quiet || return $?
 			;;
 		*) ret="$input";;
 	esac
