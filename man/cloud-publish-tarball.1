@@ -30,11 +30,14 @@ rename the kernel file before publishing (publish to <bucket>/k)
 .TP
 .B --rename-ramdisk r
 rename the ramdisk file before publishing (publish to <bucket>/r)
+.TP
+.B --save-downloaded d
+save the download image to directory 'd' (applicable only if TARBALL is an URL)
 
 .SH ARGUMENTS
 .TP
 .B TARFILE
-Target archive
+Target archive.  This may be a URL.
 .TP
 .B BUCKET
 Target bucket

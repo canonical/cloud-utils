@@ -43,6 +43,7 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
 
    register a UEC tarball (ie, per http://cloud-images.ubuntu.com)
    if arch is not provided, a name-based attempt is made to guess
+   tarfile may be a url
 
    options:
       -k | --kernel  k        use previously registered kernel with id 'k'
@@ -55,6 +56,7 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
            --rename-ramdisk r rename ramdisk to 'r'
            --resize  s        resize the image to 's' bundling uploading
                               's' must be valid input to cloud-resize-image
+           --save-downloaded  if the image is a url, save it to '.'
       -q | --quiet            be quiet, only output published ids
       -l | --use-loader       use the loader kernel rather than linux kernel
            --rename-image f   rename image to 'f' before publishing
@@ -75,12 +77,44 @@ upload_register() {
 	_RET=${1}
 }
 
+dl() {
+	# dl url, target, quiet
+	local url=${1} target=${2} quiet=${3:-1}
+	if [ -f "${url}" ]; then
+		[ "${target}" = "-" ] && { cat "$url"; return; }
+		cp "$url" "$target"
+		return
+	fi
+	local qflag="-q"
+	[ "$quiet" = "0" ] && qflag=""
+
+	wget $qflag "$url" -O "$target" ||
+		return 1
+}
+
+dl_input_image() {
+	# this downloads an image if necessary and sets _RET to location of image
+	local input="$1" save_dir="${2:-.}" ret="" quiet=0
+	[ $VERBOSITY -eq 0 ] && quiet=1 # this differs from cloud-publish-image
+	case "$input" in
+		file://*)
+			ret="$save_dir/${input##*/}"
+			dl "${input#file://}" "$ret" $quiet || return $?;;
+		http://*|ftp://*|https://*)
+			ret="$save_dir/${input##*/}"
+			dl "$input" "$ret" $quiet || return $?
+			;;
+		*) ret="$input";;
+	esac
+	_RET="$ret"
+}
+
 [ "${CLOUD_UTILS_WARN_UEC:-0}" = "0" ] && _n="${0##*/}" && [ "${_n#uec}" != "${_n}" ] &&
 	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs" &&
 	export CLOUD_UTILS_WARN_UEC=1
 
 short_opts="hlk:K:qr:R:"
-long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:"
+long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:,save-downloaded"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -98,6 +132,7 @@ use_loader=0
 rename_image=""
 rename_kernel=""
 rename_ramdisk=""
+save_dl=0
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -118,6 +153,7 @@ while [ $# -ne 0 ]; do
            --rename-image) rename_image=${next}; shift;;
            --rename-kernel) rename_kernel=${next}; shift;;
            --rename-ramdisk) rename_ramdisk=${next}; shift;;
+           --save-downloaded) save_dl=1;;
 		--use-loader) use_loader=1;;
 		--resize) resize=${next}; shift;;
 	esac
@@ -143,9 +179,6 @@ fi
 
 [ "$arch" = "amd64" ] && iarch="x86_64" || iarch="${arch}"
 
-[ -f "${tarball}" ] && tbf=$(readlink -f "${tarball}") ||
-	fail "bad tarball: ${tarball}";
-
 # before extracting the tarball, try to verify that the environment
 # is set up, by invoking another euca command (LP: #526504)
 ${EC2PRE}describe-images >/dev/null ||
@@ -154,6 +187,15 @@ ${EC2PRE}describe-images >/dev/null ||
 utmp=${TEMPDIR:-${TMPDIR:-/tmp}}
 TMPD=$(mktemp -d "${utmp}/${0##*/}.XXXXXX") || fail "failed make temp"
 trap cleanup EXIT
+
+save_dir="${TMPD}"
+[ $save_dl -eq 1 ] && save_dir=$PWD
+
+dl_input_image "$tarball" "$save_dir" && tarball="$_RET" ||
+	fail "failed to download image $image to $save_dir"
+
+[ -f "${tarball}" ] && tbf=$(readlink -f "${tarball}") ||
+	fail "bad tarball: ${tarball}";
 
 start=$PWD
 
