@@ -23,7 +23,7 @@ write registered id and manifest to file
 publish to bucket/<publish_path>, default: bucket/<basename(image)>
 .TP
 .B -t|--type   <type>
-type is one of kernel/ramdisk/image.
+type is one of kernel/ramdisk/image/auto.
 if type is 'image', then:
   -k | --kernel       k : use previously registered kernel with id 'k'
                           specify 'none' for no kernel
@@ -33,6 +33,9 @@ if type is 'image', then:
   -R | --ramdisk-file f : bundle, upload, use file 'f' as ramdisk
   -B | --block-device-mapping m : specify block device mapping in bundle
 
+.TP
+.B --save-downloaded d
+save the download image to directory 'd' (applicable only if TARBALL is an URL)
 .TP
 .B -v|--verbose
 increase verbosity
@@ -47,7 +50,7 @@ register image with given name. basename(publish_path)
 Target architecture, one of i386 or x86_64
 .TP
 .B IMAGE
-Target image to upload and register
+Target image to upload and register.  If this is a URL, it will be downloaded.
 .TP
 .B BUCKET
 Target bucket to publish the image to
