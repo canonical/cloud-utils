@@ -206,7 +206,7 @@ save_dl=0
 name=__unset__
 wdir_in=""
 dev_mapping=""
-image2raw=""
+image2raw=0
 raw_image=""
 
 while [ $# -ne 0 ]; do
@@ -413,13 +413,13 @@ else
 	if [ $image2raw -eq 1 -a "$img_type" = "image" ]; then
 		# this is really here because of LP: #836759 
 		# but could be useful elsewhere
-		qemu-img info "$image" > "${TEMP_D}/disk-info.out" ||
+		qemu-img info "$image" > "${TMPD}/disk-info.out" ||
 			fail "failed to qemu-img info $image"
 		imgfmt=$(awk '-F:' '$1 == "file format" { sub(/ /,"",$2); print $2 }' \
-			"${TEMP_D}/disk-info.out")
+			"${TMPD}/disk-info.out")
 		if [ "$imgfmt" != "raw" ]; then
 			debug 1 "converting image to raw"
-			raw_image="${TEMP_D}/image.raw"
+			raw_image="${TMPD}/image.raw"
 			qemu-img convert -O raw "$image" "$raw_image" ||
 				fail "failed to convert image to raw"
 			image="$raw_image"
