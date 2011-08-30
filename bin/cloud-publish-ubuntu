@@ -142,7 +142,7 @@ cmd=( )
 [ -n "$vflags" ] && pt_args[${#pt_args[@]}]="-$vflags"
 
 if [ $disk -eq 1 ]; then
-	url="${url%.tar.gz}-disk1.qcow2"
+	url="${url%.tar.gz}-disk1.img"
 	cmd=( cloud-publish-image "${pt_args[@]}" --rename "$pubname"
 		"$arch" "$url" "$bucket" )
 else
