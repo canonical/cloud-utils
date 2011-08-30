@@ -222,7 +222,7 @@ case "$arch:$store:$ptype" in
 	i386:*) itypes_all="m1.small c1.medium";;
 	amd64:*) itypes_all="m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge";;
 esac
-[ "$store" = "ebs" ] && itypes_all="t1.micro $itypes_all"
+[ "$store" = "ebs" -a "$ptype" != "hvm" ] && itypes_all="t1.micro $itypes_all"
 itypes=""
 for x in ${itype} ${itypes_all}; do
 	case ",$itypes," in
