@@ -162,7 +162,7 @@ dl() {
 
 dl_input_image() {
 	# this downloads an image if necessary and sets _RET to location of image
-	local input="$1" save_dir="${2:-.}" ret="" quiet=1
+	local input="$1" save_dir="${2:-.}" rename=${3:-""} ret="" quiet=1
 	[ $VERBOSITY -ge 2 ] && quiet=0
 	case "$input" in
 		file://*)
@@ -279,7 +279,8 @@ trap cleanup EXIT
 save_dir="${wdir}"
 [ $save_dl -eq 1 ] && save_dir=.
 
-dl_input_image "$image" "$save_dir" && image="$_RET" ||
+dl_input_image "$image" "$save_dir" ${rename:+"${rename}"} &&
+	image="$_RET" ||
 	fail "failed to download image $image to $save_dir"
 
 [ -z "$kernel_file" ] ||
