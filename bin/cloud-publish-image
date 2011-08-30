@@ -183,7 +183,7 @@ dl_input_image() {
 	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs"
 
 short_opts="B:h:k:K:l:no:r:R:t:vw:"
-long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
+long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,image-to-raw,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -206,6 +206,8 @@ save_dl=0
 name=__unset__
 wdir_in=""
 dev_mapping=""
+image2raw=""
+raw_image=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -225,6 +227,7 @@ while [ $# -ne 0 ]; do
 			shift;;
 		   --name) name=${next}; shift;;
 		-o|--output) output="${next}"; shift;;
+		   --image-to-raw) image2raw=1;;
 		-r|--ramdisk) ramdisk=${next}; shift;;
 		-R|--ramdisk-file) ramdisk_file=${next}; shift;;
 		-n|--dry-run) dry_run=1;;
@@ -407,6 +410,25 @@ if [ -n "${_RET}" ]; then
 		fail "${path} already registered as ${img_id}"
 	debug 1 "using existing ${img_id} for ${bucket}/${manifest}"
 else
+	if [ $image2raw -eq 1 -a "$img_type" = "image" ]; then
+		# this is really here because of LP: #836759 
+		# but could be useful elsewhere
+		qemu-img info "$image" > "${TEMP_D}/disk-info.out" ||
+			fail "failed to qemu-img info $image"
+		imgfmt=$(awk '-F:' '$1 == "file format" { sub(/ /,"",$2); print $2 }' \
+			"${TEMP_D}/disk-info.out")
+		if [ "$imgfmt" != "raw" ]; then
+			debug 1 "converting image to raw"
+			raw_image="${TEMP_D}/image.raw"
+			qemu-img convert -O raw "$image" "$raw_image" ||
+				fail "failed to convert image to raw"
+			image="$raw_image"
+			ln -sf "$raw_image" "$rename_full" ||
+				fail "symlink to raw image $raw_image failed"
+		else
+			debug 1 "disk is already raw format, not converting"
+		fi
+	fi
 	bundle_args=( "--image" "${rename_full}" )
 	[ -n "${dev_mapping}" ] &&
 		bundle_args[${#bundle_args[@]}]="--block-device-mapping=${dev_mapping}"
