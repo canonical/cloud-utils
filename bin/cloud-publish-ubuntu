@@ -135,7 +135,7 @@ pubname=${1}
 url=${2}
 cmd=( )
 if [ $disk -eq 1 ]; then
-	url="${url%.tar.gz}.img"
+	url="${url%.tar.gz}-disk1.img"
 	cmd=( cloud-publish-image "${pt_args[@]}" "$url" --rename "$pubname" )
 else
 	cmd=( cloud-publish-tarball "${pt_args[@]}" "$url" \
