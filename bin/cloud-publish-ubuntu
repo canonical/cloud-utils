@@ -90,6 +90,7 @@ getopt_out=$(getopt --name "${0##*/}" \
 	bad_Usage
 
 output=""
+dry_run=0
 save_dl=0
 arch=""
 release=""
@@ -97,6 +98,7 @@ bucket=""
 pt_args=()
 disk=0
 stream="released"
+vflags=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -105,9 +107,11 @@ while [ $# -ne 0 ]; do
 		-h|--help) Usage ; exit 0;;
 		-o|--output) output=$next; shift;;
 		-n|--dry-run) dry_run=1;;
-		-q|--quiet) VERBOSITY=0; shift;;
+		-q|--quiet) VERBOSITY=0; vflags=""; shift;;
 		   --stream) stream="$next"; shift;;
-		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+		-v|--verbose) 
+			vflags="${vflags}v"
+			VERBOSITY=$((${VERBOSITY}+1));;
 		--) shift; break;;
 		-*|--*)
 			if is_ptarg "$pt_short_opts" "$pt_long_opts" "$cur" "$next"; then
@@ -134,12 +138,17 @@ set -- ${url}
 pubname=${1}
 url=${2}
 cmd=( )
+
+[ -n "$vflags" ] && pt_args[${#pt_args[@]}]="-$vflags"
+
 if [ $disk -eq 1 ]; then
-	url="${url%.tar.gz}-disk1.img"
-	cmd=( cloud-publish-image "${pt_args[@]}" "$url" --rename "$pubname" )
+	url="${url%.tar.gz}-disk1.qcow2"
+	cmd=( cloud-publish-image "${pt_args[@]}" --rename "$pubname"
+		"$arch" "$url" "$bucket" )
 else
-	cmd=( cloud-publish-tarball "${pt_args[@]}" "$url" \
-		--rename-image "$pubname" )
+	cmd=( cloud-publish-tarball "${pt_args[@]}"
+		--rename-image "$pubname"
+		"$arch" "$url" "$bucket" )
 fi
 
 if [ $dry_run -eq 1 ]; then
