@@ -312,8 +312,17 @@ fi
 [ -n "${rename}" ] || rename=${image##*/}
 
 if [ "${name}" = "__unset__" ]; then
-	name="${bucket}/${rename}"
-	debug 1 "using ${name} for --name"
+
+	# if user did not pass --name, try to figure out if register supports it
+	# we unfortunately can't assume that '--help' exits 0
+	${EC2PRE}register --help > "${TMPD}/register-help.out" 2>&1
+	if grep -q -- "--name" "${TMPD}/register-help.out"; then
+		name="${bucket}/${rename}"
+		debug 1 "using ${name} for --name"
+	else
+		debug 1 "${EC2PRE}register seems not to support --name, not passing"
+	fi
+	
 elif [ -z "${name}" -o "${name}" == "none" ]; then
 	# if user passed in '--name=""' or '--name=none", do not pass --name
 	name=""
