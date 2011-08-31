@@ -95,7 +95,7 @@ save_dl=0
 arch=""
 release=""
 bucket=""
-pt_args=()
+pt_args=() # pass through arguments
 disk=0
 stream="released"
 vflags=""
@@ -139,13 +139,15 @@ pubname=${1}
 url=${2}
 cmd=( )
 
-[ -n "$vflags" ] && pt_args[${#pt_args[@]}]="-$vflags"
-
 if [ $disk -eq 1 ]; then
+	[ -n "$vflags" ] && pt_args[${#pt_args[@]}]="-$vflags"
+
 	url="${url%.tar.gz}-disk1.img"
 	cmd=( cloud-publish-image "${pt_args[@]}" --rename "$pubname"
 		"$arch" "$url" "$bucket" )
 else
+	[ ${VERBOSITY} -eq 0 ] && pt_args[#{pt_args[@]}]="--quiet"
+
 	cmd=( cloud-publish-tarball "${pt_args[@]}"
 		--rename-image "$pubname"
 		"$arch" "$url" "$bucket" )
