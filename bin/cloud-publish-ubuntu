@@ -150,7 +150,7 @@ else
 
 	cmd=( cloud-publish-tarball "${pt_args[@]}"
 		--rename-image "$pubname"
-		"$arch" "$url" "$bucket" )
+		"$url" "$bucket" "$arch" )
 fi
 
 if [ $dry_run -eq 1 ]; then
