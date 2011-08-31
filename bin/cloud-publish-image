@@ -321,6 +321,7 @@ if [ "${name}" = "__unset__" ]; then
 		debug 1 "using ${name} for --name"
 	else
 		debug 1 "${EC2PRE}register seems not to support --name, not passing"
+		name=""
 	fi
 	
 elif [ -z "${name}" -o "${name}" == "none" ]; then
