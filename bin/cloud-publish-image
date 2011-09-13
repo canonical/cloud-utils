@@ -254,9 +254,6 @@ while [ "${bucket%/}" != "${bucket}" ]; do bucket=${bucket%/}; done
 
 [ "${arch}" = "amd64" ] && arch=x86_64
 
-[ "$arch" = "i386" -o "$arch" = "x86_64" ] ||
-	bad_Usage "arch must be i386 or x86_64"
-
 [ "${img_type}" = "vmlinuz" ] && img_type="kernel"
 [ "${img_type}" = "initrd" ] && img_type="ramdisk"
 
