@@ -236,7 +236,11 @@ itype=${itypes%%,*}
 xarch=${arch}
 [ "$xarch" = "amd64" ] && xarch="x86_64"
 
+CR="
+"
+TAB="	"
 subst "$format" \
+  '\\n' "$CR" '\\t' "$TAB" \
   '%{ami}' "$ami" \
   '%{arch}' "$arch" '%{bname}' "$bname" '%{dlpath}' "$dlpath" \
   '%{ptype}' "$ptype" '%{pubname}' "$pubname" '%{region}' "$region" \
