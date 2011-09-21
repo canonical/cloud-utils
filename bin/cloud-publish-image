@@ -41,7 +41,7 @@ Usage: ${0##*/} [ options ] arch image bucket
    bucket         : bucket to publish image to
 
    options:
-      -l|--add-launch <user_id>   : user_id can be "all", or "none"
+      -l|--add-launch ID          : ID can be "all", or "none", or numerical ID
          --dry-run                : only report what would be done
          --allow-existing         : if a image is already registered
                                     simply report as if work was done
