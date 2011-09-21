@@ -1,0 +1,167 @@
+#!/bin/bash
+# cloud-import-ubuntu
+
+VERBOSITY=1
+TEMP_D=""
+
+error() { echo "$@" 1>&2; }
+errorp() { printf "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+failp() { [ $# -eq 0 ] || errorp "$@"; exit 1; }
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] arch release bucket
+
+   import a cloud image to your local cloud.
+   Image is downloaded from Ubuntu cloud-images site and published
+   to the cloud configured.
+
+   options:
+      --save-downloaded     save the downloaded image in '.'
+      -q | --quiet          be quiet, only output the AMI id registered
+           --disk           use the disk image (default is partition)
+           --stream         stream: 'released' or 'daily' (default: released)
+
+   the following options pass through to cloud-publish-tarball
+   or cloud-publish-image:
+
+      -l|--add-launch ID      : ID can be "all", or "none", or numerical ID
+         --allow-existing     : if a image is already registered
+                                simply report as if work was done
+      -o|--output <file>      : write registered id and manifest to file
+
+         --save-downloaded    : if the image is a url, save it to '.'
+         --image-to-raw       : convert disk format to raw before publishing
+
+      -l | --use-loader       : use the loader kernel rather than linux kernel
+      -k | --kernel  k        : use previously registered kernel with id 'k'
+                                specify 'none' for no kernel
+      -K | --kernel-file f    : bundle, upload, use file 'f' as kernel
+      -r | --ramdisk r        : use previously registered ramdisk with id 'r'
+                                specify 'none' for no ramdisk
+      -R | --ramdisk-file f   : bundle, upload, use file 'f' as ramdisk
+           --resize  s        : resize the partition image before uploading
+                                's' must be valid input to cloud-resize-image
+      -B | --block-device-mapping m : specify block device mapping in bundle
+EOF
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
+cleanup() {
+   [ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+
+debug() {
+	local level=${1}; shift;
+	[ "${level}" -ge "${VERBOSITY}" ] && return
+	error "${@}"
+}
+is_ptarg() {
+	local short="$1" long=",$2," cur="$3" next="$4"
+	_RET=( )
+	case "$cur" in
+		--*)
+			flag=${cur#--}
+			if [ "${long#*,${flag}:,}" != "$long" ]; then
+				add="$cur=$next"
+				_RET=( "$cur" "$next" )
+			elif [ "${long#*,${flag},}" != "$long" ]; then
+				_RET=( "$cur" )
+			fi
+			;;
+		-*)
+			flag=${cur#-}
+			if [ "${short#*${flag}:}" != "$short" ]; then
+				_RET=( "$cur" "$next" )
+			elif [ "${short#*${flag}}" != "$short" ]; then
+				_RET=( "$cur" )
+			fi
+			;;
+	esac
+	[ "${#_RET[@]}" -ne 0 ]
+}
+
+pt_short_opts="B:h:k:K:l:r:R:"
+pt_long_opts="add-launch:,allow-existing,block-device-mapping:,image-to-raw,kernel:,kernel-file:,ramdisk:,ramdisk-file:,resize:,save-downloaded,use-loader"
+
+short_opts="${pt_short_opts}hno:qv"
+long_opts="${pt_long_opts},dry-run,disk,help,output:,quiet,stream:,verbose"
+
+getopt_out=$(getopt --name "${0##*/}" \
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
+
+output=""
+dry_run=0
+save_dl=0
+arch=""
+release=""
+bucket=""
+pt_args=() # pass through arguments
+disk=0
+stream="released"
+vflags=""
+
+while [ $# -ne 0 ]; do
+	cur=${1}; next=${2};
+	case "$cur" in
+		   --disk) disk=1;;
+		-h|--help) Usage ; exit 0;;
+		-o|--output) output=$next; shift;;
+		-n|--dry-run) dry_run=1;;
+		-q|--quiet) VERBOSITY=0; vflags=""; shift;;
+		   --stream) stream="$next"; shift;;
+		-v|--verbose) 
+			vflags="${vflags}v"
+			VERBOSITY=$((${VERBOSITY}+1));;
+		--) shift; break;;
+		-*|--*)
+			if is_ptarg "$pt_short_opts" "$pt_long_opts" "$cur" "$next"; then
+				pt_args=( "${pt_args[@]}" "${_RET[@]}" )
+				[ "${#_RET[@]}" -eq 2 ] && shift
+			else
+				fail "confused by ${cur}";
+			fi
+			;;
+	esac
+	shift;
+done
+
+[ $# -eq 3 ] || bad_Usage "must provide arch, release, bucket"
+arch="$1"
+release="$2"
+bucket="$3"
+
+url=$(ubuntu-cloudimg-query "$arch" "$release" "$stream" \
+	--format="%{pubname} %{url}\n") ||
+	fail "ubuntu-cloudimg-query failed for $arch, $release, $stream"
+
+set -- ${url}
+pubname=${1}
+url=${2}
+cmd=( )
+
+if [ $disk -eq 1 ]; then
+	[ -n "$vflags" ] && pt_args[${#pt_args[@]}]="-$vflags"
+
+	url="${url%.tar.gz}-disk1.img"
+	cmd=( cloud-publish-image "${pt_args[@]}" --rename "$pubname"
+		"$arch" "$url" "$bucket" )
+else
+	[ ${VERBOSITY} -eq 0 ] && pt_args[#{pt_args[@]}]="--quiet"
+
+	cmd=( cloud-publish-tarball "${pt_args[@]}"
+		--rename-image "$pubname"
+		"$url" "$bucket" "$arch" )
+fi
+
+if [ $dry_run -eq 1 ]; then
+	error "${cmd[@]}"
+else
+	debug 1 "running:" "${cmd[@]}"
+	"${cmd[@]}"
+fi
+
+# vi: ts=4 noexpandtab

@@ -54,7 +54,7 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
                               specify 'none' for no ramdisk
       -R | --ramdisk-file f   bundle, upload, use file 'f' as ramdisk
            --rename-ramdisk r rename ramdisk to 'r'
-           --resize  s        resize the image to 's' bundling uploading
+           --resize  s        resize the partition image before uploading
                               's' must be valid input to cloud-resize-image
            --save-downloaded  if the image is a url, save it to '.'
       -q | --quiet            be quiet, only output published ids
