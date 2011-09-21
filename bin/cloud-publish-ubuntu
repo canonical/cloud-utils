@@ -26,20 +26,23 @@ Usage: ${0##*/} [ options ] arch release bucket
    the following options pass through to cloud-publish-tarball
    or cloud-publish-image:
 
-      -l|--add-launch <user_id>   : user_id can be "all", or "none"
-         --allow-existing         : if a image is already registered
-                                    simply report as if work was done
-      -o|--output <file>          : write registered id and manifest to file
+      -l|--add-launch ID      : ID can be "all", or "none", or numerical ID
+         --allow-existing     : if a image is already registered
+                                simply report as if work was done
+      -o|--output <file>      : write registered id and manifest to file
 
-         --save-downloaded        : if the image is a url, save it to '.'
-         --image-to-raw           : convert disk format to raw before publishing
+         --save-downloaded    : if the image is a url, save it to '.'
+         --image-to-raw       : convert disk format to raw before publishing
 
+      -l | --use-loader       : use the loader kernel rather than linux kernel
       -k | --kernel  k        : use previously registered kernel with id 'k'
                                 specify 'none' for no kernel
       -K | --kernel-file f    : bundle, upload, use file 'f' as kernel
       -r | --ramdisk r        : use previously registered ramdisk with id 'r'
                                 specify 'none' for no ramdisk
       -R | --ramdisk-file f   : bundle, upload, use file 'f' as ramdisk
+           --resize  s        : resize the partition image before uploading
+                                's' must be valid input to cloud-resize-image
       -B | --block-device-mapping m : specify block device mapping in bundle
 EOF
 }
@@ -80,7 +83,7 @@ is_ptarg() {
 }
 
 pt_short_opts="B:h:k:K:l:r:R:"
-pt_long_opts="add-launch:,allow-existing,block-device-mapping:,image-to-raw,kernel:,kernel-file:,ramdisk:,ramdisk-file:,save-downloaded"
+pt_long_opts="add-launch:,allow-existing,block-device-mapping:,image-to-raw,kernel:,kernel-file:,ramdisk:,ramdisk-file:,resize:,save-downloaded,use-loader"
 
 short_opts="${pt_short_opts}hno:qv"
 long_opts="${pt_long_opts},dry-run,disk,help,output:,quiet,stream:,verbose"
