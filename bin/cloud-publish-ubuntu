@@ -21,6 +21,7 @@ Usage: ${0##*/} [ options ] arch release bucket
       --save-downloaded     save the downloaded image in '.'
       -q | --quiet          be quiet, only output the AMI id registered
            --disk           use the disk image (default is partition)
+           --stream         stream: 'released' or 'daily' (default: released)
 
    the following options pass through to cloud-publish-tarball
    or cloud-publish-image:
