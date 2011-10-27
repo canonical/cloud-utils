@@ -102,6 +102,25 @@ in_args() {
 	return 1
 }
 
+getreleases() {
+	# get the list of releases, return it in _RET
+	local releases="" r=""
+	releases="hardy karmic lucid maverick natty oneiric precise";
+	if command -v "ubuntu-distro-info" >/dev/null; then
+		local all_rels="" seen_lucid=false
+		all_rels=$(ubuntu-distro-info --all) ||
+			{ error "'ubuntu-distro-info --all' failed"; return 1; }
+		releases="hardy"
+		for r in $all_rels; do
+			if $seen_lucid || [ "$r" = "lucid" ]; then
+				seen_lucid=true;
+				releases="${releases} $r"
+			fi
+		done
+	fi
+	_RET="$releases"
+}
+
 short_opts="f:ho:v"
 long_opts="format:,help,no-cache,output:,verbose"
 getopt_out=$(getopt --name "${0##*/}" \
@@ -137,20 +156,8 @@ while [ $# -ne 0 ]; do
 	shift;
 done
 
-# get the list of releases, store it in $releases
-releases="hardy karmic lucid maverick natty oneiric";
-if command -v "ubuntu-distro-info" >/dev/null; then
-	local rels="" seen_lucid=false
-	all_rels=$(ubuntu-distro-info --all) ||
-		fail "failed to get list of releases via ubuntu-distro-info"
-	releases="hardy"
-	for r in $all_rels; do
-		if $seen_lucid || [ "$r" = "lucid" ]; then
-			seen_lucid=true;
-			releases="${releases} $r"
-		fi
-	done
-fi
+getreleases || fail "failed to get releases"
+releases="${_RET}"
 
 for i in "$@"; do
 	in_args "$i" $releases && r_rel=$i && continue
