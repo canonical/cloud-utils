@@ -31,7 +31,7 @@ Usage: ubuntu-ec2-run [ options ] arguments
    ubuntu-ec2-run passes the following arguments to cloud-image-query 
    in order to select an AMI to run.  Defaults are marked with a '*':
 
-     releases: lucid* maverick natty oneiric
+     releases: lucid* maverick natty oneiric precise
      stream: release* daily 
      arch: amd64*, x86_64, i386
      store: ebs*, instance-store, instance
@@ -62,7 +62,6 @@ import subprocess
 
 # This could/should use `distro-info --supported`
 aliases = [
-  "lucid", "maverick", "natty", "oneiric",
   "amd64", "x86_64", "i386",
   "server", "desktop",
   "release", "daily",
@@ -136,6 +135,22 @@ else:
 
 query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n%{store}\n" ]
 
+
+# Get the list of releases.  If they have 'ubuntu-distro-info', then use that
+# otherwise, fall back to our builtin list of releases
+try:
+   out = subprocess.check_output(["ubuntu-distro-info", "--all"])
+   all_rels = out.strip().split("\n")
+   releases = [ ]
+   seen_lucid = False
+   for r in all_rels:
+      if seen_lucid or r == "lucid":
+         seen_lucid = True
+         releases.append(r)
+except OSError as e:
+   releases = [ "lucid", "maverick", "natty", "oneiric", "precise", ]
+
+
 # each arg_group is a list of arguments and a default if not found
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
@@ -154,7 +169,7 @@ for opts in arg_groups:
 dry_run = False
 
 for arg in sys.argv[1:]:
-   if arg in aliases:
+   if arg in aliases or arg in releases:
       query_cmd.append(arg)
    elif arg == "--dry-run":
       dry_run = True
@@ -173,6 +188,9 @@ try:
 except subprocess.CalledProcessError as e:
    sys.stderr.write("Failed. The following command returned failure:\n")
    sys.stderr.write("  %s\n" % cmd)
+   sys.exit(1)
+except OSError as e:
+   sys.stderr.write("You do not have '%s' in your path\n" % query_cmd[0])
    sys.exit(1)
 
 if flags.get("--instance-type",None) == None:
