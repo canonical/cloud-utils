@@ -92,6 +92,15 @@ subst() {
 	done
 	_RET=${cur}
 }
+in_args() {
+	# is $1 in $2....
+	local needle="$1" hay=""
+	shift;
+	for hay in "$@"; do
+		[ "$hay" = "$needle" ] && return 0
+	done
+	return 1
+}
 
 short_opts="f:ho:v"
 long_opts="format:,help,no-cache,output:,verbose"
@@ -128,9 +137,24 @@ while [ $# -ne 0 ]; do
 	shift;
 done
 
+# get the list of releases, store it in $releases
+releases="hardy karmic lucid maverick natty oneiric";
+if command -v "ubuntu-distro-info" >/dev/null; then
+	local rels="" seen_lucid=false
+	all_rels=$(ubuntu-distro-info --all) ||
+		fail "failed to get list of releases via ubuntu-distro-info"
+	releases="hardy"
+	for r in $all_rels; do
+		if $seen_lucid || [ "$r" = "lucid" ]; then
+			seen_lucid=true;
+			releases="${releases} $r"
+		fi
+	done
+fi
+
 for i in "$@"; do
+	in_args "$i" $releases && r_rel=$i && continue
 	case $i in
-		lucid|karmic|hardy|maverick|natty|oneiric|precise) r_rel=${i};;
 		rel*) stream="released";;
 		daily) stream=${i};;
 		server|desktop) bname=${i};;
@@ -197,7 +221,7 @@ dl_curf="${TEMP_D}/${release}.${bname}.${stream}-dl.current.txt"
 dl_url="${burl}/${release}/${bname}/${stream}-dl.current.txt"
 
 dlcache "${dl_url}" "${dl_curf}" "${dl_curf##*/}" $cachelife ||
-	fail "failed to get ${url}"
+	fail "failed to get ${dl_url}"
 
 out=$(awk '-F\t' \
 	'$1 == release && $2 == bname && $5 == arch { print $4, $6, $7 }' \
