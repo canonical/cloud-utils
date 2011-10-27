@@ -130,7 +130,7 @@ done
 
 for i in "$@"; do
 	case $i in
-		lucid|karmic|hardy|maverick|natty|oneiric) r_rel=${i};;
+		lucid|karmic|hardy|maverick|natty|oneiric|precise) r_rel=${i};;
 		rel*) stream="released";;
 		daily) stream=${i};;
 		server|desktop) bname=${i};;
