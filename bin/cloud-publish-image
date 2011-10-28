@@ -276,6 +276,23 @@ else
 fi
 trap cleanup EXIT
 
+if [ -n "$kernel" ]; then
+	${EC2PRE}describe-images > "${TMPD}/kernel.info" ||
+		fail "failed to describe kernel ${kernel}"
+	aki_arch=$(awk '-F\t' '$1 == "IMAGE" && $2 == eki { print $8 }' \
+		"eki=$kernel" "$TMPD/kernel.info") && [ -n "$aki_arch" ] ||
+		fail "failed to get arch of $kernel"
+fi
+
+if [ "$arch" = "i386" -a "$aki_arch" = "x86_64" ]; then
+	# if arch = i386 and kernel is x86_64, assume this is a
+	# loader kernel and let it be (x86_64 kernel loading i386 instance)
+	error "WARNING: assuming loader kernel ($kernel arch=$aki_arch, arch=i386)"
+	arch="x86_64"
+elif [ "$arch" != "$aki_arch" -a -n "$aki_arch" ]; then
+	fail "kernel $kernel is arch $aki_arch, does not match arch $arch"
+fi
+
 save_dir="${wdir}"
 [ $save_dl -eq 1 ] && save_dir=.
 
