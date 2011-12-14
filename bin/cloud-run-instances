@@ -36,6 +36,13 @@ from subprocess import Popen, PIPE
 
 finished = "FINISHED"
 
+CC_IMPORT_SSH = """#cloud-config
+runcmd:
+ - [ sudo, -Hu, ubuntu, sh, '-c', 
+     "c=ssh-import-id; which $c >/dev/null || c=ssh-import-lp-id; $c $1",
+     "--", "%s" ]
+"""
+
 class SafeConnectException(Exception):
 	pass
 
@@ -433,9 +440,8 @@ def main():
 				run_inst_args.append("--%s=%s" % (key,val))
 
 		if options.launchpad_id:
-			run_inst_args.append('-d')
-			run_inst_args.append(
-					"#cloud-config\nruncmd:\n - sudo -Hu ubuntu ssh-import-lp-id " + ' '.join(options.launchpad_id))
+			run_inst_args.append('--user-data')
+			run_inst_args.append(CC_IMPORT_SSH % ' '.join(options.launchpad_id))
 
 		if options.runargs is not None:
 			run_inst_args.extend(options.runargs)
