@@ -22,6 +22,7 @@ starts_with_mappings={
     '#include' : 'text/x-include-url',
     '#!' : 'text/x-shellscript',
     '#cloud-config' : 'text/cloud-config',
+    '#cloud-config-archive' : 'text/cloud-config-archive',
     '#upstart-job'  : 'text/upstart-job',
     '#part-handler' : 'text/part-handler',
     '#cloud-boothook' : 'text/cloud-boothook'
@@ -32,9 +33,12 @@ def get_type(fname,deftype):
     line = f.readline()
     f.close()
     rtype = deftype
-    for str,mtype in starts_with_mappings.items():
-        if line.startswith(str):
-            rtype = mtype
+
+    # slist is sorted longest first
+    slist = sorted(starts_with_mappings.keys(), key=lambda e: 0-len(e))
+    for sstr in slist:
+        if line.startswith(sstr):
+            rtype = starts_with_mappings[sstr]
             break
     return(rtype)
 
