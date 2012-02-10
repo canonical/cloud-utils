@@ -131,7 +131,7 @@ getopt_out=$(getopt --name "${0##*/}" \
 ## <<insert default variables here>>
 output="-"
 format='%{ami}\n'
-burl="https://cloud-images.ubuntu.com/query"
+burl="${UBUNTU_CLOUDIMG_QUERY_BASEURL:-https://cloud-images.ubuntu.com/query}"
 store="ebs"
 region_default="${EC2_REGION:-us-east-1}"
 release="lucid"
