@@ -134,7 +134,7 @@ arch="$1"
 release="$2"
 bucket="$3"
 
-url=$(ubuntu-cloudimg-query "$arch" "$release" "$stream" \
+url=$(EC2_URL="" ubuntu-cloudimg-query "$arch" "$release" "$stream" \
 	--format="%{pubname} %{url}\n") ||
 	fail "ubuntu-cloudimg-query failed for $arch, $release, $stream"
 
