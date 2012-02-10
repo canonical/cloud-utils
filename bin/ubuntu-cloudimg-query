@@ -216,6 +216,7 @@ if [ -z "${region}" ]; then
 				region=${EC2_URL#*://};
 				region=${region%%.*};;
 			ec2.amazonaws.com/*) region=us-east-1;;
+			*) region=${region_default};;
 		esac
 	else
 		region="${region_default}"
