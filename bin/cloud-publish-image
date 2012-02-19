@@ -280,7 +280,10 @@ if [ -n "$kernel" -a "$kernel" != "none" ]; then
 	aki_arch=""; ari_arch="";
 	# if kernel is given, check that its arch matches the register arch
 	aki_arch=""; ari_arch="";
-	${EC2PRE}describe-images "$kernel" "$ramdisk" > "${TMPD}/kernel.info" ||
+	
+	[ "$ramdisk" = "none" ] && _ramdisk="" || _ramdisk="$ramdisk"
+
+	${EC2PRE}describe-images "$kernel" $_ramdisk > "${TMPD}/kernel.info" ||
 		fail "failed to describe kernel ${kernel}"
 	aki_arch=$(awk '-F\t' '$1 == "IMAGE" && $2 == id { print $8 }' \
 		"id=$kernel" "$TMPD/kernel.info") && [ -n "$aki_arch" ] ||
