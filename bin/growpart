@@ -112,7 +112,6 @@ mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
 
 change_out=${TEMP_D}/change.out
-change_err=${TEMP_D}/change.err
 dump_out=${TEMP_D}/dump.out
 new_out=${TEMP_D}/new.out
 dump_mod=${TEMP_D}/dump.mod
@@ -182,8 +181,10 @@ if [ $dry_run -ne 0 ]; then
 fi
 
 sfdisk "${disk}" ${CHS} --force -O "${orig_bin}" \
-	< "${new_out}" > "${change_out}" 2> "${change_err}" || {
+	< "${new_out}" > "${change_out}" 2>&1 || {
 	DISK=${disk}; RESTORE_FROM="${orig_bin}";
+	error "attempt to resize ${disk} failed. sfdisk output below:"
+	sed 's,^,| ,' "${change_out}" 1>&2
 	fail "failed to resize"
 }
 changed "${change_info}"
