@@ -29,7 +29,7 @@ changed() { echo "CHANGED:" "$@"; exit 0; }
 cleanup() {
 	if [ -n "${RESTORE_FROM}" ]; then
 		error "***** WARNING: Resize failed, attempting to revert ******"
-		if sfdisk "${DISK}" ${CHS} -I "${RESTORE_FROM}"; then
+		if sfdisk --no-reread "${DISK}" ${CHS} -I "${RESTORE_FROM}"; then
 			error "***** Appears to have gone OK ****"
 		else
 			error "***** FAILED! or original partition table looked like: ****"
@@ -180,7 +180,7 @@ if [ $dry_run -ne 0 ]; then
     exit 0
 fi
 
-sfdisk "${disk}" ${CHS} --force -O "${orig_bin}" \
+sfdisk --no-reread "${disk}" ${CHS} --force -O "${orig_bin}" \
 	< "${new_out}" > "${change_out}" 2>&1 || {
 	DISK=${disk}; RESTORE_FROM="${orig_bin}";
 	error "attempt to resize ${disk} failed. sfdisk output below:"
