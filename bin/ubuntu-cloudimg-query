@@ -85,9 +85,9 @@ isrel() {
 subst() {
 	local cur="$1"; shift;
 	while [ $# -ne 0 ]; do
-      while [ "${cur#*${1}}" != "${cur}" ]; do
-         cur="${cur%%${1}*}${2}${cur#*${1}}"
-      done
+		while [ "${cur#*${1}}" != "${cur}" ]; do
+			cur="${cur%%${1}*}${2}${cur#*${1}}"
+		done
 		shift 2
 	done
 	_RET=${cur}

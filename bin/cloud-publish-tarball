@@ -150,12 +150,12 @@ while [ $# -ne 0 ]; do
 			[ -f "${next}" ] && ramdisk=$(readlink -f "${next}") ||
 				fail "failed to get path to ${next}"
 			shift;;
-           --rename-image) rename_image=${next}; shift;;
-           --rename-kernel) rename_kernel=${next}; shift;;
-           --rename-ramdisk) rename_ramdisk=${next}; shift;;
-           --save-downloaded) save_dl=1;;
-		--use-loader) use_loader=1;;
-		--resize) resize=${next}; shift;;
+		   --rename-image) rename_image=${next}; shift;;
+		   --rename-kernel) rename_kernel=${next}; shift;;
+		   --rename-ramdisk) rename_ramdisk=${next}; shift;;
+		   --save-downloaded) save_dl=1;;
+		   --use-loader) use_loader=1;;
+		   --resize) resize=${next}; shift;;
 	esac
 	shift;
 done
@@ -224,7 +224,7 @@ done < list.out
 # if loader was found, and no kernel given (or found)
 # then set kernel to loader
 if [ -n "${loader}" ] &&
-   { [ ${use_loader} -eq 1 ] || [ -z "${kernel}" -a -z "${eki}" ]; } ; then
+	{ [ ${use_loader} -eq 1 ] || [ -z "${kernel}" -a -z "${eki}" ]; } ; then
 	debug 1 "using loader ${loader##*/} as kernel"
 	kernel=${loader}
 fi
@@ -276,3 +276,5 @@ emi=${_RET}
 
 log 1 "done"
 printf 'emi="%s"; eri="%s"; eki="%s";\n' "${emi}" "${eri}" "${eki}"
+
+# vi: ts=4 noexpandtab
