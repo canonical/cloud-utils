@@ -88,7 +88,7 @@ while [ $# -ne 0 ]; do
 		   --dry-run) dry_run=1;;
 		-v|--verbose) VERBOSITY=$(($VERBOSITY+1));;
 		--) shift; break;;
-        -*) fail "unknown option ${cur}";;
+		-*) fail "unknown option ${cur}";;
 		*) 
 			if [ -z "${disk}" ]; then
 				disk=${cur};
@@ -158,7 +158,7 @@ max_end=$(awk '
 
 debug 1 "max_end=${max_end} tot=${tot} pt_end=${pt_end} pt_start=${pt_start} pt_size=${pt_size}"
 [ $((${pt_end})) -eq ${max_end} ] &&
-    nochange "partition ${part} is size ${pt_size}. it cannot be grown"
+	nochange "partition ${part} is size ${pt_size}. it cannot be grown"
 [ $((${pt_end}+${fudge})) -gt ${max_end} ] &&
 	nochange "partition ${part} could only be grown by $((${max_end}-${pt_end})) [fudge=${fudge}]"
 
@@ -170,14 +170,14 @@ sed "\|^${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" > "${new_out}" ||
 
 change_info="partition=${part} start=${pt_start} old: size=${pt_size} end=${pt_end} new: size=${new_size},end=${max_end}"
 if [ $dry_run -ne 0 ]; then
-    echo "CHANGE: ${change_info}"
+	echo "CHANGE: ${change_info}"
 	{
 	echo "# === old sfdisk -d ==="
 	cat "${dump_out}"
 	echo "# === new sfdisk -d ==="
-    cat "${new_out}"
+	cat "${new_out}"
 	} 1>&2
-    exit 0
+	exit 0
 fi
 
 sfdisk --no-reread "${disk}" ${CHS} --force -O "${orig_bin}" \
