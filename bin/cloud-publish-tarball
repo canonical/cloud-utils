@@ -88,7 +88,7 @@ dl() {
 	local qflag="-q"
 	[ "$quiet" = "0" ] && qflag=""
 
-	wget $qflag "$url" -O "$target" ||
+	wget $qflag --progress=dot:mega "$url" -O "$target" ||
 		return 1
 }
 
