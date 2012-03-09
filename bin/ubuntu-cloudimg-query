@@ -178,9 +178,7 @@ for i in "$@"; do
 		[a-z][1-9].[0-9a-z]*|c[cg][1-9].*)
 			itype="$i";
 			case "${i}" in
-				t1.micro) store=ebs;; # t1.micro does not imply arch
-				m1.small|c1.medium) arch=i386;;
-				*) arch=amd64;;
+				t1.micro) store=ebs;; # t1.micro only supports ebs
 			esac
 			;;
 		http://*|https://*) burl=${i};;
