@@ -142,6 +142,8 @@ itype=""
 ptype="paravirtual"
 poss_release=""
 itypes=""
+itypes_i386="m1.small c1.medium m1.medium"
+itypes_amd64="${itypes_i386} m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge"
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -249,8 +251,8 @@ ami=$(awk '-F\t' \
 
 case "$arch:$store:$ptype" in
 	*:hvm) itypes_all="cc1.4xlarge cg1.4xlarge cc2.8xlarge";;
-	i386:*) itypes_all="m1.small c1.medium";;
-	amd64:*) itypes_all="m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge";;
+	i386:*) itypes_all="${itypes_i386}";;
+	amd64:*) itypes_all="${itypes_amd64}";;
 esac
 [ "$store" = "ebs" -a "$ptype" != "hvm" ] && itypes_all="t1.micro $itypes_all"
 itypes=""
