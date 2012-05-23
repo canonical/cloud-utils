@@ -2,14 +2,14 @@ Source: cloud-utils
 Section: admin
 Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: cdbs, debhelper (>= 7)
-XS-Python-Version: all
+Build-Depends: cdbs, debhelper (>= 7), python-all (>= 2.6)
+X-Python-Version: >= 2.6
 Standards-Version: 3.9.2
 
 Package: cloud-utils
 Architecture: all
 Depends: ${misc:Depends}, euca2ools, file, e2fsprogs (>=1.4), python,
- python-yaml, python-paramiko, util-linux (>= 2.17.2)
+ python-yaml, python-paramiko, util-linux (>= 2.17.2), python-pyme
 Description: cloud image management utilities
  This package provides a useful set of utilities for managing cloud
  images.

@@ -1,0 +1,49 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# vi: ts=4 noexpandtab
+
+## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
+## Date: 25 October 2011
+##
+## This comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
+## This is free software, and you are welcome to redistribute it
+## under certain conditions; see copying for details.
+
+import sys
+from boto.sqs.connection import SQSConnection
+from boto.sqs.message import Message
+import argparse
+from sync-images.syncmessage importSyncMessage
+
+
+def get_messages(access_key, secret_key, queue):
+
+    try:
+        conn = SQSConnection(access_key, secret_key)
+        queue = conn.get_queue(queue)
+
+        if queue:
+            while True:
+                for r in queue.get_messages():
+                    print r.get_body()
+                    queue.delete_message(r)
+    except Exception, e:
+
+        print e
+        print 'Error fetching messages'
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--secret_key', action='store',
+                        help='AWS Secret Key')
+    parser.add_argument('--access_key', action='store',
+                        help='AWS Access Key/ID')
+    parser.add_argument('--queue', action='store',
+                        help='Queue to use for storing message')
+
+    opts = parser.parse_args()
+    get_messages(opts.access_key, opts.secret_key, opts.queue)

@@ -10,12 +10,14 @@ manpages := $(subst man/,,$(wildcard man/*.1))
 
 build:
 	echo manpages=$(manpages)
-	:
+	python setup.py build
 
 install:
 	mkdir -p "$(BINDIR)" "$(DOCDIR)" "$(MANDIR)"
 	cd bin && install $(binprogs) "$(BINDIR)"
 	cd man && install $(manpages) "$(MANDIR)/" --mode=0644
+	python setup.py install --install-layout=deb --root $(CURDIR)/debian/cloud-utils
+	dh_python2
 
 clean:
 	:

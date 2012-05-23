@@ -1,0 +1,58 @@
+#!/usr/bin/python
+# vi: ts=4 noexpandtab
+
+## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
+## Date: 21 February 2012
+##
+## This comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
+## This is free software, and you are welcome to redistribute it
+## under certain conditions; see copying for details.
+
+## This provides the functionality of downloading and validating a file
+
+import argparse
+import hashlib
+import sys
+
+def checksum(location, block_size=2**20, csum="sha1"):
+
+	hsh = None
+
+	try:
+		hsh = hashlib.new(csum.lower())
+		l_file = open(location, 'rb')
+
+	 	while True:
+			data = l_file.read(block_size)
+			if not data:
+				break
+			hsh.update(data)
+
+	except AttributeError as e:
+		sys.stderr.write("Unable to locate specified hash!\n%s\nValid Hashes are:\n  %s\n" % (e, "\n  ".join(hashlib.algorithms)))
+		sys.exit(1)
+
+	except IOError as e:
+		sys.stderr.write("Error reading file %s\n" % location)
+		sys.exit(1)
+
+	return hsh.hexdigest()
+
+if __name__=="__main__":
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--checksum', choices=hashlib.algorithms,
+		default="sha1", action="store",
+		help="Hash algorythmn to use")
+	parser.add_argument('--sumonly', action="store_true",
+		default=False,
+		help="Display only the checksums")
+	parser.add_argument('args', nargs=argparse.REMAINDER)
+	opts = parser.parse_args()
+
+	for arg in opts.args:
+		check = checksum(arg, csum=opts.checksum)
+
+		if opts.sumonly:
+			print check
+		else:
+			print "%s\t%s" % (check, arg)

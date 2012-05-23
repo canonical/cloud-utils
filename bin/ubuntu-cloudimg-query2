@@ -1,0 +1,195 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# vi: ts=4 noexpandtab
+
+## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
+## Date: 25 February 2012
+##
+## This comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
+## This is free software, and you are welcome to redistribute it
+## under certain conditions; see copying for details.
+
+from syncimgs.build_json import CloudJSON
+from datetime import datetime, time, date
+import syncimgs.build_json
+import argparse
+import logging
+import sys
+import json
+import re
+
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger('_sync-image_')
+logger.setLevel(logging.CRITICAL)
+
+
+def formatting_help():
+    print """
+    %(region)s - region name
+    %(id)s - the cloud vendor ID
+    %(instance_type)s - instance type
+    %(cloud)s - cloud vendor name, i.e "ec2"
+    %(ramdisk_id)s - ramdisk ID, largely obsolete
+    %(registered_name)s - registered name in cloud system
+    %(build_serial)s - the build serial ID
+    %(path)s - Download URL for corresponding instance
+    %(sha1)s - SHA1 of the file
+    %(arch)s - architecture of the image
+"""
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Query2')
+    parser.add_argument('--url', action='store',
+                        default='https://cloud-images.ubuntu.com/query2'
+                        , help='Base URL to fetch from')
+    parser.add_argument('--no_bz2', dest='bz2', action='store_true',
+                        default=True,
+                        help='Use uncompressed query2 JSON')
+    parser.add_argument('--cloud', action='store', default='EC2',
+                        help='Cloud name to fetch from, i.e. EC2')
+    parser.add_argument('--no_gpg', action='store_false', dest='gpg',
+                        default=True,
+                        help='Do not validate GPG signature')
+    parser.add_argument('--verbose', action='store_true',
+                        default=False,
+                        help="Be verbose about what's happening")
+    parser.add_argument('--builds', action='store_true', default=False,
+                        help='Get build information, not AMI inforamtion'
+                        )
+    parser.add_argument('--format', action='store',
+                        default='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s'
+                        ,
+                        help='Default query paramaters, see --show_format'
+                        )
+    parser.add_argument('--show_format', action='store_true',
+                        help='Show formating options')
+
+    parser.add_argument('args', nargs=argparse.REMAINDER)
+
+    opts = parser.parse_args()
+
+    v = {}
+    region_re = re.compile('.*-.*-\d')
+    type_re = re.compile('(instance-store)|(ebs)|(hvm)')
+    arch_re = re.compile('(amd64)|(i386)|(armel)|(armhf)')
+    file_re = \
+        re.compile('(root.tar.gz)|(tar.gz)|(qcow2)|(manifest)|(vmdk)|(kernel)|(ovf)'
+                   )
+    release_re = re.compile('(release)|(rel*)')
+    daily_re = re.compile('(daily)')
+    cloud_re = re.compile('(ec2)')
+    base_re = re.compile('(server)|(desktop)')
+    distro_re = \
+        re.compile('(hardy)|(lucid)|(maverick)|(natty)|(oneiric)|(precise)|(quantal)'
+                   )
+
+    for val in opts.args:
+        val = val.lower()
+        key = None
+
+        if region_re.match(val):
+            key = 'region'
+        elif type_re.match(val):
+
+            key = 'instance_type'
+        elif daily_re.match(val):
+
+            key = 'release_tag'
+            val = 'daily'
+        elif release_re.match(val):
+
+            key = 'release_tag'
+            val = 'release'
+        elif base_re.match(val):
+
+            key = 'stream'
+        elif cloud_re.match(val):
+
+            key = 'cloud'
+        elif arch_re.match(val):
+
+            key = 'arch'
+        elif distro_re.match(val):
+
+            key = 'distro'
+        elif file_re.match(val):
+
+            key = 'file_type'
+
+        if key not in v.keys():
+            v[key] = val
+        else:
+            raise Exception('You cannot specify %s and %s at the same time'
+                             % (v[key], val))
+
+    if 'cloud' not in v.keys():
+        v['cloud'] = 'ec2'
+
+    if 'arch' not in v.keys():
+        v['arch'] = 'amd64'
+
+    if 'region' not in v.keys() and v['cloud'] == 'ec2':
+        v['region'] = 'us-east-1'
+
+    if 'instance_type' not in v.keys():
+        v['instance_type'] = 'ebs'
+
+    if 'release_tag' not in v.keys():
+        v['release_tag'] = 'release'
+
+    if 'distro' not in v.keys():
+        v['distro'] = 'precise'
+
+    if 'stream' not in v.keys():
+        v['stream'] = 'server'
+
+    if 'file_type' not in v.keys():
+        v['file_type'] = 'root.tar.gz'
+
+    if opts.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    url = '%s/%s/%s/%s.json' % (opts.url, v['stream'], v['distro'],
+                                opts.cloud.lower())
+    if opts.bz2:
+        url = '%s.bz2' % url
+
+    if opts.verbose:
+        logger.debug('Configuration of query:\n%s' % json.dumps(v,
+                     indent=4))
+        logger.debug('Calling catalog.get_single with:')
+        logger.debug('catalog.get_single(%s, %s, %s, %s, %s, %s, %s)'
+                     % (
+            v['distro'],
+            v['stream'],
+            v['release_tag'],
+            v['instance_type'],
+            v['arch'],
+            v['cloud'],
+            v['region'],
+            ))
+
+    if not opts.builds:
+        cloudjson = CloudJSON(gpg_verify=opts.gpg, url=url)
+        catalog = cloudjson.build_catalog
+
+        r = catalog.get_single_reg(
+            v['distro'],
+            v['stream'],
+            v['release_tag'],
+            v['instance_type'],
+            v['arch'],
+            v['cloud'],
+            v['region'],
+            )
+
+        if r:
+            print r
+            sys.exit(0)
+
+        sys.stderr.write('Query returned no results')
+        sys.exit(1)
+
