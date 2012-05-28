@@ -1,3 +1,21 @@
+cloud-utils (0.23-0ubuntu2) quantal; urgency=low
+
+  * Added Query 2 tools. Query2 is a new meta-data service provided for
+    the Ubuntu Cloud Images. The syncimgs Query2 tool set allows for an
+    interface in utilizing the meta-data.
+
+    CLI Tools:
+       bin/cloudimg-sync: tool for synchronizing cloud images locally
+           using simple YAML. It is extensible in conjunction with scripts.
+       bin/pychecksum: tool for performing checksums written in Python. When
+           invoking checksums against large files within Python, there is a
+           risk of hangs when using the /usr/bin/*sum tools.
+       bin/s3keyuploader: upload a single file to S3 and output a signed URL.
+       bin/ubuntu-cloudimg-query2: like ubuntu-cloudimg-query but uses Query2
+           meta-data. Similar in function.
+
+ -- Ben Howard <ben.howard@ubuntu.com>  Mon, 28 May 2012 15:29:02 -0600
+
 cloud-utils (0.23-0ubuntu1) oneiric; urgency=low
 
   * New upstream release (first upstream release separate from Ubuntu)
@@ -152,7 +170,7 @@ cloud-utils (0.9-0ubuntu1) lucid; urgency=low
 
 cloud-utils (0.8-0ubuntu1) lucid; urgency=low
 
-  * uec-publish-image: return to using symbolic link for renaming 
+  * uec-publish-image: return to using symbolic link for renaming
     (LP: #522292 is fixed)
   * uec-publish-tarball: fail before extracting tarball if environment
     is not set up for euca2ools (LP: #526504)
