@@ -24,7 +24,7 @@ import tempfile
 import sys
 import StringIO
 import urllib2
-from pyme import core
+import GnuPGInterface
 from syncimgs.easyrep import EasyRep
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
@@ -625,14 +625,21 @@ class CloudJSON(EasyRep):
     def __init__(self, **kargs):
         for key in kargs:
             setattr(self, key, kargs[key])
+            logger.info("Setting CloudJSON variable %s to %s"
+                    % (key, kargs[key]))
 
-            if key == 'url':
-                self.get_from_url(kargs[key])
-                self.json_location = kargs[key]
+        if self.__checkattr__('url'):
+            url = getattr(self, 'url')
+            self.get_from_url(url)
+            self.json_location = url
+            logger.info("JSON will be fetched over http(s)")
 
-            if key == 'file':
-                self.get_from_file(kargs[key])
-                self.json_location = kargs[key]
+        elif self.__checkattr__('file'):
+            fname = getattr(self, 'file')
+            self.get_from_file(fname)
+            self.json_location = fname
+            logger.info("JSON will be fetched from a local file")
+
 
     def __checkattr__(self, attr):
 
@@ -693,43 +700,28 @@ class CloudJSON(EasyRep):
 
     def check_gpg_sig(self, gpg_file, gpg_sig):
         if not self.__checkattr__('gpg_verify'):
+            logger.info('GPG Verification is not configured')
             return True
 
         logger.info('Checking GPG signature')
-        ctx = core.Context()
+
+        gnupg = GnuPGInterface.GnuPG()
+        proc = gnupg.run(['--verify', gpg_sig, gpg_file],
+             create_fhs=['stdout'])
+
+        output = proc.handles['stdout'].read()
 
         try:
-            sig = core.Data(file=gpg_sig)
-            gpg_f = core.Data(file=gpg_file)
+            proc.handles['stdout'].close()
+            proc.wait()
+            logger.info('GPG Validation results:\n%s' % output)
 
-            ctx.op_verify(sig, gpg_f, None)
-            result = ctx.op_verify_result()
+        except IOError as e:
+            os.unlink(gpg_file)
+            os.unlink(gpg_sig)
+            logger.critical("Encountered error during GPG validation!\n%s" % e)
+            raise e
 
-            index = 0
-            for sign in result.signatures:
-                index += 1
-
-                if sign.status == 0:
-                    sig_status = 'Good'
-                else:
-                    raise Exception('GPG_SIG_INVALID',
-                                    'GPG SIGNATURE IS INVALID')
-
-                logger.info('GPG Signature Found')
-                logger.info('  summary:     %#0x' % sign.summary)
-                logger.info('  status:      %#0x (%s)' % (sign.status,
-                            sig_status))
-                logger.info('  timestamp:   %s' % sign.timestamp)
-                logger.info('  fingerprint: %s' % sign.fpr)
-                logger.info('  uid:         %s' % ctx.get_key(sign.fpr,
-                            0).uids[0].uid)
-
-            logger.info('GPG key validated')
-            return True
-        except Exception, e:
-
-            logger.critical('GPG VALIDATION ERROR!.\n%e' % e)
-            sys.exit(1)
 
     def get_from_file(self, file_name, gpg_sig=None):
         try:
@@ -762,7 +754,6 @@ class CloudJSON(EasyRep):
             request.add_header('Accept-encoding', 'gzip')
             response = urllib2.urlopen(request)
             fetched_json = None
-            response.info()
 
             if response.info().get('Content-Encoding') == 'gzip':
                 buf = StringIO(response.read())
@@ -779,9 +770,13 @@ class CloudJSON(EasyRep):
             json_data.write(fetched_json)
             json_data.close()
 
-            if self.__checkattr__('gpg_verify'):
-                logger.info('Fetching GPG signature of %s' % url)
-                remote_gpg = urllib2.urlopen('%s.gpg' % url)
+            if getattr(self, 'gpg_verify'):
+                gpg_url = "%s.gpg" % url
+                if "bz2" in url:
+                    gpg_url = url.replace('bz2', 'gpg')
+
+                logger.info('Fetching GPG signature of %s' % gpg_url)
+                remote_gpg = urllib2.urlopen(gpg_url)
                 fetched_gpg = remote_gpg.read()
                 (gpg_fh, gpg_n) = tempfile.mkstemp()
                 gpg_data = open(gpg_n, 'wb')
@@ -795,7 +790,7 @@ class CloudJSON(EasyRep):
 
             setattr(self, 'build_catalog',
                     BuildCatalog(json=json.loads(fetched_json)))
-        except IOError, e:
+        except IOError as e:
 
             raise Exception('Unable to fetch JSON from remote source.\n%s'
                              % e)
@@ -804,12 +799,11 @@ class CloudJSON(EasyRep):
 
 
 # Example of how to parse out some details...still needs work
-# cloudjson = CloudJSON(gpg_verify=True, url="http://cloud-images.ubuntu.com/query2/ec2.json.bz2")
-# catalog = cloudjson.build_catalog
-
-# for r in catalog.iter_regs("quantal", "server"): #, instance_type="ebs"):
+#logger.setLevel(logging.DEBUG)
+#cloudjson = CloudJSON(gpg_verify=True, url="http://cloud-images.ubuntu.com/query2/server/quantal/ec2.json.bz2")
+#catalog = cloudjson.build_catalog
+#for r in catalog.iter_regs("quantal", "server"): #, instance_type="ebs"):
 #    print r.dump()
-
 # iterator example
 #   for bf in bc.iter_files("oneiric", stream="server", release_tag="daily", arch="i386 amd64", included="qcow2 tar.gz"):
 #       print bf
