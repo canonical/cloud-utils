@@ -628,13 +628,13 @@ class CloudJSON(EasyRep):
             logger.info("Setting CloudJSON variable %s to %s"
                     % (key, kargs[key]))
 
-        if self.__checkattr__('url'):
+        if hasattr(self,'url'):
             url = getattr(self, 'url')
             self.get_from_url(url)
             self.json_location = url
             logger.info("JSON will be fetched over http(s)")
 
-        elif self.__checkattr__('file'):
+        elif hasattr(self,'file'):
             fname = getattr(self, 'file')
             self.get_from_file(fname)
             self.json_location = fname
@@ -642,12 +642,9 @@ class CloudJSON(EasyRep):
 
 
     def __checkattr__(self, attr):
-
-        try:
+        if hasattr(self, attr):
             return getattr(self, attr)
-        except:
-
-            return False
+        return False
 
     def get(self, name):
         try:
@@ -699,7 +696,7 @@ class CloudJSON(EasyRep):
         return None
 
     def check_gpg_sig(self, gpg_file, gpg_sig):
-        if not self.__checkattr__('gpg_verify'):
+        if not hasattr(self,'gpg_verify'):
             logger.info('GPG Verification is not configured')
             return True
 
