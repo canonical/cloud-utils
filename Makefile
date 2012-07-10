@@ -16,7 +16,7 @@ install:
 	mkdir -p "$(BINDIR)" "$(DOCDIR)" "$(MANDIR)"
 	cd bin && install $(binprogs) "$(BINDIR)"
 	cd man && install $(manpages) "$(MANDIR)/" --mode=0644
-	install 0644 ubuntu-cloudimg-keyring.gpg /usr/share/keyrings
+	install -m 0644 ubuntu-cloudimg-keyring.gpg /usr/share/keyrings
 	python setup.py install --install-layout=deb --root $(CURDIR)/debian/cloud-utils
 	dh_python2
 
