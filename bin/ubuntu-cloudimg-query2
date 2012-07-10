@@ -125,9 +125,9 @@ Example Usage:
                         )
     parser.add_argument('--show-format', action='store_true', default=False,
                         help='Show formating options')
-    parser.add_argument('--gpg-home', action="store",
-                        default="/usr/share/cloud-utils/dot-gpg",
-                        help="Default GPG home for validating GPG signatures"
+    parser.add_argument('--gpg-keyring', action="store",
+                        default="/usr/share/keyrings/ubuntu-cloudimg-keyring.gpg",
+                        help="Default GPG keyring for validating GPG signatures"
                        )
     parser.add_argument('--all', action="store_true", default=False,
                         help="Show all regions for a clouds")
@@ -265,7 +265,7 @@ Example Usage:
     cloudjson = CloudJSON(
                     gpg_verify=opts.gpg,
                     url=url,
-                    gpg_home=opts.gpg_home
+                    gpg_keyring=opts.gpg_keyring,
                     )
     catalog = cloudjson.build_catalog
 

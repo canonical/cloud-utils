@@ -25,8 +25,8 @@ import sys
 import StringIO
 import urllib2
 import random
-import GnuPGInterface
 from syncimgs.easyrep import EasyRep
+from syncimgs.execute import RunCMD
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger('_sync-image_')
@@ -725,9 +725,9 @@ class CloudJSON(EasyRep):
             self.json_location = fname
             logger.info("JSON will be fetched from a local file")
 
-        if not hasattr(self,'gpg_home'):
-            # Set the default gpg home
-            self.gpg_home="/usr/share/cloud-utils/dot-gpg"
+        if not hasattr(self,'gpg_keyring'):
+            # Set the default gpg keyring
+            self.gpg_keyring="/usr/share/keyrings/ubuntu-cloudimg-keyring.gpg"
 
 
     def __checkattr__(self, attr):
@@ -790,28 +790,27 @@ class CloudJSON(EasyRep):
             logger.info('GPG Verification is not configured')
             return True
 
+        gpg_good = False
         logger.info('Checking GPG signature')
 
-        gnupg = GnuPGInterface.GnuPG()
-        gnupg.homedir = self.gpg_home
-        gnupg.quiet = 1
+        gpg_cmd = 'gpg --no-default-keyring --keyring %s --verify %s %s' % \
+                (self.gpg_keyring, gpg_sig, gpg_file)
 
-        proc = gnupg.run(['--verify', gpg_sig, gpg_file],
-                create_fhs=['stderr'])
+        run_cmd = RunCMD(gpg_cmd, output='log', info=True)
 
-        output = proc.handles['stderr'].read()
-
-        try:
-            proc.handles['stderr'].close()
-            proc.wait()
-            logger.info('GPG Validation results:\n%s' % output)
-
-        except IOError as e:
+        if not run_cmd.was_successful():
+            for line in run_cmd.iter_output():
+                logger.critical(line)
             os.unlink(gpg_file)
             os.unlink(gpg_sig)
-            logger.critical("Encountered error during GPG validation!\n%s" % e)
-            raise e
 
+        else:
+            gpg_good = True
+
+        if not gpg_good:
+            raise Exception("GPG Validation error!","Unable to validate GPG signature")
+
+        return True
 
     def get_from_file(self, file_name, gpg_sig=None):
         try:
