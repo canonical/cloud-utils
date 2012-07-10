@@ -24,6 +24,7 @@ import tempfile
 import sys
 import StringIO
 import urllib2
+import random
 import GnuPGInterface
 from syncimgs.easyrep import EasyRep
 
@@ -300,6 +301,31 @@ class BuildFiles(EasyRep):
 
                 setattr(self, key, kargs[key])
 
+    def dump(self,
+            unpacked=False,
+            url_base=None,
+            output="%(file_type)s %(path)s %(sha1)s",
+            ):
+
+        if 'unpacked' in self.path and not unpacked:
+            return
+
+        url = self.path
+        if url_base:
+            url = "%s/%s" % (url_base, self.path)
+
+        output = output % {
+            'description': self.description,
+            'sha1': self.sha1,
+            'sha512': self.sha512,
+            'buildid': self.buildid,
+            'path': url,
+            'file_type': self.file_type,
+            }
+
+        return output
+
+
 
 class BuildCatalog(EasyRep):
 
@@ -499,6 +525,44 @@ class BuildCatalog(EasyRep):
         for d in self.__get__('distros'):
             yield d
 
+    def fetch_files(
+        self,
+        distro,
+        stream='server',
+        release_tag='all',
+        arch='all',
+        included=[],
+        excluded=[],
+        output="%(path)s",
+        url_base=None,
+        serial=None,
+        all=False,
+        ):
+
+        """
+            Return formated text
+        """
+
+        data = ""
+        for f in self.iter_files(
+                    distro,
+                    stream,
+                    release_tag,
+                    arch,
+                    included,
+                    excluded,
+                    serial,
+                    all,
+                    ):
+
+            url_base = random.choice(self.mirrors_transfer)
+
+            d = f.dump(output=output, url_base=url_base)
+            if d:
+               data += "%s\n" % d
+
+        return data
+
     def iter_files(
         self,
         distro,
@@ -507,7 +571,10 @@ class BuildCatalog(EasyRep):
         arch='all',
         included=[],
         excluded=[],
+        serial=None,
+        all=False,
         ):
+
         '''
         Iterates over the files for a distro and returns them
         - stream: the stream type
@@ -525,7 +592,16 @@ class BuildCatalog(EasyRep):
             excluded = excluded.split()
 
         results = self.get_files(distro, stream, release_tag)
+        serials = sorted(results.keys())
+
         for bf in results:
+
+            if serial and bf != serial:
+                continue
+
+            elif not all and bf != serials[-1]:
+                next
+
             for b_arch in results[bf]:
 
                 if b_arch in arch or 'all' in arch:
@@ -534,15 +610,16 @@ class BuildCatalog(EasyRep):
                         if b_file.file_type in included:
                             yield b_file
                             continue
-                        elif len(included) > 0:
 
+                        elif len(included) > 0:
                             continue
 
                         if b_file.file_type not in excluded:
                             yield b_file
-                        elif len(excluded) == 0:
 
+                        elif len(excluded) == 0:
                             yield b_file
+
 
     def get(self, name):
         try:
@@ -596,7 +673,7 @@ class BuildCatalog(EasyRep):
                             reg.set('release_tag', bf.release_tag)
                             yield reg
 
-    def get_single_reg(
+    def get_reg(
         self,
         distro,
         stream,
@@ -605,9 +682,12 @@ class BuildCatalog(EasyRep):
         arch,
         cloud,
         region,
-        output='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s'
-            ,
+        output='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s',
+        all_regions=False
         ):
+
+        reg_data=""
+
         for r in self.iter_regs(
             distro,
             stream,
@@ -616,9 +696,14 @@ class BuildCatalog(EasyRep):
             arch=arch,
             cloud=cloud,
             ):
-            if r.region_name == region:
+
+            if all_regions:
+                reg_data += "%s\n" % r.dump(output=output)
+
+            elif r.region_name == region:
                 return r.dump(output=output)
 
+        return reg_data
 
 class CloudJSON(EasyRep):
 
@@ -639,6 +724,10 @@ class CloudJSON(EasyRep):
             self.get_from_file(fname)
             self.json_location = fname
             logger.info("JSON will be fetched from a local file")
+
+        if not hasattr(self,'gpg_home'):
+            # Set the default gpg home
+            self.gpg_home="/usr/share/cloud-utils/dot-gpg"
 
 
     def __checkattr__(self, attr):
@@ -696,6 +785,7 @@ class CloudJSON(EasyRep):
         return None
 
     def check_gpg_sig(self, gpg_file, gpg_sig):
+
         if not hasattr(self,'gpg_verify'):
             logger.info('GPG Verification is not configured')
             return True
@@ -703,13 +793,16 @@ class CloudJSON(EasyRep):
         logger.info('Checking GPG signature')
 
         gnupg = GnuPGInterface.GnuPG()
-        proc = gnupg.run(['--verify', gpg_sig, gpg_file],
-             create_fhs=['stdout'])
+        gnupg.homedir = self.gpg_home
+        gnupg.quiet = 1
 
-        output = proc.handles['stdout'].read()
+        proc = gnupg.run(['--verify', gpg_sig, gpg_file],
+                create_fhs=['stderr'])
+
+        output = proc.handles['stderr'].read()
 
         try:
-            proc.handles['stdout'].close()
+            proc.handles['stderr'].close()
             proc.wait()
             logger.info('GPG Validation results:\n%s' % output)
 

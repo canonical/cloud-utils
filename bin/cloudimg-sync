@@ -33,7 +33,7 @@ if __name__ == '__main__':
                         help='Force option')
     parser.add_argument('--how', action='store_true', default=False,
                         help='Display information on configuration file')
-    parser.add_argument('--test_config', action='store_true',
+    parser.add_argument('--test-config', action='store_true',
                         default=False,
                         help='Display a test configuration')
     parser.add_argument('--manifest_only', action='store_true',
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--no_overrides', action='store_true',
                         default=False,
                         help='Do not process overrides in configuration file')
-    parser.add_argument('--no_cache', action='store_true',
+    parser.add_argument('--no-cache', action='store_true',
                         default=False,
                         help='Ignore caches/refresh cache')
     parser.add_argument('--fake', action='store_true', default=False,

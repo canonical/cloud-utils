@@ -26,6 +26,8 @@ logger.setLevel(logging.CRITICAL)
 
 def formatting_help():
     print """
+The following are valid format values for displaying Query2 data for clouds
+
     %(region)s - region name
     %(id)s - the cloud vendor ID
     %(instance_type)s - instance type
@@ -36,6 +38,22 @@ def formatting_help():
     %(path)s - Download URL for corresponding instance
     %(sha1)s - SHA1 of the file
     %(arch)s - architecture of the image
+
+The following are valid format values when running with "--builds":
+
+    %(path)s - the path of the file
+    %(sha1)s - the SHA1 checksum of the file
+    %(sha512)s - the SHA512 checksum of the file
+    %(description) - description of the file
+
+Example:
+    ubuntu-cloudimg-query2 --format "%(build_serials) %(id)s" us-west-2 ec2
+        Show the build serial and the ids of the images for us-west-2
+        region of EC2
+
+    ubuntu-cloudimg-query2 --builds --format "%(path)s" precise armhf
+        Show the files for Precise
+
 """
 
 
@@ -45,12 +63,12 @@ if __name__ == '__main__':
     parser.add_argument('--url', action='store',
                         default='https://cloud-images.ubuntu.com/query2'
                         , help='Base URL to fetch from')
-    parser.add_argument('--no_bz2', dest='bz2', action='store_true',
+    parser.add_argument('--no-bz2', dest='bz2', action='store_true',
                         default=True,
                         help='Use uncompressed query2 JSON')
     parser.add_argument('--cloud', action='store', default='EC2',
                         help='Cloud name to fetch from, i.e. EC2')
-    parser.add_argument('--no_gpg', action='store_false', dest='gpg',
+    parser.add_argument('--no-gpg', action='store_false', dest='gpg',
                         default=True,
                         help='Do not validate GPG signature')
     parser.add_argument('--verbose', action='store_true',
@@ -59,17 +77,42 @@ if __name__ == '__main__':
     parser.add_argument('--builds', action='store_true', default=False,
                         help='Get build information, not AMI inforamtion'
                         )
-    parser.add_argument('--format', action='store',
-                        default='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s'
-                        ,
-                        help='Default query paramaters, see --show_format'
+    parser.add_argument('--format', action='store', default=None,
+                        help='Default query parameters, see --show_format'
                         )
-    parser.add_argument('--show_format', action='store_true',
+    parser.add_argument('--show-format', action='store_true', default=False,
                         help='Show formating options')
+    parser.add_argument('--gpg-home', action="store",
+                        default="/usr/share/cloud-utils/dot-gpg",
+                        help="Default GPG home for validating GPG signatures"
+                       )
+    parser.add_argument('--all', action="store_true", default=False,
+                        help="Show all regions for a clouds")
+    parser.add_argument('--all-builds', action="store_true", default=False,
+                        help="Show all builds")
+    parser.add_argument('--serial', action="store", default=None,
+                        help="Query build files for a specific serial")
+    parser.add_argument('--included', action="append",
+                        help="Files to include when querying builds")
+    parser.add_argument('--excluded', action="append",
+                        help="Files to exclude when querying builds")
 
     parser.add_argument('args', nargs=argparse.REMAINDER)
 
     opts = parser.parse_args()
+
+    if not opts.included:
+        opts.included = []
+
+    if not opts.excluded:
+        opts.excluded = []
+
+    if not opts.format:
+        opts.format = '%(id)s'
+
+    if opts.show_format:
+        formatting_help()
+        sys.exit(0)
 
     v = {}
     region_re = re.compile('.*-.*-\d')
@@ -80,7 +123,7 @@ if __name__ == '__main__':
                    )
     release_re = re.compile('(release)|(rel*)')
     daily_re = re.compile('(daily)')
-    cloud_re = re.compile('(ec2)')
+    cloud_re = re.compile('(ec2)|(azure)|(openstack)|(maas)')
     base_re = re.compile('(server)|(desktop)')
     distro_re = \
         re.compile('(hardy)|(lucid)|(maverick)|(natty)|(oneiric)|(precise)|(quantal)'
@@ -154,6 +197,10 @@ if __name__ == '__main__':
 
     url = '%s/%s/%s/%s.json' % (opts.url, v['stream'], v['distro'],
                                 opts.cloud.lower())
+
+    if opts.builds:
+        url = url.replace(opts.cloud.lower(), 'builds')
+
     if opts.bz2:
         url = '%s.bz2' % url
 
@@ -172,11 +219,16 @@ if __name__ == '__main__':
             v['region'],
             ))
 
-    if not opts.builds:
-        cloudjson = CloudJSON(gpg_verify=opts.gpg, url=url)
-        catalog = cloudjson.build_catalog
+    cloudjson = CloudJSON(
+                    gpg_verify=opts.gpg,
+                    url=url,
+                    gpg_home=opts.gpg_home
+                    )
+    catalog = cloudjson.build_catalog
 
-        r = catalog.get_single_reg(
+    if not opts.builds:
+
+        r = catalog.get_reg(
             v['distro'],
             v['stream'],
             v['release_tag'],
@@ -184,12 +236,30 @@ if __name__ == '__main__':
             v['arch'],
             v['cloud'],
             v['region'],
+            output=opts.format,
+            all_regions=opts.all
             )
 
         if r:
             print r
             sys.exit(0)
 
-        sys.stderr.write('Query returned no results')
-        sys.exit(1)
+    else:
 
+        r = catalog.fetch_files(
+            v['distro'],
+            v['stream'],
+            v['release_tag'],
+            v['arch'],
+            opts.included,
+            opts.excluded,
+            serial=opts.serial,
+            all=opts.all,
+            )
+
+        if r:
+            print r
+            sys.exit(0)
+
+    sys.stderr.write('Query returned no results\n')
+    sys.exit(1)

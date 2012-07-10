@@ -7,14 +7,10 @@ cloud-utils (0.23-0ubuntu2) quantal; urgency=low
     CLI Tools:
        bin/cloudimg-sync: tool for synchronizing cloud images locally
            using simple YAML. It is extensible in conjunction with scripts.
-       bin/pychecksum: tool for performing checksums written in Python. When
-           invoking checksums against large files within Python, there is a
-           risk of hangs when using the /usr/bin/*sum tools.
-       bin/s3keyuploader: upload a single file to S3 and output a signed URL.
        bin/ubuntu-cloudimg-query2: like ubuntu-cloudimg-query but uses Query2
            meta-data. Similar in function.
 
- -- Ben Howard <ben.howard@ubuntu.com>  Mon, 28 May 2012 15:29:02 -0600
+ -- Ben Howard <ben.howard@ubuntu.com>  Tue, 10 Jul 2012 10:54:31 -0600
 
 cloud-utils (0.23-0ubuntu1) oneiric; urgency=low
 
