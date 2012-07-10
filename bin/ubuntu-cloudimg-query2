@@ -59,7 +59,50 @@ Example:
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Query2')
+    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Query2',
+                        description="""
+This program uses the Query2 format for describing the Ubuntu Cloud Images.
+""",
+                        epilog="""
+
+Arguments:
+    All arguments after the arguments flags are parsed as parameters. After
+    arguments, the position does not matter.
+
+    For example:
+        ubuntu-cloudimg-query2 us-west-2 amd64 quantal
+    Is the same as:
+        ubuntu-cloudimg-query2 quantal us-west-2 amd64
+
+Valid Options:
+
+    Regions: Any valid EC2 region is currently supported
+    Instance-Types: instance-store, ebs, hvm
+    Architectures: amd64, i386, armel, armhf
+    File Types: root.tar.gz, tar.gz, qcow2, manifest, vmdk, kernel, ovf
+    Releate TagS: release, daily
+    Cloud: ec2 (although azure, openstack and maas may be suppported later)
+    Ubuntu Releases: hardy, lucid, maverick, natty, oneiric, precise, quantal
+
+Defaults:
+    EC2 is the default cloud.
+    us-east-1 is the default region.
+    Ubuntu Server 12.04 (Precise) is the default image for query.
+
+Example Usage:
+    ubuntu-cloudimg-query2 --include qcow2 --builds armhf
+        Display the URL for the qcow2 armhf images
+
+    ubuntu-cloudimg-query2 precise amd64 instance-store sa-east-1
+        Display the AMI ID of the AMD64 instance-store image for 12.04
+        in sa-east-1
+
+    ubuntu-cloudimg-query2 quantal amd64 hvm
+        Display the AMI ID of the AMD64 HVM image for quantal in us-east-1
+
+""",
+                        formatter_class=argparse.RawDescriptionHelpFormatter)
+
     parser.add_argument('--url', action='store',
                         default='https://cloud-images.ubuntu.com/query2'
                         , help='Base URL to fetch from')
