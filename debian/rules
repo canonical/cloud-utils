@@ -13,3 +13,4 @@ binary-post-install/cloud-utils::
 	ln -s cloud-publish-tarball.1 $(OUT_D)/usr/share/man/man1/uec-publish-tarball.1
 	ln -s cloud-publish-image.1 $(OUT_D)/usr/share/man/man1/uec-publish-image.1
 	ln -s resize-part-image.1 $(OUT_D)/usr/share/man/man1/uec-resize-image.1
+	dh_python2
