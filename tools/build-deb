@@ -1,0 +1,77 @@
+#!/bin/sh
+
+TEMP_D=""
+
+fail() { echo "$@" 1>&2; exit 1; }
+cleanup() {
+   [ -z "$TEMP_D" ] || rm -Rf "$TEMP_D"
+}
+
+if [ "$1" = "-h" -o "$1" = "--help" ]; then
+   cat <<EOF
+Usage: ${0##*/}
+   build a deb of cloud-utils directory
+   any options are passed straight through to debuild
+
+   Example:
+    * ${0##*/} -us -uc
+
+   Its not significantly different than what you'd get by modifying
+   the debian/changelog to have the current revno, and then running
+     debuild --no-tgz-check
+EOF
+exit
+fi
+
+bname=${0##*/}
+
+start_d=$PWD
+top_d=$(cd "$(dirname "${0}")"/.. && pwd)
+
+# grab the first line in the changelog
+line1=$(head -n 1 ${top_d}/debian/changelog)
+# hopefully this pulls the version info there
+# resulting in something like: 0.25~trunk~bzrREVNO-1
+clogver_o=$(echo "$line1" | sed 's,.*(\([^)]*\)).*,\1,')
+
+revno=$(bzr revno) || fail "failed to get revno"
+clogver=$(echo "$clogver_o" | sed "s,REVNO,$revno,")
+
+# upstream ver takes off the '-1' which is debian ver
+uver=${clogver%-[0-9]}
+
+TEMP_D=$(mktemp -d "${TMPDIR:-/tmp/${bname}.XXXXXX}")
+
+trap cleanup EXIT
+
+echo "building upstream version $uver, debian ver=${clogver##*-}"
+
+dir="cloud-utils-$uver"
+cp -a "${top_d}" "${TEMP_D}/$dir" ||
+   fail "failed to copy ${top_d}"
+
+cd "$TEMP_D"
+
+sed -i "s,REVNO,$revno," "$dir/debian/changelog" ||
+   fail "failed to replace REVNO in debian/changelog"
+
+( cd "${dir}/debian" &&
+  rm -Rf *debhelper* *.substvars cloud-utils/ files stamp-* ) ||
+   fail "failed to clean out debian dir"
+
+tarball="cloud-utils_$uver.orig.tar.gz"
+tar -czf "$tarball" "$dir" ||
+   fail "failed to create ${tarball} from $dir in tempdir"
+
+echo "created cloud-utils_$uver.orig.tar.gz"
+
+cd "$dir"
+debuild "$@" || fail "debuild failed"
+
+cd "$TEMP_D"
+for f in *; do
+   [ -f "$f" ] || continue
+   cp "$f" "$start_d/" || fail "failed copy $f"
+   echo "wrote $f"
+done
+exit
