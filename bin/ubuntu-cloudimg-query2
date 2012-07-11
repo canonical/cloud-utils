@@ -12,6 +12,7 @@ from syncimgs.build_json import CloudJSON
 from datetime import datetime, time, date
 import syncimgs.build_json
 import argparse
+import distro_info
 import logging
 import sys
 import json
@@ -22,47 +23,7 @@ logger = logging.getLogger('_sync-image_')
 logger.setLevel(logging.CRITICAL)
 
 
-def formatting_help():
-    print """
-The following are valid format values for displaying Query2 data for clouds
-
-    %(region)s - region name
-    %(id)s - the cloud vendor ID
-    %(instance_type)s - instance type
-    %(cloud)s - cloud vendor name, i.e "ec2"
-    %(ramdisk_id)s - ramdisk ID, largely obsolete
-    %(registered_name)s - registered name in cloud system
-    %(build_serial)s - the build serial ID
-    %(path)s - Download URL for corresponding instance
-    %(sha1)s - SHA1 of the file
-    %(arch)s - architecture of the image
-
-The following are valid format values when running with "--builds":
-
-    %(path)s - the path of the file
-    %(sha1)s - the SHA1 checksum of the file
-    %(sha512)s - the SHA512 checksum of the file
-    %(description) - description of the file
-
-Example:
-    ubuntu-cloudimg-query2 --format "%(build_serials) %(id)s" us-west-2 ec2
-        Show the build serial and the ids of the images for us-west-2
-        region of EC2
-
-    ubuntu-cloudimg-query2 --builds --format "%(path)s" precise armhf
-        Show the files for Precise
-
-"""
-
-
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Query2',
-                        description="""
-This program uses the Query2 format for describing the Ubuntu Cloud Images.
-""",
-                        epilog="""
-
+epilog_text = """
 Arguments:
     All arguments after the arguments flags are parsed as parameters. After
     arguments, the position does not matter.
@@ -80,13 +41,16 @@ Valid Options:
     File Types: root.tar.gz, tar.gz, qcow2, manifest, vmdk, kernel, ovf
     Release Tags: release, daily
     Cloud: ec2 (other public clouds may be supported later)
-    Ubuntu Releases: hardy, lucid, maverick, natty, oneiric, precise, quantal
+    Ubuntu Release Code Names: %s
+    Ubuntu Release Version Numbers: %s
 
 Defaults:
     EC2 is the default cloud.
     us-east-1 is the default region.
     Ubuntu Server 12.04 (Precise) is the default image for query.
+"""
 
+epilog_footer="""
 Example Usage:
     ubuntu-cloudimg-query2 --include qcow2 --builds armhf
         Display the URL for the qcow2 armhf images
@@ -98,7 +62,72 @@ Example Usage:
     ubuntu-cloudimg-query2 quantal amd64 hvm
         Display the AMI ID of the AMD64 HVM image for quantal in us-east-1
 
+    ubuntu-cloudimg-query hvm eu-west-1 12.10 --format "%(ami)s %(serial)s"
+        Display the AMI ID and the build serial for 12.10
+"""
+
+def formatting_help():
+    print """
+The following are common format values for both cloud and build queries
+
+    %(path)s - Download URL for corresponding instance
+    %(sha1)s - SHA1 of the file
+    %(arch)s - architecture of the image
+    %(url)s - download url of image
+    %(host)s - host URL
+    %(release)s - release tag, (i.e. release, daily)
+    %(release_tag)s - release tag, (i.e. release, daily)
+    %(stream)s - build type (i.e. server, desktop)
+    %(bname)s - build type (i.e. server, desktop)
+    %(xarch)s - machine architecture
+    %(build_serial)s - the build serial ID
+    %(serial)s - build serial number
+    %(suggested name)s - name suggested for downloaded files
+
+The following are specific format values for querying Cloud data:
+
+    %(region)s - region name
+    %(id)s - the cloud vendor ID
+    %(instance_type)s - instance type
+    %(cloud)s - cloud vendor name, i.e "ec2"
+    %(ramdisk_id)s - ramdisk ID, largely obsolete
+    %(registered_name)s - registered name in cloud system
+    %(build_serial)s - the build serial ID
+    %(summary)s - summary of the image
+    %(pname)s - virtualization type
+    %(dlpath)s - download path
+
+The following are specific format values to "--builds":
+
+    %(description) - description of the file
+    %(file_type) - file type
+
+Example:
+    ubuntu-cloudimg-query2 --format "%(build_serials) %(id)s" us-west-2 ec2
+        Show the build serial and the ids of the images for us-west-2
+        region of EC2
+
+    ubuntu-cloudimg-query2 --builds --format "%(path)s" precise armhf
+        Show the files for Precise
+
+"""
+
+
+if __name__ == '__main__':
+
+    udistro = distro_info.UbuntuDistroInfo()
+    code_names = udistro.supported()
+    ver_codes = map(lambda ver: ver.replace(" LTS",''),
+                    udistro.supported(result='release'))
+
+    epilog = epilog_text % (", ".join(code_names), ", ".join(ver_codes)) + \
+             epilog_footer
+
+    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Query2',
+                        description="""
+This program uses the Query2 format for describing the Ubuntu Cloud Images.
 """,
+                        epilog=epilog,
                         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--url', action='store',
@@ -148,7 +177,10 @@ Example Usage:
     if not opts.excluded:
         opts.excluded = []
 
-    if not opts.format:
+    if not opts.format and opts.builds:
+        opts.format = '%(serial)s %(url)s'
+
+    elif not opts.format:
         opts.format = '%(id)s'
 
     if opts.show_format:
@@ -166,9 +198,8 @@ Example Usage:
     daily_re = re.compile('(daily)')
     cloud_re = re.compile('(ec2)|(azure)')
     base_re = re.compile('(server)|(desktop)')
-    distro_re = \
-        re.compile('(hardy)|(lucid)|(maverick)|(natty)|(oneiric)|(precise)|(quantal)'
-                   )
+    distro_re = re.compile('(' + ")|(".join(code_names) + ')')
+    ver_re = re.compile('(' + ")|(".join(ver_codes) + ')')
 
     for val in opts.args:
         val = val.lower()
@@ -177,30 +208,33 @@ Example Usage:
         if region_re.match(val):
             key = 'region'
         elif type_re.match(val):
-
             key = 'instance_type'
-        elif daily_re.match(val):
 
+        elif daily_re.match(val):
             key = 'release_tag'
             val = 'daily'
-        elif release_re.match(val):
 
+        elif release_re.match(val):
             key = 'release_tag'
             val = 'release'
+
         elif base_re.match(val):
-
             key = 'stream'
+
         elif cloud_re.match(val):
-
             key = 'cloud'
+
         elif arch_re.match(val):
-
             key = 'arch'
+
         elif distro_re.match(val):
-
             key = 'distro'
-        elif file_re.match(val):
 
+        elif ver_re.match(val):
+            key = 'distro'
+            val = code_names[ver_codes.index(val)]
+
+        elif file_re.match(val):
             key = 'file_type'
 
         if key not in v.keys():
@@ -295,6 +329,7 @@ Example Usage:
             opts.included,
             opts.excluded,
             serial=opts.serial,
+            output=opts.format,
             all=opts.all,
             )
 

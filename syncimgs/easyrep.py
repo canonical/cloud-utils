@@ -77,5 +77,8 @@ class EasyRep:
     def get(self, name):
         return self.__get__(name)
 
+    def set(self, name, value):
+        setattr(self, name, value)
+
 
 # vi: ts=4 expandtab
