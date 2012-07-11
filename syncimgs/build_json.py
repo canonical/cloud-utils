@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 25 February 2012
 ##
@@ -896,3 +894,5 @@ class CloudJSON(EasyRep):
 # iterator example
 #   for bf in bc.iter_files("oneiric", stream="server", release_tag="daily", arch="i386 amd64", included="qcow2 tar.gz"):
 #       print bf
+
+# vi: ts=4 expandtab

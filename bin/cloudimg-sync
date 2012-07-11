@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 25 February 2012
 ##
@@ -120,3 +118,4 @@ if __name__ == '__main__':
                    no_cache=opts.no_cache, dry_run=opts.fake)
     cloudjson.write_epoch(configuration.history_log)
 
+# vi: ts=4 expandtab

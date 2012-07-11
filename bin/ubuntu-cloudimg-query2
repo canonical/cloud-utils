@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 25 February 2012
 ##
@@ -306,3 +304,5 @@ Example Usage:
 
     sys.stderr.write('Query returned no results\n')
     sys.exit(1)
+
+# vi: ts=4 expandtab

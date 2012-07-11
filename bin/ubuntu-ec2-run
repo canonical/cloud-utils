@@ -70,70 +70,70 @@ aliases = [
 ]
 
 def get_argopt(args, optnames):
-   ret = None
-   i = 0
-   while i < len(args):
-      cur = args[i];
-      for opt in optnames:
-         if opt.startswith("--"):
-            if cur == opt:
-               ret = args[i+1]
-               i = i + 1
-               break
-            elif cur.startswith("%s=" % opt):
-               ret = args[i].split("=")[1]
-               break
-         else:
-            if args[i] == opt:
-               ret = args[i+1]
-               i = i + 1
-               break
-      i = i + 1
-   return ret
+    ret = None
+    i = 0
+    while i < len(args):
+        cur = args[i];
+        for opt in optnames:
+            if opt.startswith("--"):
+                if cur == opt:
+                    ret = args[i+1]
+                    i = i + 1
+                    break
+                elif cur.startswith("%s=" % opt):
+                    ret = args[i].split("=")[1]
+                    break
+            else:
+                if args[i] == opt:
+                    ret = args[i+1]
+                    i = i + 1
+                    break
+        i = i + 1
+    return ret
 
 def get_block_device_mappings(itype):
-   # cleaned from http://aws.amazon.com/ec2/instance-types/
-   # t1.micro     NONE    # m2.2xlarge    850   # c1.xlarge    1690
-   # m1.small      160    # m1.large      850   # m1.xlarge    1690
-   # m1.medium     410    # cc1.4xlarge  1690   # cc1.4xlarge  1690
-   # c1.medium     350    # m2.4xlarge   1690   # cg1.4xlarge  1690
-   # m2.xlarge     420                          # cc2.8xlarge  3370
-   bdmaps = [ ]
-   if itype in ("t1.micro", "m1.small", "c1.medium"):
-      pass # the first one is always attached. ephemeral0=sda2
-   elif itype in ("m2.xlarge", "m1.medium"):
-      pass # one 420 for m2.xlarge
-   elif ( itype in ("m1.large", "m2.2xlarge") or 
-          itype.startswith("cg1.") or itype.startswith("cc1.")):
-         bdmaps=[ "/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1", ]
-   elif ( itype in ("m1.xlarge", "m2.4xlarge", "c1.xlarge") or
-          itype.startswith("cc2.8xlarge")):
-         bdmaps=[ "sdb=ephemeral0", "sdc=ephemeral1",
-                  "sdd=ephemeral2", "sde=ephemeral3", ]
-   args = [ ]
-   for m in bdmaps:
-      args.extend(("--block-device-mapping", m,))
-   return(args)
+    # cleaned from http://aws.amazon.com/ec2/instance-types/
+    # t1.micro      NONE    # m2.2xlarge    850   # c1.xlarge    1690
+    # m1.small      160     # m1.large      850   # m1.xlarge    1690
+    # m1.medium     410     # cc1.4xlarge  1690   # cc1.4xlarge  1690
+    # c1.medium     350     # m2.4xlarge   1690   # cg1.4xlarge  1690
+    # m2.xlarge     420                          # cc2.8xlarge  3370
+    bdmaps = [ ]
+    if itype in ("t1.micro", "m1.small", "c1.medium"):
+        pass # the first one is always attached. ephemeral0=sda2
+    elif itype in ("m2.xlarge", "m1.medium"):
+        pass # one 420 for m2.xlarge
+    elif ( itype in ("m1.large", "m2.2xlarge") or 
+             itype.startswith("cg1.") or itype.startswith("cc1.")):
+            bdmaps=[ "/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1", ]
+    elif ( itype in ("m1.xlarge", "m2.4xlarge", "c1.xlarge") or
+             itype.startswith("cc2.8xlarge")):
+            bdmaps=[ "sdb=ephemeral0", "sdc=ephemeral1",
+                     "sdd=ephemeral2", "sde=ephemeral3", ]
+    args = [ ]
+    for m in bdmaps:
+        args.extend(("--block-device-mapping", m,))
+    return(args)
 
 if "--help" in sys.argv or "-h" in sys.argv:
-   sys.stdout.write(USAGE)
-   sys.exit(0)
+    sys.stdout.write(USAGE)
+    sys.exit(0)
 
 if len(sys.argv) == 1:
-   sys.stderr.write(USAGE)
-   sys.exit(1)
+    sys.stderr.write(USAGE)
+    sys.exit(1)
 
 pre = "ec2-"
 for name in ("EC2_PRE", "EC2PRE"):
-   if name in os.environ:
-      pre=os.environ[name]
+    if name in os.environ:
+        pre=os.environ[name]
 
 # if the prefix is something like "myec2 "
 # then assume that 'myec2' is a command itself
 if pre.strip() == pre:
-   ri_cmd = [ "%srun-instances" % pre ]
+    ri_cmd = [ "%srun-instances" % pre ]
 else:
-   ri_cmd = [ pre.strip(), "run-instances" ]
+    ri_cmd = [ pre.strip(), "run-instances" ]
 
 query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n%{store}\n" ]
 
@@ -141,73 +141,73 @@ query_cmd = [ "ubuntu-cloudimg-query", "--format=%{ami}\n%{itype}\n%{summary}\n%
 # Get the list of releases.  If they have 'ubuntu-distro-info', then use that
 # otherwise, fall back to our builtin list of releases
 try:
-   out = subprocess.check_output(["ubuntu-distro-info", "--all"])
-   all_rels = out.strip().split("\n")
-   releases = [ ]
-   seen_lucid = False
-   for r in all_rels:
-      if seen_lucid or r == "lucid":
-         seen_lucid = True
-         releases.append(r)
+    out = subprocess.check_output(["ubuntu-distro-info", "--all"])
+    all_rels = out.strip().split("\n")
+    releases = [ ]
+    seen_lucid = False
+    for r in all_rels:
+        if seen_lucid or r == "lucid":
+            seen_lucid = True
+            releases.append(r)
 except OSError as e:
-   releases = [ "lucid", "maverick", "natty", "oneiric", "precise", ]
+    releases = [ "lucid", "maverick", "natty", "oneiric", "precise", ]
 
 
 # each arg_group is a list of arguments and a default if not found
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
-   ("--region",),
-   ("--instance-type", "-t"),
-   ("--block-device-mapping", "-b"),
+    ("--region",),
+    ("--instance-type", "-t"),
+    ("--block-device-mapping", "-b"),
 )
 
 flags = { }
 for opts in arg_groups:
-   arg_value = get_argopt(sys.argv, opts)
-   if arg_value != None:
-      query_cmd.append(arg_value)
-   flags[opts[0]]=arg_value
+    arg_value = get_argopt(sys.argv, opts)
+    if arg_value != None:
+        query_cmd.append(arg_value)
+    flags[opts[0]]=arg_value
 
 dry_run = False
 
 for arg in sys.argv[1:]:
-   if arg in aliases or arg in releases:
-      query_cmd.append(arg)
-   elif arg == "--dry-run":
-      dry_run = True
-   else:
-      ri_cmd.append(arg)
+    if arg in aliases or arg in releases:
+        query_cmd.append(arg)
+    elif arg == "--dry-run":
+        dry_run = True
+    else:
+        ri_cmd.append(arg)
 
 cmd=""
 for i in query_cmd:
-   cmd += " '%s'" % i.replace("\n","\\n")
+    cmd += " '%s'" % i.replace("\n","\\n")
 cmd=cmd[1:]
 
 try:
-   (ami, itype, summary, store, endl) = subprocess.check_output(query_cmd).split("\n")
-   if endl.strip():
-      sys.stderr.write("Unexpected output of command:\n  %s" % cmd)
+    (ami, itype, summary, store, endl) = subprocess.check_output(query_cmd).split("\n")
+    if endl.strip():
+        sys.stderr.write("Unexpected output of command:\n  %s" % cmd)
 except subprocess.CalledProcessError as e:
-   sys.stderr.write("Failed. The following command returned failure:\n")
-   sys.stderr.write("  %s\n" % cmd)
-   sys.exit(1)
+    sys.stderr.write("Failed. The following command returned failure:\n")
+    sys.stderr.write("  %s\n" % cmd)
+    sys.exit(1)
 except OSError as e:
-   sys.stderr.write("You do not have '%s' in your path\n" % query_cmd[0])
-   sys.exit(1)
+    sys.stderr.write("You do not have '%s' in your path\n" % query_cmd[0])
+    sys.exit(1)
 
 if flags.get("--instance-type",None) == None:
-   ri_cmd.append("--instance-type=%s" % itype)
+    ri_cmd.append("--instance-type=%s" % itype)
 
 if store == "ebs" and flags.get("--block-device-mapping",None) == None:
-   ri_cmd.extend(get_block_device_mappings(itype))
+    ri_cmd.extend(get_block_device_mappings(itype))
 
 ri_cmd.append(ami)
 
 sys.stderr.write("# %s\n" % summary)
 if dry_run:
-   print ' '.join(ri_cmd)
+    print ' '.join(ri_cmd)
 else:
-   os.execvp(ri_cmd[0], ri_cmd)
+    os.execvp(ri_cmd[0], ri_cmd)
 ################################################################################
 
-# vi:ts=3 expandtab
+# vi: ts=4 expandtab

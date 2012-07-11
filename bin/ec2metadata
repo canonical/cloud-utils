@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# vi: ts=4 noexpandtab
 #
 #    Query and display EC2 metadata related to the AMI instance
 #    Copyright (c) 2009 Canonical Ltd. (Canonical Contributor Agreement 2.5)
@@ -81,139 +80,139 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'user-data']
 
 class Error(Exception):
-	pass
+    pass
 
 class EC2Metadata:
-	"""Class for querying metadata from EC2"""
+    """Class for querying metadata from EC2"""
 
-	def __init__(self, burl=instdata_url):
-		self.burl = burl
+    def __init__(self, burl=instdata_url):
+        self.burl = burl
 
-		s = urlparse.urlsplit(burl)
-		addr = s.netloc.split(":")[0]
-		port = s.port
-		if s.port == None:
-			port = 80
-		if not self._test_connectivity(addr, port):
-			raise Error("could not establish connection to: %s:%s" % (addr, port))
+        s = urlparse.urlsplit(burl)
+        addr = s.netloc.split(":")[0]
+        port = s.port
+        if s.port == None:
+            port = 80
+        if not self._test_connectivity(addr, port):
+            raise Error("could not establish connection to: %s:%s" % (addr, port))
 
-	@staticmethod
-	def _test_connectivity(addr, port):
-		for i in range(6):
-			s = socket.socket()
-			try:
-				s.connect((addr, port))
-				s.close()
-				return True
-			except socket.error, e:
-				time.sleep(1)
+    @staticmethod
+    def _test_connectivity(addr, port):
+        for i in range(6):
+            s = socket.socket()
+            try:
+                s.connect((addr, port))
+                s.close()
+                return True
+            except socket.error, e:
+                time.sleep(1)
 
-		return False
+        return False
 
-	def _get(self, uri):
-		url = "%s/%s" % (self.burl, uri)
-		try:
-			resp = urllib2.urlopen(urllib2.Request(url))
-			value = resp.read()
-		except urllib2.HTTPError as e:
-			if e.code == 404:
-				return None
-			# Eucalyptus may raise a 500 (Internal Server Error)
-			if e.code == 500:
-				return None
-			raise
+    def _get(self, uri):
+        url = "%s/%s" % (self.burl, uri)
+        try:
+            resp = urllib2.urlopen(urllib2.Request(url))
+            value = resp.read()
+        except urllib2.HTTPError as e:
+            if e.code == 404:
+                return None
+            # Eucalyptus may raise a 500 (Internal Server Error)
+            if e.code == 500:
+                return None
+            raise
 
-		return value
+        return value
 
-	def get(self, metaopt):
-		"""return value of metaopt"""
+    def get(self, metaopt):
+        """return value of metaopt"""
 
-		if metaopt not in METAOPTS:
-			raise Error('unknown metaopt', metaopt, METAOPTS)
+        if metaopt not in METAOPTS:
+            raise Error('unknown metaopt', metaopt, METAOPTS)
 
-		if metaopt == 'availability-zone':
-			return self._get('meta-data/placement/availability-zone')
+        if metaopt == 'availability-zone':
+            return self._get('meta-data/placement/availability-zone')
 
-		if metaopt == 'public-keys':
-			data = self._get('meta-data/public-keys')
-			if data == None:
-				return None
+        if metaopt == 'public-keys':
+            data = self._get('meta-data/public-keys')
+            if data == None:
+                return None
 
-			keyids = [ line.split('=')[0] for line in data.splitlines() ]
+            keyids = [ line.split('=')[0] for line in data.splitlines() ]
 
-			public_keys = []
-			for keyid in keyids:
-				uri = 'meta-data/public-keys/%d/openssh-key' % int(keyid)
-				public_keys.append(self._get(uri).rstrip())
+            public_keys = []
+            for keyid in keyids:
+                uri = 'meta-data/public-keys/%d/openssh-key' % int(keyid)
+                public_keys.append(self._get(uri).rstrip())
 
-			return public_keys
+            return public_keys
 
-		if metaopt == 'user-data':
-			return self._get('user-data')
+        if metaopt == 'user-data':
+            return self._get('user-data')
 
-		return self._get('meta-data/' + metaopt)
+        return self._get('meta-data/' + metaopt)
 
 def get(metaopt):
-	"""primitive: return value of metaopt"""
+    """primitive: return value of metaopt"""
 
-	m = EC2Metadata()
-	return m.get(metaopt)
+    m = EC2Metadata()
+    return m.get(metaopt)
 
 def display(metaopts, burl, prefix=False):
-	"""primitive: display metaopts (list) values with optional prefix"""
+    """primitive: display metaopts (list) values with optional prefix"""
 
-	m = EC2Metadata(burl)
-	for metaopt in metaopts:
-		value = m.get(metaopt)
-		if not value:
-			value = "unavailable"
+    m = EC2Metadata(burl)
+    for metaopt in metaopts:
+        value = m.get(metaopt)
+        if not value:
+            value = "unavailable"
 
-		if prefix:
-			print "%s: %s" % (metaopt, value)
-		else:
-			print value
+        if prefix:
+            print "%s: %s" % (metaopt, value)
+        else:
+            print value
 
 def usage(s=None):
-	"""display usage and exit"""
+    """display usage and exit"""
 
-	if s:
-		print >> sys.stderr, "Error:", s
-	print >> sys.stderr, "Syntax: %s [options]" % sys.argv[0]
-	print >> sys.stderr, __doc__
-	sys.exit(1)
+    if s:
+        print >> sys.stderr, "Error:", s
+    print >> sys.stderr, "Syntax: %s [options]" % sys.argv[0]
+    print >> sys.stderr, __doc__
+    sys.exit(1)
 
 def main():
-	"""handle cli options"""
+    """handle cli options"""
 
-	try:
-		getopt_metaopts = METAOPTS[:]
-		getopt_metaopts.append('help')
-		getopt_metaopts.append('url=')
-		opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
-	except getopt.GetoptError, e:
-		usage(e)
+    try:
+        getopt_metaopts = METAOPTS[:]
+        getopt_metaopts.append('help')
+        getopt_metaopts.append('url=')
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
+    except getopt.GetoptError, e:
+        usage(e)
 
-	burl = instdata_url
+    burl = instdata_url
 
-	metaopts = []
-	prefix = False
-	for opt, val in opts:
-		if opt in ('-h', '--help'):
-			usage()
-		if opt in ('-u', '--url'):
-			burl = val
-			continue
+    metaopts = []
+    prefix = False
+    for opt, val in opts:
+        if opt in ('-h', '--help'):
+            usage()
+        if opt in ('-u', '--url'):
+            burl = val
+            continue
 
-		metaopts.append(opt.replace('--', ''))
+        metaopts.append(opt.replace('--', ''))
 
-	if len(metaopts) == 0:
-		prefix = True
-		metaopts = METAOPTS
+    if len(metaopts) == 0:
+        prefix = True
+        metaopts = METAOPTS
 
-	display(metaopts, burl, prefix)
+    display(metaopts, burl, prefix)
 
 
 if __name__ == "__main__":
-   main()
+    main()
 
-# vi:ts=4 noexpandtab
+# vi: ts=4 expandtab

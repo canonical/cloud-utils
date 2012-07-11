@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 25 February 2012
 ##
@@ -1120,4 +1118,4 @@ Failing-safe. Assuming that images has been registered already
 
                     logger.info('No images to de-register')
 
-
+# vi: ts=4 expandtab

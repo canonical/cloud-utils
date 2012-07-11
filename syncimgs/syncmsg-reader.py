@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 25 February 2012
 ##
@@ -40,3 +38,5 @@ if __name__ == '__main__':
         if opts.max and not opts.all:
             if opts.max >= counted:
                 break
+
+# vi: ts=4 expandtab

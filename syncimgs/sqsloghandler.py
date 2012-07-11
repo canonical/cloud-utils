@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 03 October 2011
 ##
@@ -34,4 +32,4 @@ class SQSHandler(logging.Handler):  # Inherit from logging.Handler
             m.set_body(self.format(record))
             self.queue.write(m)
 
-
+# vi: ts=4 expandtab

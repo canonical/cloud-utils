@@ -1,5 +1,4 @@
 #!/bin/sh
-# vi: ts=4 noexpandtab
 #
 #    cloud-publish-tarball - wrapper for publishing cloud tarballs
 #

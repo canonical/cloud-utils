@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# vi: ts=4 noexpandtab
-
 ## Copyright (C) 2011 Ben Howard <ben.howard@canonical.com>
 ## Date: 21 February 2012
 ##
@@ -158,3 +156,5 @@ class RunCMD(EasyRep):
 
 # bob = RunCMD("/bin/false", output="log")
 # print bob.was_successful()
+
+# vi: ts=4 expandtab
