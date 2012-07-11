@@ -1,0 +1,15 @@
+0.26
+ - Add Query2 tools
+   - bin/cloudimg-sync: tool for synchronizing cloud images locally
+     using simple YAML. It is extensible in conjunction with scripts.
+   - bin/ubuntu-cloudimg-query2: like ubuntu-cloudimg-query but uses Query2
+     meta-data. Similar in function.
+ - install ubuntu cloud image keyring into /usr/share/keyrings/
+ - ubuntu-cloudimg-query, ubuntu-ec2-run:
+   be aware of m1.medium instance type, support "amd64 on all sizes"
+ - when downloading images use wget dot:mega for less verbose
+ - growpart:
+   - use 'sfdisk --no-reread' (LP: #942788)
+   - if sfdisk fails, send output to stderr
+ - cloud-publish-tarball: fix for tarballs without a ramdisk
+ - ubuntu-cloudimg-query: allow baseurl to be read from environment var
