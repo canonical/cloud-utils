@@ -12,11 +12,15 @@ from syncimgs.build_json import CloudJSON
 from datetime import datetime, time, date
 import syncimgs.build_json
 import argparse
-import distro_info
 import logging
 import sys
 import json
 import re
+
+try:
+    import distro_info
+except ImportError:
+    distro_info = False
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger('_sync-image_')
@@ -111,6 +115,21 @@ Example:
         Show the files for Precise
 
 """
+
+if distro_info is False:
+    # avoid depending on distro_info. Work if it is not present
+    # such as on another distro
+    class HackDistroInfo(object):
+        def supported(self, result=None):
+            if result is None:
+                return ['hardy', 'lucid', 'natty', 'oneiric',
+                        'precise', 'quantal']
+            else:
+                return ['8.04 LTS', '10.04 LTS', '11.04', '11.10',
+                        '12.04 LTS', '12.10']
+
+    class distro_info(object):
+        UbuntuDistroInfo = HackDistroInfo
 
 
 if __name__ == '__main__':
