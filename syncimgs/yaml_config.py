@@ -139,59 +139,14 @@ def load_yaml(string):
 
 def config_help():
     print """
-The following rules apply:
-    1. There must be a single section "--- !Control" defined; that is the control
-        section that defines the basis for downloading and mirroring the images.
-    2. There must be a single section "--- !GeneralRules" defined; that section
-        defines the default behavior of the mirroring.
-    3. There may be any number of "--- !SuiteRuleOverride" defined, which allows
-        you to override general rules.
-    4. Each SuiteRuleOverride will be treated a separate and distinct task on a per
-        suite basis.
+cloudimg-sync is a tool for mirroring, customizing and registering the
+Ubuntu Cloud Images on arbitrary clouds using a rule-engine.
 
-#cloudimg-sync-config:
-sync-dir: /srv/cloudimgs/data
-pristine: /srv/cloudimgs/pristine
-history_log: /srv/cloudimgs/history.log
-download_log: /srv/cloudimgs/download.log
-host_url: http://cloud-images.ubuntu.com/query2/server/release/build.json
-gpg_validate: True
-suites: { available, hardy, lucid, maverick, natty, oneiric, precise }
-stream: [ desktop, server ]
-publish: [ qcow2 ]
-mirror: [ tar.gz, manifest ]
-name_convention: %(name)s-%(build_date)s
-copy_pristine: {True, False}
-max_dailies: {all,#,latest}
-max_milestones: {all,#,latest}
-keep_pre_release: {True, False}
-arches: [ i386, amd64 ]
-mirror_arches: [ armel, armhf ]
-check_types: [ manifest ]
-customize_types: [ qcow2 ]
-custom_cmd: |
-     /bin/true
-list_cmd: |
-    /bin/true
-check_cmd: |
-    /bin/false
-publish_cmd: |
-    /bin/true
-unpublish_cmd: |
-    /bin/true
-overrides:
- -precise:
-  publish: [ qcow2 ]
-  mirror: [ tar.gz ]
-  copy_pristine: False
- -oneiric:
-  publish: [ tar.gz ]
-  mirror: [ qcow2 ]
-  mirror_arches: [ armel ]
-  check_cmd: |
-      /bin/false
-
-
+Example configuration:
+---------------------------
+"""
+    get_default_config()
+    print """
 ---------------------------
 
 Overrides:
@@ -269,7 +224,7 @@ Configuration Elements:
 
 Custom Commands:
 
-    Custom commands are indented lists of arbitrary CLI commands or language commands.
+    Custom commands are lists of arbitrary CLI commands or language commands.
     If your command(s) requires an interpreter, use "#!/..." syntax. For
     example, to run a Perl command, you would use:
 
@@ -285,8 +240,7 @@ Custom Commands:
 
 
     If using multiple "#!/..." files, it is recommended to use files instead of storing
-    these commands in the configuration file. Each "#!/.." encountered is interpreted to
-    be a different set of commands.
+    these commands in the configuration file.
 
     To pass arguments to custom commands, you can use any of the string replacements
     explained above. The example above passes the value JSON value of the file's SHA512
@@ -303,27 +257,45 @@ Custom Commands:
             This command is called with substitutions. For example:
                 /srv/cloudimgs/bin/publish-ec2 %(directory)s %(file)s %(distro)s %(arch)s %(build_serial)s
 
+            This command is run on _each_ file that is listed in the check file list.
+
+            If command exists successfully, then image processing for that specific build serial
+                continues normally.
+
         custom_cmd: Commands for customizing the image, such as installing keys or packages
             These commands _are not_ run in a chroot.
 
             The command is called with the directory of the downloaded files and the file
                 to be customized.
 
-            If the command exits succesfully, then the last line should be the name of the
+            If the command exits successfully, then the last line should be the name of the
                 file to be published. If there is no output from the command, but it
                 successfully exits, then the filename is assumed to be unchanged.
 
-        list_cmd: Indented list of command(s) to run a query to get a listing of names of
+        list_cmd: Command(s) to run a query to get a listing of names of
             published and/or mirrored images.
 
-            The command _MUST_ return registratrations with the following rules:
-                * One registration per line
-                * Each line formated as: <tag> <build_serial> <arch>
-                * The command _must_ accept "%(distro)s" or "%(version)s" as the only parameter
+            The command _MUST_ return registrations with the following rules:
+                * One registration per line, formated as:
+                     <tag> <build_serial> <arch>
+                * The command can use the following as parameters:
+                    - %(distro)s:       code name of the distro
+                    - %(version)s:      suite version name, i.e 12.04
+                    - %(date)s:         todays date in YYYY-MM-DD format
+                    - %(stream)s:       stream of build, i.e. server, desktop
+
+            This option should be used to _check_ if an image should be processed or not.
+
+            A non-zero exit status is treated as a failure. In the event of a failure the program
+                will skip the build serial.
+
+            State tracking is done both locally and by cloud registration if list_cmd is defined.
+                The output of list_cmd is authoritative, while the local state tracking is used
+                purely for logging and to reduce bandwidth usage.
 
         publish_cmd: This command published an image.
 
-            The command will be passed subsitutions defined above. For example:
+            The command will be passed substitutions defined above. For example:
                 /srv/cloudimgs/bin/publish-ec2 %(directory)s %(file)s %(distro)s %(arch)s %(build_serial)s
 
                 * You must define the inputs.

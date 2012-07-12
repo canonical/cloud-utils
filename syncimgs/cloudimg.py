@@ -178,9 +178,10 @@ class CloudImgWorker(EasyRep):
         stream,
         ):
         """Basic replacements of:
-                    - %(distro)s:        code name of the distro
+                    - %(distro)s:       code name of the distro
                     - %(version)s:      suite version name, i.e 12.04
                     - %(date)s:         todays date in YYYY-MM-DD format
+                    - %(stream)s:       stream of build, i.e. server, desktop
         """
 
         return string % {
@@ -778,20 +779,20 @@ Failing-safe. Assuming that images has been registered already
                         logger.warn('       Already registered, skipping processing'
                                     )
                         continue
-                    elif reg and not rec:
 
+                    elif reg and not rec:
                         logger.warn('       Image was registered _outside_ of this program!'
                                     )
                         continue
-                    elif not reg and rec:
 
+                    elif not reg and rec:
                         logger.warn('       Image is recorded in logs as registered, but is missing.'
                                     )
                         logger.warn('       This is likely due to a problem with your registration script!'
                                     )
                         logger.warn('       Re-processing image!')
-                    else:
 
+                    else:
                         logger.info('      Arch %s is cleared for processing'
                                      % arch)
 
@@ -819,8 +820,6 @@ Failing-safe. Assuming that images has been registered already
                             continue
 
                         # Do the work
-
-                        url = '%s/%s' % (d_conf.transfer, fd.path)
                         local_file = '%s/%s' % (d_conf.sync_dir,
                                 fd.path)
                         pristine_file = '%s/%s' % (d_conf.pristine,
@@ -833,7 +832,7 @@ Failing-safe. Assuming that images has been registered already
                                     % fd.file_type)
                         logger.info('         Expected SHA1: %s'
                                     % fd.sha1)
-                        logger.info('         Fetch URL:     %s' % url)
+                        logger.info('         Fetch URL:     %s' % fd.url)
                         logger.info('         Local Path:    %s'
                                     % local_file)
                         logger.info('         Log Path:      %s'
@@ -843,7 +842,7 @@ Failing-safe. Assuming that images has been registered already
                             pristine_file = None
 
                         furl = URLFetcher(
-                            url,
+                            fd.url,
                             fd.sha1,
                             local_file,
                             conf.download_log,
@@ -852,10 +851,11 @@ Failing-safe. Assuming that images has been registered already
                             pristine=pristine_file,
                             spaces='         ',
                             )
+
                         if not furl.get():
                             print furl
                             raise Exception('Failed to download %s'
-                                    % url)
+                                    % fd.url)
 
                         replacements = self.__replacements__(
                             fd,
@@ -909,13 +909,16 @@ Failing-safe. Assuming that images has been registered already
                                 for line in out.splitlines():
                                     if emitted_re.match(line):
                                         local_file = \
-    line.replace('::EMITTED-FILE::', '')
+                                            line.replace('::EMITTED-FILE::', '')
+
                                         replacements['local'] = \
-    local_file
+                                            local_file
+
                                         logger.info('%sCustom command emitted: %s'
-         % (spaces, local_file))
+                                             % (spaces, local_file))
+
                                         logger.info('%sUsing emitted file for publishing'
-         % spaces)
+                                             % spaces)
                             else:
 
                                 logger.critical('       FAILED TO CUSTOMIZE. Processing of this build\n       IS ABORTED! Other builds will be processed'

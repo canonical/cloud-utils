@@ -66,10 +66,12 @@ class Registration(Unpacker):
     __name__ = 'Regsitration'
 
     def dump(self,
-             output='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s '
-             ):
+            output='%(build_serial)s %(id)s %(arch)s %(instance_type)s %(region)s',
+            url_base=None,
+            stream=None,
+            ):
 
-        supported_keys = [
+        required_keys = [
             'region',
             'id',
             'ramdisk_id',
@@ -80,23 +82,41 @@ class Registration(Unpacker):
             'cloud',
             'instance_type',
             'arch',
+            'virt_type',
             ]
 
-        for key in supported_keys:
+        for key in required_keys:
             if not hasattr(self, key):
                 setattr(self, key, None)
+
+        xarch = self.arch
+        if 'amd64' == xarch:
+            xarch = 'x86_64'
 
         output = output % {
             'region': self.region_name,
             'id': self.published_id,
+            'ami': self.published_id,
             'instance_type': self.instance_type,
             'cloud': self.cloud,
             'ramdisk_id': self.ramdisk_id,
+            'summary': self.registered_name,
+            'bname': stream,
+            'pname': self.virt_type,
             'registered_name': self.registered_name,
             'build_serial': self.build_serial,
+            'dlpath': self.path,
+            'url': self.url,
+            'host': url_base,
             'path': self.path,
             'sha1': self.sha1,
             'arch': self.arch,
+            'xarch': xarch,
+            'release': self.release_tag,
+            'release_tag': self.release_tag,
+            'serial': self.build_serial,
+            'stream': self.stream,
+            'suggested name': self.suggested_name,
             }
 
         return output
@@ -222,13 +242,14 @@ class Builds(Unpacker):
 
             keep = latest.lower()
             if keep == 'latest':
-                index = sorted(b_list)[-1]
-                yield Build(unpack=b_list[index])
-                skip = True
+
+                if len(b_list) > 0:
+                    index = sorted(b_list)[-1]
+                    yield Build(unpack=b_list[index])
+                    skip = True
+
             elif not re.search(r'\w-\d', keep):
-
                 start_index = total_builds - int(keep.replace('n-', ''))
-
                 if start_index < 0:
                     start_index = 0
 
@@ -312,13 +333,29 @@ class BuildFiles(EasyRep):
         if url_base:
             url = "%s/%s" % (url_base, self.path)
 
+        xarch = self.arch
+        if 'amd64' == xarch:
+            xarch = 'x86_64'
+
         output = output % {
             'description': self.description,
             'sha1': self.sha1,
             'sha512': self.sha512,
             'buildid': self.buildid,
-            'path': url,
+            'path': self.path,
+            'url': url,
+            'host': url_base,
             'file_type': self.file_type,
+            'bname': self.stream,
+            'distro': self.distro,
+            'buildid': self.buildid,
+            'serial': self.serial,
+            'arch': self.arch,
+            'xarch': xarch,
+            'release': self.release,
+            'release_tag': self.release,
+            'stream': self.stream,
+            'suggested name': self.suggested_name,
             }
 
         return output
@@ -363,8 +400,8 @@ class BuildCatalog(EasyRep):
                                 self.distros[i['distro_code_name']] = []
 
                             if bt \
-                                not in self.distros[i['distro_code_name'
-                                    ]]:
+                                not in self.distros[i[
+                                        'distro_code_name']]:
                                 self.distros[i['distro_code_name'
                                         ]].append(bt)
 
@@ -493,8 +530,9 @@ class BuildCatalog(EasyRep):
         base = self.__get__('%s_%s' % (distro, stream))
 
         for sub in base:
-            if sub['release_tag'] == release_tag or release_tag \
-                == 'all':
+            if sub['release_tag'] == release_tag or \
+                 release_tag == 'all':
+
                 build_serial = sub['build_serial']
                 ret[build_serial] = {}
 
@@ -503,8 +541,19 @@ class BuildCatalog(EasyRep):
                     ret[build_serial][arch] = []
 
                     for fl in sub['arches'][arch]['file_list']:
-                        anon = BuildFiles(buildid=sub['arches'
-                                ][arch]['build_id'], unpack=fl)
+                        anon = BuildFiles(
+                                buildid=sub['arches'][arch]['build_id'],
+                                unpack=fl,
+                                )
+
+                        anon.set('suggested_name', anon.path.split('/')[-1])
+                        anon.set('serial', build_serial)
+                        anon.set('distro', distro)
+                        anon.set('stream', stream)
+                        anon.set('arch', arch)
+                        anon.set('build_id', sub['arches'][arch]['build_id'])
+                        anon.set('release', sub['release_tag'])
+
                         ret[build_serial][arch].append(anon)
 
         return ret
@@ -550,14 +599,19 @@ class BuildCatalog(EasyRep):
                     included,
                     excluded,
                     serial,
-                    all,
+                    all=all,
                     ):
 
             url_base = random.choice(self.mirrors_transfer)
+            d = f.dump(output=output,
+                    url_base=url_base,
+                    )
 
-            d = f.dump(output=output, url_base=url_base)
             if d:
-               data += "%s\n" % d
+                if data:
+                    data += "\n%s" % d
+                else:
+                    data = d
 
         return data
 
@@ -594,11 +648,12 @@ class BuildCatalog(EasyRep):
 
         for bf in results:
 
-            if serial and bf != serial:
-                continue
+            if serial:
+                if bf != serial:
+                    continue
 
             elif not all and bf != serials[-1]:
-                next
+                continue
 
             for b_arch in results[bf]:
 
@@ -640,7 +695,9 @@ class BuildCatalog(EasyRep):
 
         builds = self.distro_builds(distro, stream,
                                     release_tag=release_tag)
+
         for bf in builds.iter_builds(latest=latest):
+
             if release_tag != 'all' and release_tag != bf.release_tag:
                 print '%s %s' % (release_tag, bf.release_tag)
                 continue
@@ -660,15 +717,20 @@ class BuildCatalog(EasyRep):
                             continue
 
                         for reg in itypes.iter_registrations():
-                            reg.set('path', '%s/%s'
-                                    % (str(self.mirrors_transfer[0]),
-                                    path))
+                            reg.set('url', '%s/%s'
+                                    % (random.choice(self.mirrors_transfer),
+                                      path)
+                                   )
+                            reg.set('path', path)
+                            reg.set('suggested_name', path.split('/')[-1])
                             reg.set('sha1', sha1)
                             reg.set('build_serial', bf.build_serial)
                             reg.set('instance_type', itypes.name)
                             reg.set('cloud', _cloud)
                             reg.set('arch', _arch)
                             reg.set('release_tag', bf.release_tag)
+                            reg.set('stream', stream)
+                            reg.set('virt_type', itypes.name)
                             yield reg
 
     def get_reg(
@@ -695,11 +757,13 @@ class BuildCatalog(EasyRep):
             cloud=cloud,
             ):
 
+            url_base = random.choice(self.mirrors_transfer)
+
             if all_regions:
-                reg_data += "%s\n" % r.dump(output=output)
+                reg_data += "%s\n" % r.dump(output=output, url_base=url_base)
 
             elif r.region_name == region:
-                return r.dump(output=output)
+                return r.dump(output=output, url_base=url_base)
 
         return reg_data
 
@@ -840,15 +904,18 @@ class CloudJSON(EasyRep):
             request = urllib2.Request(url)
             request.add_header('Accept-encoding', 'gzip')
             response = urllib2.urlopen(request)
+
             fetched_json = None
 
             if response.info().get('Content-Encoding') == 'gzip':
                 buf = StringIO(response.read())
                 f = gzip.GzipFile(fileobj=buf)
                 fetched_json = f.read()
+
             elif response.info().get('Content-Type') \
                 == 'application/x-bzip2':
                 fetched_json = bz2.decompress(response.read())
+
             else:
                 fetched_json = response.read()
 
@@ -877,13 +944,13 @@ class CloudJSON(EasyRep):
 
             setattr(self, 'build_catalog',
                     BuildCatalog(json=json.loads(fetched_json)))
+
         except IOError as e:
 
             raise Exception('Unable to fetch JSON from remote source.\n%s'
                              % e)
 
         return False
-
 
 # Example of how to parse out some details...still needs work
 #logger.setLevel(logging.DEBUG)

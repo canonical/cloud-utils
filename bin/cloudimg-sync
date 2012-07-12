@@ -23,9 +23,24 @@ logger = logging.getLogger('_sync-image_')
 logger.setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='Ubuntu Cloud Image Sync Tool',
+                        description="""
+Rule based program for syncronizing and customizing Ubuntu Cloud Images
+""",
+                        epilog="""
+Example usage:
+    cloudimg-sync --config <configuration>
+        Use <configuration> as the rule file
 
-    parser.add_argument('--config', action='store', required=True,
+    cloudimg-sync --how
+        Show how to write rule file
+
+    cloudimg-sync --test-config
+        Show an example configuration file
+""",
+                        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('--config', action='store',
                         help='Configuration file')
     parser.add_argument('--force', action='store_true', default=False,
                         help='Force option')
@@ -56,11 +71,15 @@ if __name__ == '__main__':
         logger.info('Displaying configuration help information')
         yaml_config.config_help()
         sys.exit(0)
-    elif opts.test_config:
 
+    elif opts.test_config:
         logger.info('Displaying a test configuration')
         print yaml_config.get_default_config()
         sys.exit(0)
+
+    if not opts.config:
+        logger.info('Must define --config, --how or --test_config')
+        sys.exit(1)
 
     logger.info('Setting up')
 

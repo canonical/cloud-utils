@@ -57,18 +57,18 @@ class RunCMD(EasyRep):
                                     '\n'.join(cmds)))
 
             run_cmd = Popen([temp_f], shell=True, stdout=PIPE, stderr=PIPE)
-            self.output = run_cmd.communicate()
+            (self.output, self.error) = run_cmd.communicate()
 
             if 'output' in kargs:
                 if kargs['output'] == 'screen':
                     print self.output
                 elif kargs['output'] == 'log':
 
-                    for line in self.output[0].splitlines():
+                    for line in self.output.splitlines():
                         logger.info('%sCMD stdout: %s ' % (self.spaces,
                                     line))
 
-                    for line in self.output[1].splitlines():
+                    for line in self.error.splitlines():
                         logger.info('%sCMD stderr: %s ' % (self.spaces,
                                     line))
 
