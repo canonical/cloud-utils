@@ -948,9 +948,9 @@ class CloudJSON(EasyRep):
         except IOError as e:
 
             raise Exception('Unable to fetch JSON from remote source.\n%s'
-                             % e0
+                             % e)
 
-        reutrn False
+        return False
 
 # Example of how to parse out some details...still needs work
 #logger.setLevel(logging.DEBUG)
