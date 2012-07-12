@@ -11,7 +11,7 @@ Architecture: all
 Depends: e2fsprogs (>=1.4),
          euca2ools,
          file,
-         gpg,
+         gnupg,
          python,
          python-paramiko,
          python-yaml,
