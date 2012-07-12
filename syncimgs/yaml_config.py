@@ -276,9 +276,9 @@ Custom Commands:
             published and/or mirrored images.
 
             The command _MUST_ return registrations with the following rules:
-                * One registration per line
-                * Each line formated as: <tag> <build_serial> <arch>
-                * The command can use the following as parametes:
+                * One registration per line, formated as:
+                     <tag> <build_serial> <arch>
+                * The command can use the following as parameters:
                     - %(distro)s:       code name of the distro
                     - %(version)s:      suite version name, i.e 12.04
                     - %(date)s:         todays date in YYYY-MM-DD format

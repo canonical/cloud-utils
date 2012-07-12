@@ -90,7 +90,7 @@ class Registration(Unpacker):
                 setattr(self, key, None)
 
         xarch = self.arch
-        if 'amd64' in xarch:
+        if 'amd64' == xarch:
             xarch = 'x86_64'
 
         output = output % {
@@ -334,7 +334,7 @@ class BuildFiles(EasyRep):
             url = "%s/%s" % (url_base, self.path)
 
         xarch = self.arch
-        if 'amd64' in xarch:
+        if 'amd64' == xarch:
             xarch = 'x86_64'
 
         output = output % {
