@@ -73,14 +73,16 @@ import urlparse
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
-            'instance-action', 'instance-id', 'instance-type', 
+            'instance-action', 'instance-id', 'instance-type',
             'local-hostname', 'local-ipv4', 'kernel-id', 'mac',
             'profile', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reserveration-id', 'security-groups',
             'user-data']
 
+
 class Error(Exception):
     pass
+
 
 class EC2Metadata:
     """Class for querying metadata from EC2"""
@@ -91,10 +93,11 @@ class EC2Metadata:
         s = urlparse.urlsplit(burl)
         addr = s.netloc.split(":")[0]
         port = s.port
-        if s.port == None:
+        if s.port is None:
             port = 80
         if not self._test_connectivity(addr, port):
-            raise Error("could not establish connection to: %s:%s" % (addr, port))
+            raise Error("could not establish connection to: %s:%s" %
+                        (addr, port))
 
     @staticmethod
     def _test_connectivity(addr, port):
@@ -135,10 +138,10 @@ class EC2Metadata:
 
         if metaopt == 'public-keys':
             data = self._get('meta-data/public-keys')
-            if data == None:
+            if data is None:
                 return None
 
-            keyids = [ line.split('=')[0] for line in data.splitlines() ]
+            keyids = [line.split('=')[0] for line in data.splitlines()]
 
             public_keys = []
             for keyid in keyids:
@@ -152,11 +155,13 @@ class EC2Metadata:
 
         return self._get('meta-data/' + metaopt)
 
+
 def get(metaopt):
     """primitive: return value of metaopt"""
 
     m = EC2Metadata()
     return m.get(metaopt)
+
 
 def display(metaopts, burl, prefix=False):
     """primitive: display metaopts (list) values with optional prefix"""
@@ -172,6 +177,7 @@ def display(metaopts, burl, prefix=False):
         else:
             print value
 
+
 def usage(s=None):
     """display usage and exit"""
 
@@ -180,6 +186,7 @@ def usage(s=None):
     print >> sys.stderr, "Syntax: %s [options]" % sys.argv[0]
     print >> sys.stderr, __doc__
     sys.exit(1)
+
 
 def main():
     """handle cli options"""

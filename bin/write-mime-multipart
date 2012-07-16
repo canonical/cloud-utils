@@ -18,29 +18,31 @@ import gzip
 
 COMMASPACE = ', '
 
-starts_with_mappings={
-    '#include' : 'text/x-include-url',
-    '#!' : 'text/x-shellscript',
-    '#cloud-config' : 'text/cloud-config',
-    '#cloud-config-archive' : 'text/cloud-config-archive',
-    '#upstart-job'  : 'text/upstart-job',
-    '#part-handler' : 'text/part-handler',
-    '#cloud-boothook' : 'text/cloud-boothook'
+starts_with_mappings = {
+    '#include': 'text/x-include-url',
+    '#!': 'text/x-shellscript',
+    '#cloud-config': 'text/cloud-config',
+    '#cloud-config-archive': 'text/cloud-config-archive',
+    '#upstart-job': 'text/upstart-job',
+    '#part-handler': 'text/part-handler',
+    '#cloud-boothook': 'text/cloud-boothook'
 }
 
-def get_type(fname,deftype):
-    f = file(fname,"rb")
+
+def get_type(fname, deftype):
+    f = file(fname, "rb")
     line = f.readline()
     f.close()
     rtype = deftype
 
     # slist is sorted longest first
-    slist = sorted(starts_with_mappings.keys(), key=lambda e: 0-len(e))
+    slist = sorted(starts_with_mappings.keys(), key=lambda e: 0 - len(e))
     for sstr in slist:
         if line.startswith(sstr):
             rtype = starts_with_mappings[sstr]
             break
     return(rtype)
+
 
 def main():
     outer = MIMEMultipart()
@@ -50,9 +52,9 @@ def main():
     #outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
 
     parser = OptionParser()
-    
+
     parser.add_option("-o", "--output", dest="output",
-        help="write output to FILE [default %default]", metavar="FILE", 
+        help="write output to FILE [default %default]", metavar="FILE",
         default="-")
     parser.add_option("-z", "--gzip", dest="compress", action="store_true",
         help="compress output", default=False)
@@ -68,11 +70,11 @@ def main():
 
     for arg in args:
         t = arg.split(options.delim, 1)
-        path=t[0]
+        path = t[0]
         if len(t) > 1:
             mtype = t[1]
         else:
-            mtype = get_type(path,options.deftype)
+            mtype = get_type(path, options.deftype)
 
         maintype, subtype = mtype.split('/', 1)
         if maintype == 'text':
@@ -97,10 +99,10 @@ def main():
     if options.output is "-":
         ofile = sys.stdout
     else:
-        ofile = file(options.output,"wb")
-        
+        ofile = file(options.output, "wb")
+
     if options.compress:
-        gfile = gzip.GzipFile(fileobj=ofile, filename = options.output )
+        gfile = gzip.GzipFile(fileobj=ofile, filename=options.output)
         gfile.write(outer.as_string())
         gfile.close()
     else:
