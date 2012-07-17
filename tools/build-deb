@@ -40,7 +40,7 @@ clogver=$(echo "$clogver_o" | sed "s,REVNO,$revno,")
 # upstream ver takes off the '-1' which is debian ver
 uver=${clogver%-[0-9]}
 
-TEMP_D=$(mktemp -d "${TMPDIR:-/tmp/${bname}.XXXXXX}")
+TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${bname}.XXXXXX")
 
 trap cleanup EXIT
 
