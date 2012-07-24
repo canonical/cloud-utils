@@ -9,6 +9,8 @@
    - be aware of m1.medium instance type
    - support "amd64 on all sizes"
    - be aware of hi1.4xlarge
+   - always pass block device mapping for sdb if instance type has it
+     rather than relying on ami registration.
  - when downloading images use wget dot:mega for less verbose
  - growpart:
    - use 'sfdisk --no-reread' (LP: #942788)
