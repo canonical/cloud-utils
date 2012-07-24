@@ -144,6 +144,7 @@ poss_release=""
 itypes=""
 itypes_i386="m1.small c1.medium m1.medium"
 itypes_amd64="${itypes_i386} m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge"
+itypes_hvm="cc1.4xlarge cg1.4xlarge cc2.8xlarge hi1.4xlarge"
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -173,7 +174,7 @@ for i in "$@"; do
 		instance|instance-store) store="instance-store";;
 		hvm) ptype="hvm";;
 		para|paravirtual) ptype="paravirtual";;
-		c[cg][1-9].*)
+		c[cg][1-9].*|hi1.*)
 			ptype="hvm";
 			itype="$i";
 			arch=amd64;;
@@ -250,7 +251,7 @@ ami=$(awk '-F\t' \
 	"${ec2_curf}") && [ -n "$ami" ] || fail "failed to find ami"
 
 case "$arch:$store:$ptype" in
-	*:hvm) itypes_all="cc1.4xlarge cg1.4xlarge cc2.8xlarge";;
+	*:hvm) itypes_all="${itypes_hvm}";;
 	i386:*) itypes_all="${itypes_i386}";;
 	amd64:*) itypes_all="${itypes_amd64}";;
 esac

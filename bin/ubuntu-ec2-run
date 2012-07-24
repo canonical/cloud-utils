@@ -99,17 +99,17 @@ def get_argopt(args, optnames):
 
 def get_block_device_mappings(itype):
     # cleaned from http://aws.amazon.com/ec2/instance-types/
-    # t1.micro      NONE    # m2.2xlarge    850   # c1.xlarge    1690
-    # m1.small      160     # m1.large      850   # m1.xlarge    1690
-    # m1.medium     410     # cc1.4xlarge  1690   # cc1.4xlarge  1690
-    # c1.medium     350     # m2.4xlarge   1690   # cg1.4xlarge  1690
-    # m2.xlarge     420                          # cc2.8xlarge  3370
+    # t1.micro        0   # m1.large      850   # cg1.4xlarge  1690
+    # m1.small      160   # m2.2xlarge    850   # m1.xlarge    1690
+    # c1.medium     350   # c1.xlarge    1690   # m2.4xlarge   1690
+    # m1.medium     410   # cc1.4xlarge  1690   # hi1.4xlarge  2048
+    # m2.xlarge     420   # cc1.4xlarge  1690   # cc2.8xlarge  3370
     bdmaps = []
     if itype in ("t1.micro", "m1.small", "c1.medium"):
         pass  # the first one is always attached. ephemeral0=sda2
     elif itype in ("m2.xlarge", "m1.medium"):
         pass  # one 420 for m2.xlarge
-    elif (itype in ("m1.large", "m2.2xlarge") or
+    elif (itype in ("m1.large", "m2.2xlarge", "hi1.4xlarge") or
           itype.startswith("cg1.") or itype.startswith("cc1.")):
         bdmaps = ["/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1"]
     elif (itype in ("m1.xlarge", "m2.4xlarge", "c1.xlarge") or
