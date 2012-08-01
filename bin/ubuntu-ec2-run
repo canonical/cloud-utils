@@ -160,18 +160,19 @@ except OSError as e:
     releases = ["lucid", "maverick", "natty", "oneiric", "precise"]
 
 
-# each arg_group is a list of arguments and a default if not found
+# each arg_group is a list of arguments and a boolean that indicates
+# if the value of that argument should be passed to query_cmd
 # ec2-run-instances default instance-type is m1.small
 arg_groups = (
-    ("--region",),
-    ("--instance-type", "-t"),
-    ("--block-device-mapping", "-b"),
+    (("--region",), True),
+    (("--instance-type", "-t"), True),
+    (("--block-device-mapping", "-b"), False),
 )
 
 flags = {}
-for opts in arg_groups:
+for opts, passthrough in arg_groups:
     arg_value = get_argopt(sys.argv, opts)
-    if arg_value is not None:
+    if arg_value is not None and passthrough:
         query_cmd.append(arg_value)
     flags[opts[0]] = arg_value
 
