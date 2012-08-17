@@ -17,3 +17,5 @@
    - if sfdisk fails, send output to stderr
  - cloud-publish-tarball: fix for tarballs without a ramdisk
  - ubuntu-cloudimg-query: allow baseurl to be read from environment var
+ - growpart: support growpart of nbd devices (/dev/nbd[0-9]) and
+   /dev/loop devices.

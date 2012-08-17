@@ -142,6 +142,16 @@ cat "${dump_out}"
 sed -e 's/,//g; s/start=/start /; s/size=/size /' "${dump_out}" > "${dump_mod}"
 
 dpart="${disk}${part}" # disk and partition number
+if [ -b "${disk}p${part}" -a "${disk%[0-9]}" != "${disk}" ]; then
+	# for block devices that end in a number (/dev/nbd0)
+	# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
+	dpart="${disk}p${part}"
+elif [ "${disk#/dev/loop[0-9]}" != "${disk}" ]; then
+	# for /dev/loop devices, sfdisk output will be <name>p<number> format
+	# also, even though there is not a device there.
+	dpart="${disk}p${part}"
+fi
+
 pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" < "${dump_mod}") &&
 	pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" < "${dump_mod}") &&
 	[ -n "${pt_start}" -a -n "${pt_size}" ] &&
