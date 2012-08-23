@@ -1,0 +1,149 @@
+#!/bin/bash
+
+VERBOSITY=0
+TEMP_D=""
+DEF_DISK_FORMAT="raw"
+DEF_FILESYSTEM="iso9660"
+
+error() { echo "$@" 1>&2; }
+errorp() { printf "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+failp() { [ $# -eq 0 ] || errorp "$@"; exit 1; }
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] output user-data [meta-data]
+
+   Create a disk for cloud-init to utilize nocloud
+
+   options:
+     -h | --help            show usage
+     -d | --disk-format D   disk format to output. default: raw
+     -f | --filesystem  F   filesystem format (vfat or iso), default: iso9660
+
+     -i | --interfaces  F   write network interfaces file into metadata
+     -m | --dsmode      M   add 'dsmode' ('local' or 'net') to the metadata
+                            default in cloud-init is 'net', meaning network is
+                            required.
+
+   Example:
+    * cat my-user-data
+      #cloud-config
+      password: passw0rd
+      chpasswd: { expire: False }
+      ssh_pwauth: True
+    * echo "instance-id: \$(uuidgen || echo i-abcdefg)" > my-meta-data
+    * ${0##*/} my-seed.img my-user-data my-meta-data
+    * kvm -net nic -net user,hostfwd=tcp::2222-:22 \\
+         -drive file=disk1.img,if=virtio -drive file=my-seed.img,if=virtio
+    * ssh -p 2222 ubuntu@localhost
+EOF
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
+cleanup() {
+	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+
+debug() {
+	local level=${1}; shift;
+	[ "${level}" -gt "${VERBOSITY}" ] && return
+	error "${@}"
+}
+
+short_opts="hi:d:f:m:o:v"
+long_opts="disk-format:,dsmode:,filesystem:,help,interfaces:,output:,verbose"
+getopt_out=$(getopt --name "${0##*/}" \
+	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	eval set -- "${getopt_out}" ||
+	bad_Usage
+
+## <<insert default variables here>>
+output=""
+userdata=""
+metadata=""
+filesystem=$DEF_FILESYSTEM
+diskformat=$DEF_DISK_FORMAT
+interfaces=_unset
+dsmode=""
+
+
+while [ $# -ne 0 ]; do
+	cur=${1}; next=${2};
+	case "$cur" in
+		-h|--help) Usage ; exit 0;;
+		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+		-d|--disk-format) diskformat=$next; shift;;
+		-f|--filesystem) filesystem=$next; shift;;
+		-m|--dsmode) dsmode=$next; shift;;
+		-i|--interfaces) interfaces=$next; shift;;
+		--) shift; break;;
+	esac
+	shift;
+done
+
+## check arguments here
+## how many args do you expect?
+[ $# -ge 2 ] || bad_Usage "must provide output, userdata"
+[ $# -le 3 ] || bad_Usage "confused by additional args"
+
+output=$1
+userdata=$2
+metadata=$3
+
+[ -n "$metadata" -a "${interfaces}" != "_unset" ] &&
+	fail "metadata and --interfaces are incompatible"
+[ -n "$metadata" -a -n "$dsmode" ] &&
+	fail "metadata and dsmode are incompatible"
+[ "$interfaces" = "_unset" -o -r "$interfaces" ] ||
+	fail "$interfaces: not a readable file"
+
+TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
+	fail "failed to make tempdir"
+trap cleanup EXIT
+
+if [ -n "$metadata" ]; then
+	cp "$metadata" "$TEMP_D/meta-data" || fail "$metadata: failed to copy"
+else
+	{
+	echo "instance-id: iid-local01"
+	[ -n "$dsmode" ] && echo "dsmode: $dsmode"
+	[ "$interfaces" = "_unset" ] ||
+		{ echo "interfaces: |" && sed 's,^,  ,' "$interfaces"; }
+	} > "$TEMP_D/meta-data"
+fi
+
+if [ "$userdata" = "-" ]; then
+	cat > "$TEMP_D/user-data" || fail "failed to read from stdin"
+else
+	cp "$userdata" "$TEMP_D/user-data" || fail "$userdata: failed to copy"
+fi
+
+## alternatively, create a vfat filesystem with same files
+img="$TEMP_D/seed.img"
+truncate --size 100K "$img" || fail "failed truncate image"
+
+case "$filesystem" in
+	iso9660|iso)
+		genisoimage  -output "$img" -volid cidata \
+			-joliet -rock "$TEMP_D/user-data" "$TEMP_D/meta-data" \
+			> "$TEMP_D/err" 2>&1 ||
+			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
+		;;
+	vfat)
+		mkfs.vfat -n cidata "$img" || fail "failed mkfs.vfat"
+		mcopy -oi "$img" "$TEMP_D/user-data" "$TEMP_D/meta-data" :: ||
+			fail "failed to copy user-data, meta-data to img"
+		;;
+	*) fail "unknown filesystem $filesystem";;
+esac
+
+[ "$output" = "-" ] && output="$TEMP_D/final"
+qemu-img convert -f raw -O "$diskformat" "$img" "$output" ||
+	fail "failed to convert to disk format $diskformat"
+
+[ "$output" != "$TEMP_D/final" ] || { cat "$output" && output="-"; } ||
+	fail "failed to write to -"
+
+error "wrote ${output} with filesystem=$filesystem and diskformat=$diskformat"
+# vi: ts=4 noexpandtab
