@@ -360,7 +360,7 @@ def main():
         help="expect instance ids instead of ami ids,"
              "skips -run-instances")
     parser.add_option("", "--all-instances", dest="all_instances",
-        action="store_true", default=False
+        action="store_true", default=False,
         help="query all instances already defined "
              "(running/pending/terminated/etc)")
     parser.add_option("", "--run-args", dest="runargs", action="callback",
