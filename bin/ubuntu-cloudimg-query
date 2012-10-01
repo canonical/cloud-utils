@@ -280,6 +280,7 @@ subst "$format" \
   '%{release}' "$release" '%{store}' "$store" '%{stream}' "$stream" \
   '%{url}' "$url" \
   '%{xarch}' "$xarch" '%{itype}' "${itype}" '%{itypes}' "$itypes" \
+  '%{serial}' "$serial" \
   '%{summary}' "${region}/${prefix}/${pubname}"
 
 out=${_RET}
