@@ -1,3 +1,5 @@
+0.27
+ - UNRELEASED
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:

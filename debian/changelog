@@ -1,5 +1,28 @@
-cloud-utils (0.26~bzrREVNO~trunk-1) UNRELEASED; urgency=low
+cloud-utils (0.27~bzrREVNO~trunk-1) UNRELEASED; urgency=low
+
+  * UNRELEASED
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:11:50 -0400
+
+cloud-utils (0.26~bzr200~trunk-1) quantal; urgency=low
 
   * Upstream trunk build
+  * install ubuntu cloud image keyring into /usr/share/keyrings/
+  * ubuntu-cloudimg-query, ubuntu-ec2-run:
+    - be aware of m1.medium instance type
+    - support "amd64 on all sizes"
+    - be aware of hi1.4xlarge
+    - always pass block device mapping for sdb if instance type has it
+      rather than relying on ami registration.
+  * when downloading images use wget dot:mega for less verbose
+  * growpart:
+    - use 'sfdisk --no-reread' (LP: #942788)
+    - if sfdisk fails, send output to stderr
+  * cloud-publish-tarball: fix for tarballs without a ramdisk
+  * ubuntu-cloudimg-query: allow baseurl to be read from environment var
+  * growpart: support growpart of nbd devices (/dev/nbd[0-9]) and
+    /dev/loop devices.
+  * add cloud-localds utility
+  * ubuntu-cloudimg-query: add 'serial' to tokens availble for substitution
 
- -- Scott Moser <smoser@ubuntu.com>  Wed, 11 Jul 2012 11:58:43 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:10:45 -0400
