@@ -105,7 +105,7 @@ in_args() {
 getreleases() {
 	# get the list of releases, return it in _RET
 	local releases="" r=""
-	releases="hardy karmic lucid maverick natty oneiric precise";
+	releases="hardy karmic lucid maverick natty oneiric precise quantal";
 	if command -v "ubuntu-distro-info" >/dev/null; then
 		local all_rels="" seen_lucid=false
 		all_rels=$(ubuntu-distro-info --all) ||

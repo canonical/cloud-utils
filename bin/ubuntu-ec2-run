@@ -32,7 +32,7 @@ Usage: ubuntu-ec2-run [ options ] arguments
    ubuntu-ec2-run passes the following arguments to cloud-image-query
    in order to select an AMI to run.  Defaults are marked with a '*':
 
-     releases: lucid* maverick natty oneiric precise
+     releases: lucid* maverick natty oneiric precise quantal
      stream: release* daily
      arch: amd64*, x86_64, i386
      store: ebs*, instance-store, instance
@@ -157,7 +157,7 @@ try:
             seen_lucid = True
             releases.append(r)
 except OSError as e:
-    releases = ["lucid", "maverick", "natty", "oneiric", "precise"]
+    releases = ["lucid", "maverick", "natty", "oneiric", "precise", "quantal"]
 
 
 # each arg_group is a list of arguments and a boolean that indicates
