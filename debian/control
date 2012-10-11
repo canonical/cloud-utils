@@ -8,7 +8,8 @@ Standards-Version: 3.9.2
 
 Package: cloud-utils
 Architecture: all
-Depends: e2fsprogs (>=1.4),
+Depends: ca-certificates,
+         e2fsprogs (>=1.4),
          euca2ools,
          file,
          genisoimage,
@@ -16,6 +17,7 @@ Depends: e2fsprogs (>=1.4),
          python-paramiko,
          python-yaml,
          util-linux (>= 2.17.2),
+         wget,
          ${misc:Depends}
 Recommends: distro-info, python-distro-info
 Suggests: mtools
