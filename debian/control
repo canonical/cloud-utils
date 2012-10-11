@@ -17,7 +17,7 @@ Depends: e2fsprogs (>=1.4),
          python-yaml,
          util-linux (>= 2.17.2),
          ${misc:Depends}
-Recommends: python-distro-info, distro-info
+Recommends: distro-info, python-distro-info
 Suggests: mtools
 Description: cloud image management utilities
  This package provides a useful set of utilities for managing cloud
