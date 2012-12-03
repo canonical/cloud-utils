@@ -184,7 +184,7 @@ dl_input_image() {
 	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs"
 
 short_opts="B:h:k:K:l:no:r:R:t:vw:"
-long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,kernel:,kernel-file:,name:,output:,image-to-raw,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
+long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,hook-img:,kernel:,kernel-file:,name:,output:,image-to-raw,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
