@@ -45,6 +45,7 @@ Usage: ${0##*/} [ options ] tarfile bucket [arch]
    tarfile may be a url
 
    options:
+           --hook-img e       invoke 'e' with full path to downloaded disk image
       -k | --kernel  k        use previously registered kernel with id 'k'
                               specify 'none' for no kernel
       -K | --kernel-file f    bundle, upload, use file 'f' as kernel
@@ -113,7 +114,7 @@ dl_input_image() {
 	export CLOUD_UTILS_WARN_UEC=1
 
 short_opts="hlk:K:qr:R:"
-long_opts="help,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:,save-downloaded"
+long_opts="help,hook-img:,kernel:,kernel-file:,quiet,use-loader,ramdisk:,ramdisk-file:,rename-image:,rename-kernel:,rename-ramdisk:,resize:,save-downloaded"
 getopt_out=$(getopt --name "${0##*/}" --shell sh \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -132,12 +133,20 @@ rename_image=""
 rename_kernel=""
 rename_ramdisk=""
 save_dl=0
+hook_img=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
 		--) shift; break;;
 		-h|--help) Usage; exit 0;;
+		   --hook-img)
+			[ -z "${hook_img}" ] || bad_Usage "only one --hook-img supported";
+			[ -x "$next" ] || bad_Usage "--hook-img is not executable"
+			hook_img=$(readlink -f "$next") ||
+				bad_Usage "could not find full path to $next"
+			hook_img="$next"
+			shift;;
 		-k|--kernel) eki=${next}; shift;;
 		-K|--kernel-file)
 			[ -f "${next}" ] && kernel=$(readlink -f "${next}") ||
@@ -268,6 +277,7 @@ fi
 log 1 "bundle/upload image"
 upload_register --type image \
 	${rename_image:+"--rename=${rename_image}"} \
+	${hook_img:+"--hook-img=${hook_img}"} \
 	"${iarch}" "${image}" "${bucket}" \
 	--kernel "${eki}" --ramdisk "${eri}" ||
 		fail "failed bundle/upload/register of image"

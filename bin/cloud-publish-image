@@ -44,6 +44,8 @@ Usage: ${0##*/} [ options ] arch image bucket
          --dry-run                : only report what would be done
          --allow-existing         : if a image is already registered
                                     simply report as if work was done
+         --hook-img EXE           : invoke executable 'EXE' with full path to
+                                    downloaded disk image file
       -o|--output <file>          : write registered id and manifest to file
         |--rename <publish_path>  : publish to bucket/<publish_path>
                                     default: bucket/<basename(image)>
@@ -207,12 +209,20 @@ wdir_in=""
 dev_mapping=""
 image2raw=0
 raw_image=""
+hook_img=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
 		-d|--working-dir) wdir_in=${next}; shift;;
 		-h|--help) Usage; exit 0;;
+		   --hook-img)
+			[ -z "${hook_img}" ] || bad_Usage "only one --hook-img supported";
+			[ -x "$next" ] || bad_Usage "--hook-img is not executable"
+			hook_img=$(readlink -f "$next") ||
+				bad_Usage "could not find full path to $next"
+			hook_img="$next"
+			shift;;
 		-B|--block-device-mapping) dev_mapping=${next}; shift;;
 		-k|--kernel) kernel=${next}; shift;;
 		-K|--kernel-file) kernel_file=${next}; shift;;
@@ -464,6 +474,13 @@ else
 			debug 1 "disk is already raw format, not converting"
 		fi
 	fi
+
+	if [ -n "$hook_img" ]; then
+		debug 1 "image hook: $hook_img $rename_full"
+		"$hook_img" "$rename_full" ||
+			fail "image hook failed: $hook_img ${rename_full} failed"
+	fi
+
 	bundle_args=( "--image" "${rename_full}" )
 	[ -n "${dev_mapping}" ] &&
 		bundle_args[${#bundle_args[@]}]="--block-device-mapping=${dev_mapping}"
