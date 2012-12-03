@@ -1,6 +1,7 @@
 cloud-utils (0.27~bzrREVNO~trunk-1) UNRELEASED; urgency=low
 
-  * UNRELEASED
+  * add '--hook-img' flag to cloud-publish-image and passthrough that
+    flag from cloud-publish-ubuntu and cloud-publish-tarball.
 
  -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:11:50 -0400
 
