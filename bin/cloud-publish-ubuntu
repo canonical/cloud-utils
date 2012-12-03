@@ -29,6 +29,8 @@ Usage: ${0##*/} [ options ] arch release bucket
       -l|--add-launch ID      : ID can be "all", or "none", or numerical ID
          --allow-existing     : if a image is already registered
                                 simply report as if work was done
+         --hook-img EXE       : invoke executable 'EXE' with full path to
+                                downloaded disk image file
       -o|--output <file>      : write registered id and manifest to file
 
          --save-downloaded    : if the image is a url, save it to '.'
@@ -83,7 +85,7 @@ is_ptarg() {
 }
 
 pt_short_opts="B:h:k:K:l:r:R:"
-pt_long_opts="add-launch:,allow-existing,block-device-mapping:,image-to-raw,kernel:,kernel-file:,ramdisk:,ramdisk-file:,resize:,save-downloaded,use-loader"
+pt_long_opts="add-launch:,allow-existing,block-device-mapping:,hook-img:,image-to-raw,kernel:,kernel-file:,ramdisk:,ramdisk-file:,resize:,save-downloaded,use-loader"
 
 short_opts="${pt_short_opts}hno:qv"
 long_opts="${pt_long_opts},dry-run,disk,help,output:,quiet,stream:,verbose"
