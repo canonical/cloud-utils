@@ -1,6 +1,7 @@
 0.27
  - add '--hook-img' flag to cloud-publish-image and passthrough that
    flag from cloud-publish-ubuntu and cloud-publish-tarball.
+ - become aware of m3.* instance-sizes
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:

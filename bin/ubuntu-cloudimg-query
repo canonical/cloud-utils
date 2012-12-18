@@ -145,6 +145,7 @@ itypes=""
 itypes_i386="m1.small c1.medium m1.medium"
 itypes_amd64="${itypes_i386} m1.large m1.xlarge m2.xlarge m2.2xlarge m2.4xlarge c1.xlarge"
 itypes_hvm="cc1.4xlarge cg1.4xlarge cc2.8xlarge hi1.4xlarge"
+itypes_ebs_only="t1.micro m3.xlarge m3.2xlarge"
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -178,10 +179,10 @@ for i in "$@"; do
 			ptype="hvm";
 			itype="$i";
 			arch=amd64;;
-		[a-z][1-9].[0-9a-z]*|c[cg][1-9].*)
+		[a-z][1-9].[0-9a-z]*)
 			itype="$i";
 			case "${i}" in
-				t1.micro) store=ebs;; # t1.micro only supports ebs
+				t1.micro|m3.*) store=ebs;; # t1.micro, m3.* only supports ebs
 			esac
 			;;
 		http://*|https://*) burl=${i};;
@@ -255,7 +256,8 @@ case "$arch:$store:$ptype" in
 	i386:*) itypes_all="${itypes_i386}";;
 	amd64:*) itypes_all="${itypes_amd64}";;
 esac
-[ "$store" = "ebs" -a "$ptype" != "hvm" ] && itypes_all="t1.micro $itypes_all"
+[ "$store" = "ebs" -a "$ptype" != "hvm" ] &&
+	itypes_all="${itypes_ebs_only} $itypes_all"
 itypes=""
 for x in ${itype} ${itypes_all}; do
 	case ",$itypes," in

@@ -104,8 +104,11 @@ def get_block_device_mappings(itype):
     # c1.medium     350   # c1.xlarge    1690   # m2.4xlarge   1690
     # m1.medium     410   # cc1.4xlarge  1690   # hi1.4xlarge  2048
     # m2.xlarge     420   # cc1.4xlarge  1690   # cc2.8xlarge  3370
+    # m3.xlarge       0
+    # m3.2xlarge      0
     bdmaps = []
-    if itype in ("t1.micro", "m1.small", "c1.medium"):
+    if itype in ("t1.micro", "m1.small", "c1.medium") or
+       itype.startswith("m3."):
         pass  # the first one is always attached. ephemeral0=sda2
     elif itype in ("m2.xlarge", "m1.medium"):
         bdmaps = ["/dev/sdb=ephemeral0"]
