@@ -2,6 +2,8 @@
  - add '--hook-img' flag to cloud-publish-image and passthrough that
    flag from cloud-publish-ubuntu and cloud-publish-tarball.
  - become aware of m3.* instance-sizes
+ - fix make-dist-tarball to not have top level directory 
+   named 'cloud-init' (thanks Juerg Haefliger)
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:

@@ -21,7 +21,7 @@ trap "rm -Rf '${tmpd}'" 0
 out=${topdir}/$name-${tag}.tar.gz
 
 cd ${tmpd} && 
-   bzr branch -r "tag:${tag}" "${topdir}" ./cloud-init-${tag} &&
-   rm -rf cloud-init-${tag}/debian &&
-   tar czf "${out}" cloud-init-${tag}/ --exclude cloud-init-${tag}/.bzr &&
+   bzr branch -r "tag:${tag}" "${topdir}" ./${name}-${tag} &&
+   rm -rf ${name}-${tag}/debian &&
+   tar czf "${out}" ${name}-${tag}/ --exclude ${name}-${tag}/.bzr &&
    echo "wrote ${out}"
