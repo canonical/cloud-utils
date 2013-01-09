@@ -23,8 +23,8 @@ VERBOSITY=0
 DISK=""
 
 error() { echo "$@" 1>&2; }
-fail() { [ $# -eq 0 ] || echo "FAILED:" "$@"; exit 1; }
-nochange() { echo "NOCHANGE:" "$@"; exit 0; }
+fail() { [ $# -eq 0 ] || echo "FAILED:" "$@"; exit 2; }
+nochange() { echo "NOCHANGE:" "$@"; exit 1; }
 changed() { echo "CHANGED:" "$@"; exit 0; }
 cleanup() {
 	if [ -n "${RESTORE_FROM}" ]; then
@@ -67,7 +67,7 @@ ${0##*/} disk partition
       Resize partition 1 on /dev/sda
 EOF
 }
-bad_Usage() { Usage 1>&2; error "$@"; exit 1; }
+bad_Usage() { Usage 1>&2; error "$@"; exit 2; }
 
 #short_opts="hNv"
 #long_opts="help,dry-run,fudge:,verbose"
