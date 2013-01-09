@@ -85,7 +85,7 @@ while [ $# -ne 0 ]; do
 	case "$cur" in
 		-h|--help) Usage; exit 0;;
 		   --fudge) fudge=${next}; shift;;
-		   --dry-run) dry_run=1;;
+		-N|--dry-run) dry_run=1;;
 		-v|--verbose) VERBOSITY=$(($VERBOSITY+1));;
 		--) shift; break;;
 		-*) fail "unknown option ${cur}";;
