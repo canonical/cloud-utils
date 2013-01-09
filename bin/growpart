@@ -175,7 +175,7 @@ debug 1 "max_end=${max_end} tot=${tot} pt_end=${pt_end} pt_start=${pt_start} pt_
 # now, change the size for this partition in ${dump_out} to be the
 # new size
 new_size=$((${max_end}-${pt_start}))
-sed "\|^${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" > "${new_out}" ||
+sed "\|^\s*${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" > "${new_out}" ||
 	fail "failed to change size in output"
 
 change_info="partition=${part} start=${pt_start} old: size=${pt_size} end=${pt_end} new: size=${new_size},end=${max_end}"
