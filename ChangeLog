@@ -4,6 +4,7 @@
  - become aware of m3.* instance-sizes
  - fix make-dist-tarball to not have top level directory 
    named 'cloud-init' (thanks Juerg Haefliger)
+ - add 'include-once-url' to the supported types.
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:

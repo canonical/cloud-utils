@@ -20,6 +20,7 @@ COMMASPACE = ', '
 
 starts_with_mappings = {
     '#include': 'text/x-include-url',
+    '#include-once': 'text/x-include-once-url',
     '#!': 'text/x-shellscript',
     '#cloud-config': 'text/cloud-config',
     '#cloud-config-archive': 'text/cloud-config-archive',
