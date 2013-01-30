@@ -20,7 +20,7 @@
 # the fudge factor. if its within this many 512 byte sectors, dont bother
 FUDGE=${GROWPART_FUDGE:-$((20*1024))}
 TEMP_D=""
-RESTORE_FROM=""
+RESTORE_CMD=""
 RESTORE_HUMAN=""
 VERBOSITY=0
 DISK=""
@@ -47,11 +47,10 @@ changed() {
 }
 
 cleanup() {
-	if [ -n "${RESTORE_FROM}" ]; then
+	if [ -n "${RESTORE_CMD}" ]; then
 		error "***** WARNING: Resize failed, attempting to revert" \
 			"******"
-		if sfdisk --no-reread "${DISK}" ${CHS} -I "${RESTORE_FROM}"; \
-		then
+		if ${RESTORE_CMD} ; then
 			error "***** Appears to have gone OK ****"
 		else
 			error "***** FAILED! or original partition table" \
@@ -233,7 +232,7 @@ fi
 
 sfdisk --no-reread "${DISK}" ${CHS} --force -O "${orig_bin}" < "${new_out}" > \
 	"${change_out}" 2>&1 || {
-	RESTORE_FROM="${orig_bin}"
+	RESTORE_CMD="sfdisk --no-reread ${DISK} ${CHS} -I ${orig_bin}"
 	error "attempt to resize ${DISK} failed. sfdisk output below:"
 	sed 's,^,| ,' "${change_out}" 1>&2
 	fail "failed to resize"
