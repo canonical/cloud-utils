@@ -46,6 +46,11 @@ changed() {
 	exit 0
 }
 
+change() {
+	echo "CHANGE:" "$@"
+	exit 0
+}
+
 cleanup() {
 	if [ -n "${RESTORE_CMD}" ]; then
 		error "***** WARNING: Resize failed, attempting to revert" \
@@ -209,6 +214,85 @@ mbr_resize() {
 	#/tmp/out.img7 : start=  2008126, size=    80324, Id=83
 }
 
+gpt_resize() {
+	pt_info=${TEMP_D}/pt.info
+	pt_data=${TEMP_D}/pt.data
+	pt_backup=${TEMP_D}/pt.backup
+	out=${TEMP_D}/out
+
+	dev="disk=${DISK} partition=${PART}"
+	
+	# Dump the partition information to disk
+	sgdisk -p ${DISK} > ${pt_info} || \
+		fail "failed to dump sgdisk info of ${DISK}"
+
+	RESTORE_HUMAN=${pt_info}
+	test ${VERBOSITY} -gt 0 && cat ${RESTORE_HUMAN}
+
+	# Extract the partition data from the info dump
+	awk 'found { print } ; $1 == "Number" { found = 1 }' ${pt_info} > \
+		${pt_data} || fail "failed to parse sgdisk info of ${DISK}"
+
+	# Get the start and end sectors of the partition to be grown
+	pt_start=$(awk '$1 == '${PART}' { print $2 }' ${pt_data}) && \
+		test -n "${pt_start}" || \
+		fail "failed to get start sector of ${dev}"
+	pt_end=$(awk '$1 == '${PART}' { print $3 }' ${pt_data}) && \
+		test -n "${pt_end}" || \
+		fail "failed to get end sector of ${dev}"
+	pt_size=$((${pt_end} - ${pt_start}))
+
+	# Get the last usable sector
+	last=$(awk '/last usable sector is/ { print $NF }' ${pt_info}) && \
+		test -n "${last}" || \
+		fail "failed to get last usable sector of ${DISK}"
+
+	# Find the minimal start sector that is >= pt_end 
+	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
+		{ print min }' min=${last} pt_end=${pt_end} ${pt_data}) && \
+		test -n "${pt_max}" || \
+		fail "failed to get pt_max of ${dev}"
+
+	debug 1	"pt_start=${pt_start} pt_end=${pt_end} pt_size=${pt_size}" \
+		"pt_max=${pt_max} last=${last}"
+
+	# Check if the partition can be grown
+	test ${pt_end} -eq ${pt_max} && \
+		nochange "${dev} size=${pt_size}, it cannot be grown"
+	test $((${pt_end} + ${FUDGE})) -gt ${pt_max} && \
+		nochange "${dev} could only be grown by" \
+		"$((${pt_max} - ${pt_end})) [fudge=${FUDGE}]"
+
+	# Calculate the new size of the partition
+	new_size=$((${pt_max} - ${pt_start}))
+	old="old: size=${pt_size},end=${pt_end}"
+	new="new: size=${new_size},end=${pt_max}"
+	change_info="${dev} start=${pt_start} ${old} ${new}"
+
+	# Dry run
+	test ${DRY_RUN} -ne 0 && change "${change_info}"
+
+	# Backup the current partition table
+	sgdisk -b ${pt_backup} ${DISK} > /dev/null || \
+		error "failed to backup the partition table of ${DISK}"
+
+	# Move the backup GPT header to the end of the disk
+	sgdisk -e ${DISK} > ${out} 2>&1 || {
+		cat ${out} 1>&2
+		error "failed to move the backup GPT header of ${DISK}"
+	}
+
+	# Delete and recreate the partition
+	sgdisk -d ${PART} -n ${PART}:${pt_start}:${pt_max} ${DISK} > \
+		${out} 2>&1 || {
+		RESTORE_CMD="sgdisk -l ${pt_backup} ${DISK}"
+		cat ${out} 1>&2
+		fail "failed to resize ${dev}"
+	}
+
+	changed "${change_info}"
+}
+
 while [ $# -ne 0 ]; do
 	cur=${1}
 	next=${2}
@@ -257,6 +341,16 @@ done
 mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
 
-mbr_resize
+# get the ID of the first partition to determine if it's MBR or GPT
+id=$(sfdisk --id --force ${DISK} 1 2>/dev/null) || \
+	fail "unable to determine partition type"
+
+if [ "${id}" = "ee" ] ; then
+	debug 1 "found GPT partition table (id = ${id})"
+	gpt_resize
+else
+	debug 1 "found MBR partition table (id = ${id})"
+	mbr_resize
+fi
 
 # vi: ts=4 noexpandtab
