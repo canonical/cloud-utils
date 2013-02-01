@@ -106,14 +106,17 @@ bad_Usage() {
 }
 
 mbr_resize() {
-	change_out=${TEMP_D}/change.out
-	dump_out=${TEMP_D}/dump.out
-	new_out=${TEMP_D}/new.out
-	dump_mod=${TEMP_D}/dump.mod
-	tmp="${TEMP_D}/tmp.out"
-	err="${TEMP_D}/err.out"
-	orig_bin="${TEMP_D}/orig.save"
-	RESTORE_HUMAN="${TEMP_D}/recovery"
+	local change_out=${TEMP_D}/change.out
+	local dump_out=${TEMP_D}/dump.out
+	local new_out=${TEMP_D}/new.out
+	local dump_mod=${TEMP_D}/dump.mod
+	local tmp="${TEMP_D}/tmp.out"
+	local err="${TEMP_D}/err.out"
+	local orig_bin="${TEMP_D}/orig.save"
+	local RESTORE_HUMAN="${TEMP_D}/recovery"
+
+	local _devc cyl _word1 heads _word2 sectors _word3 tot dpart
+	local pt_start pt_size pt_end max_end new_size change_info
 
 	# --show-pt-geometry outputs something like
 	#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
@@ -215,13 +218,16 @@ mbr_resize() {
 }
 
 gpt_resize() {
-	pt_info=${TEMP_D}/pt.info
-	pt_pretend=${TEMP_D}/pt.pretend
-	pt_data=${TEMP_D}/pt.data
-	pt_backup=${TEMP_D}/pt.backup
-	out=${TEMP_D}/out
+	local pt_info=${TEMP_D}/pt.info
+	local pt_pretend=${TEMP_D}/pt.pretend
+	local pt_data=${TEMP_D}/pt.data
+	local pt_backup=${TEMP_D}/pt.backup
+	local out=${TEMP_D}/out
 
-	dev="disk=${DISK} partition=${PART}"
+	local dev="disk=${DISK} partition=${PART}"
+
+	local pt_start pt_end pt_size last pt_max code guid name new_size
+	loca old new change_info
 	
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
