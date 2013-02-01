@@ -218,87 +218,87 @@ mbr_resize() {
 }
 
 gpt_resize() {
-	local pt_info=${TEMP_D}/pt.info
-	local pt_pretend=${TEMP_D}/pt.pretend
-	local pt_data=${TEMP_D}/pt.data
-	local pt_backup=${TEMP_D}/pt.backup
-	local out=${TEMP_D}/out
+	local pt_info="${TEMP_D}/pt.info"
+	local pt_pretend="${TEMP_D}/pt.pretend"
+	local pt_data="${TEMP_D}/pt.data"
+	local pt_backup="${TEMP_D}/pt.backup"
+	local out="${TEMP_D}/out"
 
 	local dev="disk=${DISK} partition=${PART}"
 
 	local pt_start pt_end pt_size last pt_max code guid name new_size
-	loca old new change_info
+	local old new change_info
 	
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
-	sgdisk -i ${PART} -p ${DISK} > ${pt_info} || \
+	sgdisk -i "${PART}" -p "${DISK}" > "${pt_info}" || \
 		fail "${dev}: failed to dump original sgdisk info"
-	RESTORE_HUMAN=${pt_info}
+	RESTORE_HUMAN="${pt_info}"
 
-	[ ${VERBOSITY} -gt 0 ] && {
+	[ "${VERBOSITY}" -gt 0 ] && {
 		echo "${dev}: original sgdisk info:"
-		cat ${pt_info}
+		cat "${pt_info}"
 	}
 
 	# Pretend to move the backup GPT header to the end of the disk and dump
 	# the resulting partition information. We use this info to determine if
 	# we have to resize the partition.
-	sgdisk -P -e -p ${DISK} > ${pt_pretend} || \
+	sgdisk -P -e -p "${DISK}" > "${pt_pretend}" || \
 		fail "${dev}: failed to dump pretend sgdisk info"
 
-	[ ${VERBOSITY} -gt 0 ] && {
+	[ "${VERBOSITY}" -gt 0 ] && {
 		echo "${dev}: pretend sgdisk info:"
-		cat ${pt_pretend}
+		cat "${pt_pretend}"
 	}
 
 	# Extract the partition data from the pretend dump
-	awk 'found { print } ; $1 == "Number" { found = 1 }' ${pt_pretend} > \
-		${pt_data} || \
+	awk 'found { print } ; $1 == "Number" { found = 1 }' \
+		"${pt_pretend}" > "${pt_data}" || \
 		fail "${dev}: failed to parse pretend sgdisk info"
 
 	# Get the start and end sectors of the partition to be grown
-	pt_start=$(awk '$1 == '"${PART}"' { print $2 }' ${pt_data}) && \
+	pt_start=$(awk '$1 == '"${PART}"' { print $2 }' "${pt_data}") && \
 		[ -n "${pt_start}" ] || \
 		fail "${dev}: failed to get start sector"
-	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' ${pt_data}) && \
+	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") && \
 		[ -n "${pt_end}" ] || \
 		fail "${dev}: failed to get end sector"
-	pt_size=$((${pt_end} - ${pt_start}))
+	pt_size="$((${pt_end} - ${pt_start}))"
 
 	# Get the last usable sector
-	last=$(awk '/last usable sector is/ { print $NF }' ${pt_pretend}) && \
-		[ -n "${last}" ] || \
+	last=$(awk '/last usable sector is/ { print $NF }' \
+		"${pt_pretend}") && [ -n "${last}" ] || \
 		fail "${dev}: failed to get last usable sector"
 
 	# Find the minimal start sector that is >= pt_end 
 	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
-		{ print min }' min=${last} pt_end=${pt_end} ${pt_data}) && \
-		[ -n "${pt_max}" ] || \
+		{ print min }' min="${last}" pt_end="${pt_end}" \
+		"${pt_data}") && [ -n "${pt_max}" ] || \
 		fail "${dev}: failed to find max end sector"
 
-	[ ${VERBOSITY} -gt 0 ] && \
+	[ "${VERBOSITY}" -gt 0 ] && \
 		echo "${dev}: pt_start=${pt_start} pt_end=${pt_end}" \
 		"pt_size=${pt_size} pt_max=${pt_max} last=${last}"
 
 	# Check if the partition can be grown
-	[ ${pt_end} -eq ${pt_max} ] && \
+	[ "${pt_end}" -eq "${pt_max}" ] && \
 		nochange "${dev}: size=${pt_size}, it cannot be grown"
-	[ $((${pt_end} + ${FUDGE})) -gt ${pt_max} ] && \
+	[ "$((${pt_end} + ${FUDGE}))" -gt "${pt_max}" ] && \
 		nochange "${dev}: could only be grown by" \
 		"$((${pt_max} - ${pt_end})) [fudge=${FUDGE}]"
 
 	# The partition can be grown if we made it here. Get some more info
 	# about it so we can do it properly.
 	# FIXME: Do we care about the attribute flags?
-	code=$(awk '/GUID code:/ { print $4 }' ${pt_info})
-	guid=$(awk '/unique GUID:/ { print $4 }' ${pt_info})
-	name=$(awk '/name:/ { gsub(/'"'"'/, "") ; \
-		print substr($0, index($0, $3)) }' ${pt_info})
+	code=$(awk '/^Partition GUID code:/ { print $4 }' "${pt_info}")
+	guid=$(awk '/^Partition unique GUID:/ { print $4 }' "${pt_info}")
+	name=$(awk '/^Partition name:/ { gsub(/'"'"'/, "") ; \
+		print substr($0, index($0, $3)) }' "${pt_info}")
 	[ -n "${code}" -a -n "${guid}" -a -n "${name}" ] || \
 		fail "${dev}: failed to parse sgdisk details"
 
-	[ ${VERBOSITY} -gt 0 ] && \
+	[ "${VERBOSITY}" -gt 0 ] && \
 		echo "${dev}: code=${code} guid=${guid} name=\"${name}\""
 
 	# Calculate the new size of the partition
@@ -308,10 +308,10 @@ gpt_resize() {
 	change_info="${dev}: start=${pt_start} ${old} ${new}"
 	
 	# Dry run
-	[ ${DRY_RUN} -ne 0 ] && change "${change_info}"
+	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	# Backup the current partition table, we're about to modify it
-	sgdisk -b ${pt_backup} ${DISK} > /dev/null || \
+	sgdisk -b "${pt_backup}" "${DISK}" > /dev/null || \
 		error "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
@@ -322,11 +322,11 @@ gpt_resize() {
 	#  - set the partition code
 	#  - set the partition GUID
 	#  - set the partition name
-	sgdisk -e -d ${PART} -n ${PART}:${pt_start}:${pt_max} \
-		-t ${PART}:${code} -u ${PART}:${guid} -c ${PART}:"${name}" \
-		${DISK} > ${out} 2>&1 || {
+	sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
+		-t "${PART}":"${code}" -u "${PART}":"${guid}" \
+		-c "${PART}":"${name}" "${DISK}" > "${out}" 2>&1 || {
 		RESTORE_CMD="sgdisk -l ${pt_backup} ${DISK}"
-		cat ${out} 1>&2
+		cat "${out}" 1>&2
 		fail "${dev}: failed to repartition"
 	}
 
@@ -382,7 +382,7 @@ mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
 
 # get the ID of the first partition to determine if it's MBR or GPT
-id=$(sfdisk --id --force ${DISK} 1 2>/dev/null) || \
+id=$(sfdisk --id --force "${DISK}" 1 2>/dev/null) || \
 	fail "unable to determine partition type"
 
 if [ "${id}" = "ee" ] ; then
