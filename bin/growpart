@@ -333,6 +333,12 @@ gpt_resize() {
 	changed "${change_info}"
 }
 
+has_cmd() {
+	command -v "${1}" 1>&2
+}
+
+has_cmd "sfdisk" || fail "sfdisk not found"
+
 while [ $# -ne 0 ]; do
 	cur=${1}
 	next=${2}
@@ -386,6 +392,7 @@ id=$(sfdisk --id --force "${DISK}" 1 2>/dev/null) || \
 	fail "unable to determine partition type"
 
 if [ "${id}" = "ee" ] ; then
+	has_cmd "sgdisk" || fail "GPT partition found but no sgdisk"
 	debug 1 "found GPT partition table (id = ${id})"
 	gpt_resize
 else
