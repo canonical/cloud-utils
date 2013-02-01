@@ -20,12 +20,16 @@
 # the fudge factor. if its within this many 512 byte sectors, dont bother
 FUDGE=${GROWPART_FUDGE:-$((20*1024))}
 TEMP_D=""
-RESTORE_CMD=""
+RESTORE_FUNC=""
 RESTORE_HUMAN=""
 VERBOSITY=0
 DISK=""
 PART=""
 DRY_RUN=0
+
+MBR_CHS=""
+MBR_BACKUP=""
+GPT_BACKUP=""
 
 error() {
 	echo "$@" 1>&2
@@ -52,10 +56,10 @@ change() {
 }
 
 cleanup() {
-	if [ -n "${RESTORE_CMD}" ]; then
+	if [ -n "${RESTORE_FUNC}" ]; then
 		error "***** WARNING: Resize failed, attempting to revert" \
 			"******"
-		if ${RESTORE_CMD} ; then
+		if ${RESTORE_FUNC} ; then
 			error "***** Appears to have gone OK ****"
 		else
 			error "***** FAILED! or original partition table" \
@@ -105,15 +109,20 @@ bad_Usage() {
 	exit 2
 }
 
+mbr_restore() {
+	sfdisk --no-reread "${DISK}" "${MBR_CHS}" -I "${MBR_BACKUP}"
+}
+
 mbr_resize() {
+	RESTORE_HUMAN="${TEMP_D}/recovery"
+	MBR_BACKUP="${TEMP_D}/orig.save"
+
 	local change_out=${TEMP_D}/change.out
 	local dump_out=${TEMP_D}/dump.out
 	local new_out=${TEMP_D}/new.out
 	local dump_mod=${TEMP_D}/dump.mod
 	local tmp="${TEMP_D}/tmp.out"
 	local err="${TEMP_D}/err.out"
-	local orig_bin="${TEMP_D}/orig.save"
-	local RESTORE_HUMAN="${TEMP_D}/recovery"
 
 	local _devc cyl _word1 heads _word2 sectors _word3 tot dpart
 	local pt_start pt_size pt_end max_end new_size change_info
@@ -122,17 +131,17 @@ mbr_resize() {
 	#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
 	sfdisk "${DISK}" --show-pt-geometry > "${tmp}" 2>"${err}" && \
 		read _devc cyl _word1 heads _word2 sectors _word3 < \
-		"${tmp}" && CHS="-C $cyl -H $heads -S $sectors" || \
+		"${tmp}" && MBR_CHS="-C ${cyl} -H ${heads} -S ${sectors}" || \
 		fail "failed to get CHS from ${DISK}"
 
 	tot=$((${cyl}*${heads}*${sectors}))
 
-	debug 1 "geometry is $CHS. total size=${tot}"
-	sfdisk ${CHS} -uS -d "${DISK}" > "${dump_out}" 2>"${err}" || \
+	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
+	sfdisk "${MBR_CHS}" -uS -d "${DISK}" > "${dump_out}" 2>"${err}" || \
 		fail "failed to dump sfdisk info for ${DISK}"
 
 	{
-		echo "## sfdisk ${CHS} -uS -d ${DISK}"
+		echo "## sfdisk ${MBR_CHS} -uS -d ${DISK}"
 		cat "${dump_out}"
 	}  > "${RESTORE_HUMAN}"
 	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
@@ -195,9 +204,9 @@ mbr_resize() {
 		exit 0
 	fi
 
-	sfdisk --no-reread "${DISK}" ${CHS} --force -O "${orig_bin}" < \
-		"${new_out}" > "${change_out}" 2>&1 || {
-		RESTORE_CMD="sfdisk --no-reread ${DISK} ${CHS} -I ${orig_bin}"
+	sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
+		-O "${MBR_BACKUP}" < "${new_out}" > "${change_out}" 2>&1 || {
+		RESTORE_FUNC=mbr_restore
 		error "attempt to resize ${DISK} failed. sfdisk output below:"
 		sed 's,^,| ,' "${change_out}" 1>&2
 		fail "failed to resize"
@@ -217,11 +226,16 @@ mbr_resize() {
 	#/tmp/out.img7 : start=  2008126, size=    80324, Id=83
 }
 
+gpt_restore() {
+	sgdisk -l "${GPT_BACKUP}" "${DISK}"
+}
+
 gpt_resize() {
+	GPT_BACKUP="${TEMP_D}/pt.backup"
+
 	local pt_info="${TEMP_D}/pt.info"
 	local pt_pretend="${TEMP_D}/pt.pretend"
 	local pt_data="${TEMP_D}/pt.data"
-	local pt_backup="${TEMP_D}/pt.backup"
 	local out="${TEMP_D}/out"
 
 	local dev="disk=${DISK} partition=${PART}"
@@ -311,7 +325,7 @@ gpt_resize() {
 	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	# Backup the current partition table, we're about to modify it
-	sgdisk -b "${pt_backup}" "${DISK}" > /dev/null || \
+	sgdisk -b "${GPT_BACKUP}" "${DISK}" > /dev/null || \
 		error "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
@@ -325,7 +339,7 @@ gpt_resize() {
 	sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
 		-t "${PART}":"${code}" -u "${PART}":"${guid}" \
 		-c "${PART}":"${name}" "${DISK}" > "${out}" 2>&1 || {
-		RESTORE_CMD="sgdisk -l ${pt_backup} ${DISK}"
+		RESTORE_FUNC=gpt_restore
 		cat "${out}" 1>&2
 		fail "${dev}: failed to repartition"
 	}
