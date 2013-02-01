@@ -294,12 +294,12 @@ gpt_resize() {
 	code=$(awk '/^Partition GUID code:/ { print $4 }' "${pt_info}")
 	guid=$(awk '/^Partition unique GUID:/ { print $4 }' "${pt_info}")
 	name=$(awk '/^Partition name:/ { gsub(/'"'"'/, "") ; \
-		print substr($0, index($0, $3)) }' "${pt_info}")
-	[ -n "${code}" -a -n "${guid}" -a -n "${name}" ] || \
+		if (NF >= 3) print substr($0, index($0, $3)) }' "${pt_info}")
+	[ -n "${code}" -a -n "${guid}" ] || \
 		fail "${dev}: failed to parse sgdisk details"
 
 	[ "${VERBOSITY}" -gt 0 ] && \
-		echo "${dev}: code=${code} guid=${guid} name=\"${name}\""
+		echo "${dev}: code=${code} guid=${guid} name='${name}'"
 
 	# Calculate the new size of the partition
 	new_size=$((${pt_max} - ${pt_start}))
