@@ -19,6 +19,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+KNOWN_RELEASES = ["lucid", "maverick", "natty", "oneiric", "precise",
+                  "quantal", "raring"]
+
 USAGE = """
 Usage: ubuntu-ec2-run [ options ] arguments
 
@@ -32,7 +35,7 @@ Usage: ubuntu-ec2-run [ options ] arguments
    ubuntu-ec2-run passes the following arguments to cloud-image-query
    in order to select an AMI to run.  Defaults are marked with a '*':
 
-     releases: lucid* maverick natty oneiric precise quantal
+     releases: %(rels)s
      stream: release* daily
      arch: amd64*, x86_64, i386
      store: ebs*, instance-store, instance
@@ -56,7 +59,7 @@ Usage: ubuntu-ec2-run [ options ] arguments
          m1.small oneiric instance --dry-run
      # us-west-1/instance-store/ubuntu-oneiric-11.10-beta1-i386-server-20110831
      ec2-run-instances --region us-west-1 --instance-type m1.small ami-39bfe27c
-"""
+""" % {'rels': ' '.join(KNOWN_RELEASES)}
 
 import os
 import string
@@ -107,8 +110,8 @@ def get_block_device_mappings(itype):
     # m3.xlarge       0
     # m3.2xlarge      0
     bdmaps = []
-    if itype in ("t1.micro", "m1.small", "c1.medium") or
-       itype.startswith("m3."):
+    if (itype in ("t1.micro", "m1.small", "c1.medium") or
+        itype.startswith("m3.")):
         pass  # the first one is always attached. ephemeral0=sda2
     elif itype in ("m2.xlarge", "m1.medium"):
         bdmaps = ["/dev/sdb=ephemeral0"]
@@ -160,7 +163,7 @@ try:
             seen_lucid = True
             releases.append(r)
 except OSError as e:
-    releases = ["lucid", "maverick", "natty", "oneiric", "precise", "quantal"]
+    releases = KNOWN_RELEASES
 
 
 # each arg_group is a list of arguments and a boolean that indicates
