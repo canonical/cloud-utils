@@ -5,6 +5,8 @@
  - fix make-dist-tarball to not have top level directory 
    named 'cloud-init' (thanks Juerg Haefliger)
  - add 'include-once-url' to the supported types.
+ - growpart: add support for resizing GPT partitions by using sgdisk from
+   gptfdisk project.  Thanks to Juerg Haefliger.
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:
