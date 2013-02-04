@@ -1,10 +1,10 @@
 0.27
- - add '--hook-img' flag to cloud-publish-image and passthrough that
-   flag from cloud-publish-ubuntu and cloud-publish-tarball.
- - become aware of m3.* instance-sizes
+ - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
+   passthrough that flag from cloud-publish-ubuntu and cloud-publish-tarball.
+ - ubuntu-cloudimg-query: become aware of m3.* instance-sizes
  - fix make-dist-tarball to not have top level directory 
    named 'cloud-init' (thanks Juerg Haefliger)
- - add 'include-once-url' to the supported types.
+ - write-mime-multipart: add 'include-once-url' to the supported types.
  - growpart: add support for resizing GPT partitions by using sgdisk from
    gptfdisk project.  Thanks to Juerg Haefliger.
 0.26
