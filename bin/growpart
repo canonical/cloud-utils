@@ -25,6 +25,7 @@ RESTORE_HUMAN=""
 VERBOSITY=0
 DISK=""
 PART=""
+PT_UPDATE=false
 DRY_RUN=0
 
 MBR_CHS=""
@@ -204,8 +205,11 @@ mbr_resize() {
 		exit 0
 	fi
 
-	sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
-		-O "${MBR_BACKUP}" < "${new_out}" > "${change_out}" 2>&1 || {
+	{
+		sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
+			-O "${MBR_BACKUP}" &&
+		pt_update "$DISK" "$PART"
+	} < "${new_out}" > "${change_out}" 2>&1 || {
 		RESTORE_FUNC=mbr_restore
 		error "attempt to resize ${DISK} failed. sfdisk output below:"
 		sed 's,^,| ,' "${change_out}" 1>&2
@@ -336,9 +340,12 @@ gpt_resize() {
 	#  - set the partition code
 	#  - set the partition GUID
 	#  - set the partition name
-	sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
-		-t "${PART}":"${code}" -u "${PART}":"${guid}" \
-		-c "${PART}":"${name}" "${DISK}" > "${out}" 2>&1 || {
+	{
+		sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
+			-t "${PART}":"${code}" -u "${PART}":"${guid}" \
+			-c "${PART}":"${name}" "${DISK}" &&
+		pt_update "$DISK" "$PART"
+	} > "${out}" 2>&1 || {
 		RESTORE_FUNC=gpt_restore
 		cat "${out}" 1>&2
 		fail "${dev}: failed to repartition"
@@ -347,10 +354,90 @@ gpt_resize() {
 	changed "${change_info}"
 }
 
-has_cmd() {
-	command -v "${1}" >/dev/null 2>&1
+kver_to_num() {
+    local kver="$1" maj="" min="" mic="0"
+    kver=${kver%%-*}
+    maj=${kver%%.*}
+    min=${kver#${maj}.}
+    min=${min%%.*}
+    mic=${kver#${maj}.${min}.}
+    [ "$kver" = "$mic" ] && mic=0
+    _RET=$(($maj*1000*1000+$min*1000+$mic))
 }
 
+kver_cmp() {
+	local op="$2" n1="" n2=""
+	kver_to_num "$1"
+	n1="$_RET"
+	kver_to_num "$3"
+	n2="$_RET"
+	[ $n1 $op $n2 ]
+}
+
+verify_ptupdate() {
+	local input="$1" found="" reason="" kver=""
+
+	# we can always satisfy 'none'
+	if [ "$input" = "none" ]; then
+ 		_RET="false";
+		return 0;
+	fi
+
+	if ! command -v partx >/dev/null 2>&1; then
+		reason="no 'partx' command"
+		found="none"
+	fi
+
+	if [ -z "$found" ]; then
+		if [ "$(uname)" != "Linux" ]; then
+			reason="Kernel is not Linux per uname."
+			found="none"
+		fi
+	fi
+
+	if [ -z "$found" ]; then
+		kver=$(uname -r) || debug 1 "uname -r failed!"
+			{ error "failed to get kernel version"; return 2; }
+
+		if ! kver_cmp "${kver-0.0.0}" -ge 3.8.0; then
+			reason="Kernel '$kver' < 3.8.0."
+			found="none"
+		fi
+	fi
+
+	if [ -z "$found" ]; then
+		_RET="true"
+		return 0
+	fi
+
+	case "$input" in
+		on) error "$reason"; return 1;;
+		auto)
+			_RET="false";
+			debug 1 "partition update disabled: $reason"
+			return 0;;
+		force)
+			_RET="true"
+			error "WARNING: ptupdate forced on even though: $reason"
+			return 0;;
+	esac
+	error "unknown input '$input'";
+	return 1;
+}
+
+pt_update() {
+	local dev="$1" part="$2" update="${3:-$PT_UPDATE}"
+	if ! $update; then
+		return 0
+	fi
+	partx --update "$part" "$dev"
+}
+
+has_cmd() {
+	command -v "${2}" >/dev/null 2>&1
+}
+
+pt_update="auto"
 while [ $# -ne 0 ]; do
 	cur=${1}
 	next=${2}
@@ -366,6 +453,12 @@ while [ $# -ne 0 ]; do
 		-N|--dry-run)
 			DRY_RUN=1
 			;;
+		   --update)
+			case "$next" in
+				none|auto|force|on) pt_update=$next;;
+				*) fail "unknown --update option: $next";;
+			esac
+			shift;;
 		-v|--verbose)
 			VERBOSITY=$(($VERBOSITY+1))
 			;;
@@ -397,6 +490,9 @@ has_cmd "sfdisk" || fail "sfdisk not found"
 [ -e "${DISK}" ] || fail "${DISK}: does not exist"
 
 [ "${PART#*[!0-9]}" = "${PART}" ] || fail "partition-number must be a number"
+
+verify_ptupdate "$pt_update" || fail
+PT_UPDATE=$_RET
 
 mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
