@@ -141,24 +141,25 @@ mbr_resize() {
 	local tmp="${TEMP_D}/tmp.out"
 	local err="${TEMP_D}/err.out"
 
-	local _devc cyl _word1 heads _word2 sectors _word3 tot dpart
+	local _devc cyl _w1 heads _w2 sectors _w3 tot dpart
 	local pt_start pt_size pt_end max_end new_size change_info
 
 	# --show-pt-geometry outputs something like
 	#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
-	sfdisk "${DISK}" --show-pt-geometry > "${tmp}" 2>"${err}" && \
-		read _devc cyl _word1 heads _word2 sectors _word3 < \
-		"${tmp}" && MBR_CHS="-C ${cyl} -H ${heads} -S ${sectors}" || \
+	rqe sfd_geom sfdisk "${DISK}" --show-pt-geometry > "${tmp}" &&
+		read _devc cyl _w1 heads _w2 sectors _w3 < "${tmp}" &&
+		MBR_CHS="-C ${cyl} -H ${heads} -S ${sectors}" ||
 		fail "failed to get CHS from ${DISK}"
 
 	tot=$((${cyl}*${heads}*${sectors}))
 
 	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
-	sfdisk "${MBR_CHS}" -uS -d "${DISK}" > "${dump_out}" 2>"${err}" || \
+	rqe sfd_dump sfdisk "${MBR_CHS}" --unit=S --dump "${DISK}" \
+		> "${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
 
 	{
-		echo "## sfdisk ${MBR_CHS} -uS -d ${DISK}"
+		echo "## sfdisk ${MBR_CHS} --unit=S --dump ${DISK}"
 		cat "${dump_out}"
 	}  > "${RESTORE_HUMAN}"
 	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
@@ -221,16 +222,13 @@ mbr_resize() {
 		exit 0
 	fi
 
-	{
-		sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
-			-O "${MBR_BACKUP}" &&
-		pt_update "$DISK" "$PART"
-	} < "${new_out}" > "${change_out}" 2>&1 || {
+	rq sfd_update sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
+		-O "${MBR_BACKUP}"  < "${new_out}" &&
+		rq pt_update pt_update "$DISK" "$PART" || {
 		RESTORE_FUNC=mbr_restore
-		error "attempt to resize ${DISK} failed. sfdisk output below:"
-		sed 's,^,| ,' "${change_out}" 1>&2
-		fail "failed to resize"
+		fail "attempt to resize ${DISK} failed."
 	}
+
 	changed "${change_info}"
 
 	# dump_out looks something like:
