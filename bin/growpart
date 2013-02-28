@@ -75,7 +75,22 @@ debug() {
 	local level=${1}
 	shift
 	[ "${level}" -gt "${VERBOSITY}" ] && return
-	error "${@}"
+	if [ "${DEBUG_LOG}" ]; then
+		echo "$@" >>"${DEBUG_LOG}"
+	else
+		error "$@"
+	fi
+}
+
+debugcat() {
+	local level="$1"
+	shift;
+	[ "${level}" -gt "$VERBOSITY" ] && return
+	if [ "${DEBUG_LOG}" ]; then
+		cat "$@" >>"${DEBUG_LOG}"
+	else
+		cat "$@" 1>&2
+	fi
 }
 
 mktemp_d() {
@@ -147,7 +162,7 @@ mbr_resize() {
 	}  > "${RESTORE_HUMAN}"
 	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
 
-	[ ${VERBOSITY} -gt 0 ] && cat ${RESTORE_HUMAN}
+	debugcat 1 "${RESTORE_HUMAN}"
 
 	sed -e 's/,//g; s/start=/start /; s/size=/size /' "${dump_out}" > \
 		"${dump_mod}"
@@ -250,25 +265,21 @@ gpt_resize() {
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
-	sgdisk -i "${PART}" -p "${DISK}" > "${pt_info}" || \
+	rqe sgd_info sgdisk -i "${PART}" -p "${DISK}" > "${pt_info}" ||
 		fail "${dev}: failed to dump original sgdisk info"
 	RESTORE_HUMAN="${pt_info}"
 
-	[ "${VERBOSITY}" -gt 0 ] && {
-		echo "${dev}: original sgdisk info:"
-		cat "${pt_info}"
-	}
+	debug 1 "$dev: original sgdisk info:"
+	debugcat 1 "${pt_info}"
 
 	# Pretend to move the backup GPT header to the end of the disk and dump
 	# the resulting partition information. We use this info to determine if
 	# we have to resize the partition.
-	sgdisk -P -e -p "${DISK}" > "${pt_pretend}" || \
+	rqe sgd_pretend sgdisk -P -e -p "${DISK}" > "${pt_pretend}" 2>/dev/null ||
 		fail "${dev}: failed to dump pretend sgdisk info"
 
-	[ "${VERBOSITY}" -gt 0 ] && {
-		echo "${dev}: pretend sgdisk info:"
-		cat "${pt_pretend}"
-	}
+	debug 1 "$dev: pretend sgdisk info"
+	debugcat 1 "${pt_pretend}"
 
 	# Extract the partition data from the pretend dump
 	awk 'found { print } ; $1 == "Number" { found = 1 }' \
@@ -295,8 +306,7 @@ gpt_resize() {
 		"${pt_data}") && [ -n "${pt_max}" ] || \
 		fail "${dev}: failed to find max end sector"
 
-	[ "${VERBOSITY}" -gt 0 ] && \
-		echo "${dev}: pt_start=${pt_start} pt_end=${pt_end}" \
+	debug 1 "${dev}: pt_start=${pt_start} pt_end=${pt_end}" \
 		"pt_size=${pt_size} pt_max=${pt_max} last=${last}"
 
 	# Check if the partition can be grown
@@ -329,7 +339,7 @@ gpt_resize() {
 	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	# Backup the current partition table, we're about to modify it
-	sgdisk -b "${GPT_BACKUP}" "${DISK}" > /dev/null || \
+	rqe sgd_backup sgdisk -b "${GPT_BACKUP}" "${DISK}" > /dev/null ||
 		error "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
@@ -341,7 +351,7 @@ gpt_resize() {
 	#  - set the partition GUID
 	#  - set the partition name
 	{
-		sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
+		rqe sgd_mod sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
 			-t "${PART}":"${code}" -u "${PART}":"${guid}" \
 			-c "${PART}":"${name}" "${DISK}" &&
 		pt_update "$DISK" "$PART"
@@ -372,6 +382,32 @@ kver_cmp() {
 	kver_to_num "$3"
 	n2="$_RET"
 	[ $n1 $op $n2 ]
+}
+
+rq() {
+	# runquieterror(label, command)
+	# gobble stderr of a command unless it errors
+	local label="$1" ret="" efile=""
+	efile="$TEMP_D/$label.err"
+	shift;
+	debug 2 "running[$label][$_capture]" "$@"
+	if [ "${_capture}" = "erronly" ]; then
+		"$@" 2> "$TEMP_D/$label.err"
+		ret=$?
+	else
+		"$@" > "$TEMP_D/$label.err" 2>&1
+		ret=$?
+	fi
+	if [ $ret -ne 0 ]; then
+		error "failed [$label:$ret]" "$@"
+ 		cat "$efile" 1>&2
+	fi
+	return $ret
+}
+
+rqe() {
+	local _capture="erronly"
+	rq "$@"
 }
 
 verify_ptupdate() {
