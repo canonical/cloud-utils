@@ -266,8 +266,8 @@ gpt_resize() {
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
-	rqe sgd_info sgdisk -i "${PART}" -p "${DISK}" > "${pt_info}" ||
-		fail "${dev}: failed to dump original sgdisk info"
+	rqe sgd_info sgdisk "--info=${PART}" --print "${DISK}" \
+		> "${pt_info}" ||
 	RESTORE_HUMAN="${pt_info}"
 
 	debug 1 "$dev: original sgdisk info:"
@@ -276,7 +276,8 @@ gpt_resize() {
 	# Pretend to move the backup GPT header to the end of the disk and dump
 	# the resulting partition information. We use this info to determine if
 	# we have to resize the partition.
-	rqe sgd_pretend sgdisk -P -e -p "${DISK}" > "${pt_pretend}" 2>/dev/null ||
+	rqe sgd_pretend sgdisk --pretend --move-second-header \
+		--print "${DISK}" > "${pt_pretend}" ||
 		fail "${dev}: failed to dump pretend sgdisk info"
 
 	debug 1 "$dev: pretend sgdisk info"
@@ -340,8 +341,8 @@ gpt_resize() {
 	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	# Backup the current partition table, we're about to modify it
-	rqe sgd_backup sgdisk -b "${GPT_BACKUP}" "${DISK}" > /dev/null ||
-		error "${dev}: failed to backup the partition table"
+	rqe sgd_backup sgdisk "--backup=${GPT_BACKUP}" "${DISK}" > /dev/null ||
+		fail "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
 	# important!):
@@ -351,14 +352,13 @@ gpt_resize() {
 	#  - set the partition code
 	#  - set the partition GUID
 	#  - set the partition name
-	{
-		rqe sgd_mod sgdisk -e -d "${PART}" -n "${PART}":"${pt_start}":"${pt_max}" \
-			-t "${PART}":"${code}" -u "${PART}":"${guid}" \
-			-c "${PART}":"${name}" "${DISK}" &&
-		pt_update "$DISK" "$PART"
-	} > "${out}" 2>&1 || {
+	rq sgdisk_mod sgdisk --move-second-header "--delete=${PART}" \
+		"--new=${PART}:${pt_start}:${pt_max}" \
+		"--typecode=${PART}:${code}" \
+		"--partition-guid=${PART}:${guid}" \
+		"--change-name=${PART}:${name}" "${DISK}" &&
+		rq pt_update pt_update "$DISK" "$PART" || {
 		RESTORE_FUNC=gpt_restore
-		cat "${out}" 1>&2
 		fail "${dev}: failed to repartition"
 	}
 
