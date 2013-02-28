@@ -59,8 +59,7 @@ change() {
 
 cleanup() {
 	if [ -n "${RESTORE_FUNC}" ]; then
-		error "***** WARNING: Resize failed, attempting to revert" \
-			"******"
+		error "***** WARNING: Resize failed, attempting to revert ******"
 		if ${RESTORE_FUNC} ; then
 			error "***** Appears to have gone OK ****"
 		else
@@ -96,9 +95,9 @@ debugcat() {
 
 mktemp_d() {
 	# just a mktemp -d that doens't need mktemp if its not there.
-	_RET=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX" 2>/dev/null) && \
+	_RET=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX" 2>/dev/null) &&
 		return
-	_RET=$(umask 077 && t="${TMPDIR:-/tmp}/${0##*/}.$$" && \
+	_RET=$(umask 077 && t="${TMPDIR:-/tmp}/${0##*/}.$$" &&
 		mkdir "${t}" &&	echo "${t}")
 	return
 }
@@ -146,8 +145,8 @@ mbr_resize() {
 
 	# --show-pt-geometry outputs something like
 	#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
-	rqe sfd_geom sfdisk "${DISK}" --show-pt-geometry > "${tmp}" &&
-		read _devc cyl _w1 heads _w2 sectors _w3 < "${tmp}" &&
+	rqe sfd_geom sfdisk "${DISK}" --show-pt-geometry >"${tmp}" &&
+		read _devc cyl _w1 heads _w2 sectors _w3 <"${tmp}" &&
 		MBR_CHS="-C ${cyl} -H ${heads} -S ${sectors}" ||
 		fail "failed to get CHS from ${DISK}"
 
@@ -155,19 +154,20 @@ mbr_resize() {
 
 	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
 	rqe sfd_dump sfdisk "${MBR_CHS}" --unit=S --dump "${DISK}" \
-		> "${dump_out}" ||
+		>"${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
 
 	{
 		echo "## sfdisk ${MBR_CHS} --unit=S --dump ${DISK}"
 		cat "${dump_out}"
-	}  > "${RESTORE_HUMAN}"
+	}  >"${RESTORE_HUMAN}"
 	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
 
 	debugcat 1 "${RESTORE_HUMAN}"
 
-	sed -e 's/,//g; s/start=/start /; s/size=/size /' "${dump_out}" > \
-		"${dump_mod}"
+	sed -e 's/,//g; s/start=/start /; s/size=/size /' "${dump_out}" \
+		>"${dump_mod}" ||
+		fail "sed failed on dump output"
 
 	dpart="${DISK}${PART}" # disk and partition number
 	if [ -b "${DISK}p${PART}" -a "${DISK%[0-9]}" != "${DISK}" ]; then
@@ -180,35 +180,33 @@ mbr_resize() {
 		dpart="${DISK}p${PART}"
 	fi
 
-	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" < \
-		"${dump_mod}") && \
-		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" < \
-		"${dump_mod}") && \
-		[ -n "${pt_start}" -a -n "${pt_size}" ] && \
-		pt_end=$((${pt_size}+${pt_start})) || \
+	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&
+		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" <"${dump_mod}") &&
+		[ -n "${pt_start}" -a -n "${pt_size}" ] &&
+		pt_end=$((${pt_size}+${pt_start})) ||
 		fail "failed to get start and end for ${dpart} in ${DISK}"
 
 	# find the minimal starting location that is >= pt_end 
-	max_end=$(awk '$3 == "start" { if($4 >= pt_end && $4 < min) \
+	max_end=$(awk '$3 == "start" { if($4 >= pt_end && $4 < min)
 		{ min = $4 } } END { printf("%s\n",min); }' \
-		min=${tot} pt_end=${pt_end} "${dump_mod}") && \
-		[ -n "${max_end}" ] || \
+		min=${tot} pt_end=${pt_end} "${dump_mod}") &&
+		[ -n "${max_end}" ] ||
 		fail "failed to get max_end for partition ${PART}"
 
 	debug 1 "max_end=${max_end} tot=${tot} pt_end=${pt_end}" \
 		"pt_start=${pt_start} pt_size=${pt_size}"
-	[ $((${pt_end})) -eq ${max_end} ] && \
-		nochange "partition ${PART} is size ${pt_size}. it cannot be" \
-		"grown"
-	[ $((${pt_end}+${FUDGE})) -gt ${max_end} ] && \
+	[ $((${pt_end})) -eq ${max_end} ] &&
+		nochange "partition ${PART} is size ${pt_size}. it cannot be grown"
+	[ $((${pt_end}+${FUDGE})) -gt ${max_end} ] &&
 		nochange "partition ${PART} could only be grown by" \
 		"$((${max_end}-${pt_end})) [fudge=${FUDGE}]"
 
 	# now, change the size for this partition in ${dump_out} to be the
 	# new size
 	new_size=$((${max_end}-${pt_start}))
-	sed "\|^\s*${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" > \
-		"${new_out}" ||	fail "failed to change size in output"
+	sed "\|^\s*${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" \
+		>"${new_out}" ||
+		fail "failed to change size in output"
 
 	change_info="partition=${PART} start=${pt_start} old: size=${pt_size} end=${pt_end} new: size=${new_size},end=${max_end}"
 	if [ ${DRY_RUN} -ne 0 ]; then
@@ -223,7 +221,7 @@ mbr_resize() {
 	fi
 
 	rq sfd_update sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
-		-O "${MBR_BACKUP}"  < "${new_out}" &&
+		-O "${MBR_BACKUP}" <"${new_out}" &&
 		rq pt_update pt_update "$DISK" "$PART" || {
 		RESTORE_FUNC=mbr_restore
 		fail "attempt to resize ${DISK} failed."
@@ -264,8 +262,7 @@ gpt_resize() {
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
-	rqe sgd_info sgdisk "--info=${PART}" --print "${DISK}" \
-		> "${pt_info}" ||
+	rqe sgd_info sgdisk "--info=${PART}" --print "${DISK}" >"${pt_info}" ||
 	RESTORE_HUMAN="${pt_info}"
 
 	debug 1 "$dev: original sgdisk info:"
@@ -275,7 +272,7 @@ gpt_resize() {
 	# the resulting partition information. We use this info to determine if
 	# we have to resize the partition.
 	rqe sgd_pretend sgdisk --pretend --move-second-header \
-		--print "${DISK}" > "${pt_pretend}" ||
+		--print "${DISK}" >"${pt_pretend}" ||
 		fail "${dev}: failed to dump pretend sgdisk info"
 
 	debug 1 "$dev: pretend sgdisk info"
@@ -283,36 +280,36 @@ gpt_resize() {
 
 	# Extract the partition data from the pretend dump
 	awk 'found { print } ; $1 == "Number" { found = 1 }' \
-		"${pt_pretend}" > "${pt_data}" || \
+		"${pt_pretend}" >"${pt_data}" ||
 		fail "${dev}: failed to parse pretend sgdisk info"
 
 	# Get the start and end sectors of the partition to be grown
-	pt_start=$(awk '$1 == '"${PART}"' { print $2 }' "${pt_data}") && \
-		[ -n "${pt_start}" ] || \
+	pt_start=$(awk '$1 == '"${PART}"' { print $2 }' "${pt_data}") &&
+		[ -n "${pt_start}" ] ||
 		fail "${dev}: failed to get start sector"
-	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") && \
-		[ -n "${pt_end}" ] || \
+	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") &&
+		[ -n "${pt_end}" ] ||
 		fail "${dev}: failed to get end sector"
 	pt_size="$((${pt_end} - ${pt_start}))"
 
 	# Get the last usable sector
 	last=$(awk '/last usable sector is/ { print $NF }' \
-		"${pt_pretend}") && [ -n "${last}" ] || \
+		"${pt_pretend}") && [ -n "${last}" ] ||
 		fail "${dev}: failed to get last usable sector"
 
 	# Find the minimal start sector that is >= pt_end 
 	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
 		{ print min }' min="${last}" pt_end="${pt_end}" \
-		"${pt_data}") && [ -n "${pt_max}" ] || \
+		"${pt_data}") && [ -n "${pt_max}" ] ||
 		fail "${dev}: failed to find max end sector"
 
 	debug 1 "${dev}: pt_start=${pt_start} pt_end=${pt_end}" \
 		"pt_size=${pt_size} pt_max=${pt_max} last=${last}"
 
 	# Check if the partition can be grown
-	[ "${pt_end}" -eq "${pt_max}" ] && \
+	[ "${pt_end}" -eq "${pt_max}" ] &&
 		nochange "${dev}: size=${pt_size}, it cannot be grown"
-	[ "$((${pt_end} + ${FUDGE}))" -gt "${pt_max}" ] && \
+	[ "$((${pt_end} + ${FUDGE}))" -gt "${pt_max}" ] &&
 		nochange "${dev}: could only be grown by" \
 		"$((${pt_max} - ${pt_end})) [fudge=${FUDGE}]"
 
@@ -323,7 +320,7 @@ gpt_resize() {
 	guid=$(awk '/^Partition unique GUID:/ { print $4 }' "${pt_info}")
 	name=$(awk '/^Partition name:/ { gsub(/'"'"'/, "") ; \
 		if (NF >= 3) print substr($0, index($0, $3)) }' "${pt_info}")
-	[ -n "${code}" -a -n "${guid}" ] || \
+	[ -n "${code}" -a -n "${guid}" ] ||
 		fail "${dev}: failed to parse sgdisk details"
 
 	debug 1 "${dev}: code=${code} guid=${guid} name='${name}'"
@@ -338,7 +335,7 @@ gpt_resize() {
 	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	# Backup the current partition table, we're about to modify it
-	rqe sgd_backup sgdisk "--backup=${GPT_BACKUP}" "${DISK}" > /dev/null ||
+	rq sgd_backup sgdisk "--backup=${GPT_BACKUP}" "${DISK}" ||
 		fail "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
@@ -390,10 +387,10 @@ rq() {
 	shift;
 	debug 2 "running[$label][$_capture]" "$@"
 	if [ "${_capture}" = "erronly" ]; then
-		"$@" 2> "$TEMP_D/$label.err"
+		"$@" 2>"$TEMP_D/$label.err"
 		ret=$?
 	else
-		"$@" > "$TEMP_D/$label.err" 2>&1
+		"$@" >"$TEMP_D/$label.err" 2>&1
 		ret=$?
 	fi
 	if [ $ret -ne 0 ]; then
@@ -506,8 +503,7 @@ while [ $# -ne 0 ]; do
 			if [ -z "${DISK}" ]; then
 				DISK=${cur}
 			else
-				[ -z "${PART}" ] || \
-					fail "confused by arg ${cur}"
+				[ -z "${PART}" ] || fail "confused by arg ${cur}"
 				PART=${cur}
 			fi
 			;;
@@ -533,7 +529,7 @@ mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
 
 # get the ID of the first partition to determine if it's MBR or GPT
-id=$(sfdisk --id --force "${DISK}" 1 2>/dev/null) || \
+id=$(sfdisk --id --force "${DISK}" 1 2>/dev/null) ||
 	fail "unable to determine partition type"
 
 if [ "${id}" = "ee" ] ; then
