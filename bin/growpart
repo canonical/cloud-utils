@@ -326,8 +326,7 @@ gpt_resize() {
 	[ -n "${code}" -a -n "${guid}" ] || \
 		fail "${dev}: failed to parse sgdisk details"
 
-	[ "${VERBOSITY}" -gt 0 ] && \
-		echo "${dev}: code=${code} guid=${guid} name='${name}'"
+	debug 1 "${dev}: code=${code} guid=${guid} name='${name}'"
 
 	# Calculate the new size of the partition
 	new_size=$((${pt_max} - ${pt_start}))
