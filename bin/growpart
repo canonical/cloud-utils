@@ -31,6 +31,7 @@ DRY_RUN=0
 MBR_CHS=""
 MBR_BACKUP=""
 GPT_BACKUP=""
+_capture=""
 
 error() {
 	echo "$@" 1>&2
