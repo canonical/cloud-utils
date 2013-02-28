@@ -2,6 +2,7 @@
 
 set -e
 
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
 MP=""
 LODEV=""
 
@@ -26,14 +27,20 @@ mkdir $mp
 
 truncate --size $osize "$img"
 
-rq sgdisk --new 1:2048: "$img"
+if [ "${PT_TYPE}" = "gpt" ]; then
+	rq sgdisk --new 1:2048: "$img"
+else
+	echo "1," | rq sfdisk "$img"
+fi
 
 truncate --size "$size" "$img"
 
 lodev=$(losetup --show --find "$img")
 lodevpart="${lodev}p1"
 LODEV=$lodev
+
 echo "set up $lodev"
+partx --update "${lodev}p1"
 
 #udevadm settle
 #bash
@@ -47,7 +54,7 @@ MP="$mp"
 echo "==== before ===="
 grep "${lodev##*/}" /proc/partitions
 
-growpart -v -v "$lodev" 1
+growpart -v "$lodev" 1
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
