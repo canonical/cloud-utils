@@ -397,7 +397,6 @@ verify_ptupdate() {
 
 	if [ -z "$found" ]; then
 		kver=$(uname -r) || debug 1 "uname -r failed!"
-			{ error "failed to get kernel version"; return 2; }
 
 		if ! kver_cmp "${kver-0.0.0}" -ge 3.8.0; then
 			reason="Kernel '$kver' < 3.8.0."
@@ -434,7 +433,7 @@ pt_update() {
 }
 
 has_cmd() {
-	command -v "${2}" >/dev/null 2>&1
+	command -v "${1}" >/dev/null 2>&1
 }
 
 pt_update="auto"
@@ -493,6 +492,8 @@ has_cmd "sfdisk" || fail "sfdisk not found"
 
 verify_ptupdate "$pt_update" || fail
 PT_UPDATE=$_RET
+
+debug 1 "update-partition set to $PT_UPDATE"
 
 mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
