@@ -61,8 +61,8 @@ LODEV=$lodev
 echo "set up $lodev"
 
 # clear any old ones that might be around (LP: #1136781)
-clearparts "$LODEV"
-partx --update $lodev
+clearparts "$lodev"
+partx --add $lodev
 lodevpart="${lodev}p1"
 
 rq mkfs.ext4 "${lodevpart}"
