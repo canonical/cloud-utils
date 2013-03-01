@@ -416,6 +416,8 @@ verify_ptupdate() {
 
 	if ! command -v partx >/dev/null 2>&1; then
 		reason="no 'partx' command"
+		partx --help | grep -q -- --update ||
+			reason="partx has no '--update' flag in usage."
 		found="none"
 	fi
 
