@@ -136,6 +136,14 @@ mbr_restore() {
 	sfdisk --no-reread "${DISK}" "${MBR_CHS}" -I "${MBR_BACKUP}"
 }
 
+sfdisk_worked_but_blkrrpart_failed() {
+	local ret="$1" output="$2"
+	[ $ret -eq 1 ] || return 1
+	grep -qi "Success.* wrote.* new .* partition" "$output" &&
+		grep -qi "BLKRRPART: Device or resource busy" "$output"
+	return
+}
+
 mbr_resize() {
 	RESTORE_HUMAN="${TEMP_D}/recovery"
 	MBR_BACKUP="${TEMP_D}/orig.save"
@@ -233,6 +241,23 @@ mbr_resize() {
 		RESTORE_FUNC=mbr_restore
 		fail "attempt to resize ${DISK} failed."
 	}
+	LANG=C sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
+		-O "${MBR_BACKUP}" < "${new_out}" > "${change_out}" 2>&1
+	ret=$?
+	[ $ret -eq 0 ] || RESTORE_FUNC=mbr_restore
+
+	if [ $ret -eq 0 ]
+		RESTORE_FUNC=""
+	elif $PT_UPDATE &&
+		sfdisk_worked_but_blkrrpart_failed "$ret" "${change_out}"; then
+		# if the command failed, but it looks like only because
+		# the device was busy and we have pt_update, then go on
+		RESTORE_FUNC=""
+	else
+		error "attempt to resize ${DISK} failed. sfdisk output below:"
+		sed 's,^,| ,' "${change_out}" 1>&2
+		fail "failed to resize"
+	fi
 
 	changed "${change_info}"
 
