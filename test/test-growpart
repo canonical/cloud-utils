@@ -1,23 +1,44 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
 PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
 MP=""
 LODEV=""
+TEMP_D=""
 
+clearparts() {
+	# read /proc/partitions, clearing any partitions on dev (/dev/loopX)
+	local dev="$1"
+	local short=${dev##*/} parts="" part=""
+	parts=$(awk '$4 ~ m { sub(m,"",$4); print $4 }' \
+		"m=${short}p" /proc/partitions)
+	[ -z "$parts" ] && return
+	echo "clearing parts [$parts] from $dev"
+	for part in $parts; do
+		echo "delpart $LODEV $part"
+		delpart $LODEV $part
+	done
+}
 cleanup() {
 	[ -z "$MP" ] || { echo "unmount $MP"; umount "$MP"; }
-	[ -z "$LODEV" ] || { echo "losetup -d $LODEV"; losetup -d "$LODEV"; }
+	if [ -n "$LODEV" ]; then
+		clearparts "$LODEV"
+		echo "losetup --detach $LODEV";
+		losetup --detach "$LODEV";
+	fi
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 rq() {
 	"$@" > /tmp/out 2>&1 ||
 		{ echo "FAILED:" "$@"; cat /tmp/out; return 1; }
 }
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
 trap cleanup EXIT
 
-img=/tmp/my.img
-mp=/tmp/mp
+img="${TEMP_D}/disk.img"
+mp="${TEMP_D}/mp"
 
 size=1000M
 osize=500M
@@ -36,14 +57,13 @@ fi
 truncate --size "$size" "$img"
 
 lodev=$(losetup --show --find "$img")
-lodevpart="${lodev}p1"
 LODEV=$lodev
-
 echo "set up $lodev"
-partx --update "${lodev}p1"
 
-#udevadm settle
-#bash
+# clear any old ones that might be around (LP: #1136781)
+clearparts "$LODEV"
+partx --update $lodev
+lodevpart="${lodev}p1"
 
 rq mkfs.ext4 "${lodevpart}"
 
