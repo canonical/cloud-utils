@@ -235,29 +235,28 @@ mbr_resize() {
 		exit 0
 	fi
 
-	rq sfd_update sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
-		-O "${MBR_BACKUP}" <"${new_out}" &&
-		rq pt_update pt_update "$DISK" "$PART" || {
-		RESTORE_FUNC=mbr_restore
-		fail "attempt to resize ${DISK} failed."
-	}
 	LANG=C sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
 		-O "${MBR_BACKUP}" < "${new_out}" > "${change_out}" 2>&1
 	ret=$?
-	[ $ret -eq 0 ] || RESTORE_FUNC=mbr_restore
+	RESTORE_FUNC="mbr_restore"
 
 	if [ $ret -eq 0 ]
-		RESTORE_FUNC=""
+		:
 	elif $PT_UPDATE &&
 		sfdisk_worked_but_blkrrpart_failed "$ret" "${change_out}"; then
 		# if the command failed, but it looks like only because
 		# the device was busy and we have pt_update, then go on
-		RESTORE_FUNC=""
+		:
 	else
 		error "attempt to resize ${DISK} failed. sfdisk output below:"
 		sed 's,^,| ,' "${change_out}" 1>&2
 		fail "failed to resize"
 	fi
+
+	rq pt_update pt_update "$DISK" "$PART" ||
+		fail "pt_resize failed"
+
+	RESTORE_FUNC=""
 
 	changed "${change_info}"
 
