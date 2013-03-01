@@ -7,6 +7,8 @@
  - write-mime-multipart: add 'include-once-url' to the supported types.
  - growpart: add support for resizing GPT partitions by using sgdisk from
    gptfdisk project.  Thanks to Juerg Haefliger.
+ - growpart: add support for partx 'update' which allows resizing a partition
+   that is mounted.
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:

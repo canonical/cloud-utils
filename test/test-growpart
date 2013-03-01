@@ -1,0 +1,85 @@
+#!/bin/bash
+
+set -e
+
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+MP=""
+LODEV=""
+TEMP_D=""
+
+clearparts() {
+	# read /proc/partitions, clearing any partitions on dev (/dev/loopX)
+	local dev="$1"
+	local short=${dev##*/} parts="" part=""
+	parts=$(awk '$4 ~ m { sub(m,"",$4); print $4 }' \
+		"m=${short}p" /proc/partitions)
+	[ -z "$parts" ] && return
+	echo "clearing parts [$parts] from $dev"
+	for part in $parts; do
+		echo "delpart $LODEV $part"
+		delpart $LODEV $part
+	done
+}
+cleanup() {
+	[ -z "$MP" ] || { echo "unmount $MP"; umount "$MP"; }
+	if [ -n "$LODEV" ]; then
+		clearparts "$LODEV"
+		echo "losetup --detach $LODEV";
+		losetup --detach "$LODEV";
+	fi
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+rq() {
+	"$@" > /tmp/out 2>&1 ||
+		{ echo "FAILED:" "$@"; cat /tmp/out; return 1; }
+}
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+img="${TEMP_D}/disk.img"
+mp="${TEMP_D}/mp"
+
+size=1000M
+osize=500M
+rm -f $img
+[ ! -e $mp ] || rmdir $mp || { echo "failed rmdir $mp"; exit 1; }
+mkdir $mp
+
+truncate --size $osize "$img"
+
+if [ "${PT_TYPE}" = "gpt" ]; then
+	rq sgdisk --new 1:2048: "$img"
+else
+	echo "1," | rq sfdisk "$img"
+fi
+
+truncate --size "$size" "$img"
+
+lodev=$(losetup --show --find "$img")
+LODEV=$lodev
+echo "set up $lodev"
+
+# clear any old ones that might be around (LP: #1136781)
+clearparts "$lodev"
+partx --add $lodev
+lodevpart="${lodev}p1"
+
+rq mkfs.ext4 "${lodevpart}"
+
+echo "mounting to $mp"
+mount "${lodevpart}" "$mp"
+MP="$mp"
+
+echo "==== before ===="
+grep "${lodev##*/}" /proc/partitions
+
+growpart -v "$lodev" 1
+
+echo "==== after ===="
+grep "${lodev##*/}" /proc/partitions
+
+resize2fs "${lodevpart}"
+
+echo == df ==
+df -h "$mp"
