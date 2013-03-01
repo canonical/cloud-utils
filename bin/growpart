@@ -107,11 +107,18 @@ Usage() {
 ${0##*/} disk partition
    rewrite partition table so that partition takes up all the space it can
    options:
-    -h | --help      print Usage and exit
-         --fudge F   if part could be resized, but change would be
-                     less than 'F', do not resize (default: ${FUDGE})
-    -N | --dry-run   only report what would be done, show new 'sfdisk -d'
-    -v | --verbose   increase verbosity / debug
+    -h | --help       print Usage and exit
+         --fudge F    if part could be resized, but change would be
+                      less than 'F', do not resize (default: ${FUDGE})
+    -N | --dry-run    only report what would be done, show new 'sfdisk -d'
+    -v | --verbose    increase verbosity / debug
+    -u | --update  R  update the the kernel partition table info after growing
+                      this requires kernel support and 'partx --update'
+                      R is one of:
+                       - 'auto'  : [default] update partition if possible
+                       - 'force' : try despite sanity checks (fail on failure)
+                       - 'off'   : do not attempt
+                       - 'on'    : fail if sanity checks indicate no support
 
    Example:
     - ${0##*/} /dev/sda 1
@@ -408,8 +415,8 @@ rqe() {
 verify_ptupdate() {
 	local input="$1" found="" reason="" kver=""
 
-	# we can always satisfy 'none'
-	if [ "$input" = "none" ]; then
+	# we can always satisfy 'off'
+	if [ "$input" = "off" ]; then
  		_RET="false";
 		return 0;
 	fi
@@ -417,17 +424,17 @@ verify_ptupdate() {
 	if command -v partx >/dev/null 2>&1; then
 		partx --help | grep -q -- --update || {
 			reason="partx has no '--update' flag in usage."
-			found="none"
+			found="off"
 		}
 	else
 		reason="no 'partx' command"
-		found="none"
+		found="off"
 	fi
 
 	if [ -z "$found" ]; then
 		if [ "$(uname)" != "Linux" ]; then
 			reason="Kernel is not Linux per uname."
-			found="none"
+			found="off"
 		fi
 	fi
 
@@ -436,7 +443,7 @@ verify_ptupdate() {
 
 		if ! kver_cmp "${kver-0.0.0}" -ge 3.8.0; then
 			reason="Kernel '$kver' < 3.8.0."
-			found="none"
+			found="off"
 		fi
 	fi
 
@@ -488,12 +495,17 @@ while [ $# -ne 0 ]; do
 		-N|--dry-run)
 			DRY_RUN=1
 			;;
-		   --update)
+		-u|--update|--update=*)
+			if [ "${cur#--update=}" != "$cur" ]; then
+				next="${cur#--update=}"
+			else
+				shift
+			fi
 			case "$next" in
-				none|auto|force|on) pt_update=$next;;
+				off|auto|force|on) pt_update=$next;;
 				*) fail "unknown --update option: $next";;
 			esac
-			shift;;
+			;;
 		-v|--verbose)
 			VERBOSITY=$(($VERBOSITY+1))
 			;;
