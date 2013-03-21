@@ -133,7 +133,7 @@ bad_Usage() {
 }
 
 mbr_restore() {
-	sfdisk --no-reread "${DISK}" "${MBR_CHS}" -I "${MBR_BACKUP}"
+	sfdisk --no-reread "${DISK}" ${MBR_CHS} -I "${MBR_BACKUP}"
 }
 
 sfdisk_worked_but_blkrrpart_failed() {
@@ -170,7 +170,7 @@ mbr_resize() {
 	tot=$((${cyl}*${heads}*${sectors}))
 
 	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
-	rqe sfd_dump sfdisk "${MBR_CHS}" --unit=S --dump "${DISK}" \
+	rqe sfd_dump sfdisk ${MBR_CHS} --unit=S --dump "${DISK}" \
 		>"${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
 
@@ -237,7 +237,7 @@ mbr_resize() {
 		exit 0
 	fi
 
-	LANG=C sfdisk --no-reread "${DISK}" "${MBR_CHS}" --force \
+	LANG=C sfdisk --no-reread "${DISK}" ${MBR_CHS} --force \
 		-O "${MBR_BACKUP}" <"${new_out}" >"${change_out}" 2>&1
 	ret=$?
 	[ $ret -eq 0 ] || RESTORE_FUNC="mbr_restore"
