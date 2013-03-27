@@ -2,8 +2,14 @@ cloud-utils (0.27~bzrREVNO~trunk-1) UNRELEASED; urgency=low
 
   * add '--hook-img' flag to cloud-publish-image and passthrough that
     flag from cloud-publish-ubuntu and cloud-publish-tarball.
+  * ubuntu-cloudimg-query: become aware of m3.* instance-sizes
+  * write-mime-multipart: add 'include-once-url' to the supported types.
+  * growpart: add support for resizing GPT partitions by using sgdisk from
+    gptfdisk project.  [Juerg Haefliger].
+  * growpart: add support for partx 'update' which allows resizing a partition
+    that is mounted.
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:11:50 -0400
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 27 Mar 2013 09:06:37 -0400
 
 cloud-utils (0.26~bzr200~trunk-1) quantal; urgency=low
 

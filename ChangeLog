@@ -9,6 +9,10 @@
    gptfdisk project.  Thanks to Juerg Haefliger.
  - growpart: add support for partx 'update' which allows resizing a partition
    that is mounted.
+ - growpart: change exit codes. exit 1 on "no change necessary",
+   0 on "grown", 2 on "failure". This allows other tools that use growpart to
+  examine the exit status rather than parsing the output.
+
 0.26
  - install ubuntu cloud image keyring into /usr/share/keyrings/
  - ubuntu-cloudimg-query, ubuntu-ec2-run:
