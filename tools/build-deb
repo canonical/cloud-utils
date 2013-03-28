@@ -1,6 +1,8 @@
 #!/bin/sh
 
+sourcename="cloud-utils"
 TEMP_D=""
+UNCOMMITTED=${UNCOMMITTED:-0}
 
 fail() { echo "$@" 1>&2; exit 1; }
 cleanup() {
@@ -10,7 +12,7 @@ cleanup() {
 if [ "$1" = "-h" -o "$1" = "--help" ]; then
    cat <<EOF
 Usage: ${0##*/}
-   build a deb of cloud-utils directory
+   build a deb of from trunk directory
    any options are passed straight through to debuild
 
    Example:
@@ -28,44 +30,46 @@ bname=${0##*/}
 start_d=$PWD
 top_d=$(cd "$(dirname "${0}")"/.. && pwd)
 
+export_uncommitted=""
+echo $UNCOMMITTED
+if [ "${UNCOMMITTED:-0}" != "0" ]; then
+   export_uncommitted="--uncommitted"
+fi
+
 # grab the first line in the changelog
-line1=$(head -n 1 ${top_d}/debian/changelog)
 # hopefully this pulls the version info there
-# resulting in something like: 0.25~trunk~bzrREVNO-1
-clogver_o=$(echo "$line1" | sed 's,.*(\([^)]*\)).*,\1,')
+# resulting in something like: 0.1.0~bzrREVNO-1~trunk1
+clogver_o=$(sed -n '1s,.*(\([^)]*\)).*,\1,p' debian/changelog)
 
 revno=$(bzr revno) || fail "failed to get revno"
-clogver=$(echo "$clogver_o" | sed "s,REVNO,$revno,")
+clogver_upstream=${clogver_o%%-*}
+clogver_debian=${clogver_o#*-}
 
-# upstream ver takes off the '-1' which is debian ver
-uver=${clogver%-[0-9]}
+uver=$(echo "${clogver_upstream}" | sed "s,REVNO,$revno,")
+clogver_new="${uver}-${clogver_debian}"
 
 TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${bname}.XXXXXX")
 
 trap cleanup EXIT
 
-echo "building upstream version $uver, debian ver=${clogver##*-}"
+echo "building upstream version $uver, debian ver=${clogver_debian}"
 
-dir="cloud-utils-$uver"
-cp -a "${top_d}" "${TEMP_D}/$dir" ||
-   fail "failed to copy ${top_d}"
+dir="${sourcename}-$uver"
+tarball="${sourcename}_$uver.orig.tar.gz"
 
-cd "$TEMP_D"
+echo bzr export --format=tgz --root="$dir" --revision="${revno}" \
+   ${export_uncommitted} "${TEMP_D}/$tarball"
+bzr export --format=tgz --root="$dir" --revision="${revno}" \
+   ${export_uncommitted} "${TEMP_D}/$tarball" ||
+   fail "failed to bzr export tarball $tarball"
+echo "created ${tarball}"
 
-sed -i "s,REVNO,$revno," "$dir/debian/changelog" ||
-   fail "failed to replace REVNO in debian/changelog"
+cd ${TEMP_D}
+tar xzf "$tarball" || fail "failed extract tarball"
+cd "$dir" || fail "fialed cd $dir"
 
-( cd "${dir}/debian" &&
-  rm -Rf *debhelper* *.substvars cloud-utils/ files stamp-* ) ||
-   fail "failed to clean out debian dir"
-
-tarball="cloud-utils_$uver.orig.tar.gz"
-tar -czf "$tarball" "$dir" ||
-   fail "failed to create ${tarball} from $dir in tempdir"
-
-echo "created cloud-utils_$uver.orig.tar.gz"
-
-cd "$dir"
+sed -i "1s,${clogver_o},${clogver_new}," debian/changelog ||
+   fail "failed to change replace REVNO in debian/changelog"
 debuild "$@" || fail "debuild failed"
 
 cd "$TEMP_D"

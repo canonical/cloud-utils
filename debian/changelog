@@ -1,4 +1,10 @@
-cloud-utils (0.27~bzrREVNO~trunk-1) UNRELEASED; urgency=low
+cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
+
+  * 
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
+
+cloud-utils (0.27~bzr221~trunk-1) raring; urgency=low
 
   * add '--hook-img' flag to cloud-publish-image and passthrough that
     flag from cloud-publish-ubuntu and cloud-publish-tarball.
