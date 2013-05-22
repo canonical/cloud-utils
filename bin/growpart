@@ -63,9 +63,13 @@ cleanup() {
 		if ${RESTORE_FUNC} ; then
 			error "***** Appears to have gone OK ****"
 		else
-			error "***** FAILED! or original partition table" \
-				"looked like: ****"
-			cat "${RESTORE_HUMAN}" 1>&2
+			error "***** FAILED! ******"
+			if [ -n "${RESTORE_HUMAN}" -a -f "${RESTORE_HUMAN}" ]; then
+				error "**** original table looked like: ****"
+				cat "${RESTORE_HUMAN}" 1>&2
+			else
+				error "We seem to have not saved the partition table!"
+			fi
 		fi
 	fi
 	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
@@ -147,8 +151,8 @@ sfdisk_worked_but_blkrrpart_failed() {
 }
 
 mbr_resize() {
-	RESTORE_HUMAN="${TEMP_D}/recovery"
-	MBR_BACKUP="${TEMP_D}/orig.save"
+	local humanpt="${TEMP_D}/recovery"
+	local mbr_backup="${TEMP_D}/orig.save"
 
 	local change_out=${TEMP_D}/change.out
 	local dump_out=${TEMP_D}/dump.out
@@ -173,14 +177,17 @@ mbr_resize() {
 	rqe sfd_dump sfdisk ${MBR_CHS} --unit=S --dump "${DISK}" \
 		>"${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
+	RESTORE_HUMAN="$dump_out"
 
 	{
 		echo "## sfdisk ${MBR_CHS} --unit=S --dump ${DISK}"
 		cat "${dump_out}"
-	}  >"${RESTORE_HUMAN}"
-	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
+	}  >"$humanpt"
 
-	debugcat 1 "${RESTORE_HUMAN}"
+	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
+	RESTORE_HUMAN="$humanpt"
+
+	debugcat 1 "$humanpt"
 
 	sed -e 's/,//g; s/start=/start /; s/size=/size /' "${dump_out}" \
 		>"${dump_mod}" ||
@@ -237,8 +244,9 @@ mbr_resize() {
 		exit 0
 	fi
 
+	MBR_BACKUP="${mbr_backup}"
 	LANG=C sfdisk --no-reread "${DISK}" ${MBR_CHS} --force \
-		-O "${MBR_BACKUP}" <"${new_out}" >"${change_out}" 2>&1
+		-O "${mbr_backup}" <"${new_out}" >"${change_out}" 2>&1
 	ret=$?
 	[ $ret -eq 0 ] || RESTORE_FUNC="mbr_restore"
 
@@ -296,6 +304,7 @@ gpt_resize() {
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
 	rqe sgd_info sgdisk "--info=${PART}" --print "${DISK}" >"${pt_info}" ||
+		fail "${dev}: failed to dump original sgdisk info"
 	RESTORE_HUMAN="${pt_info}"
 
 	debug 1 "$dev: original sgdisk info:"

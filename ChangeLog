@@ -1,5 +1,6 @@
 0.28
  - ubuntu-cloudimg-query: change default release to 'precise'
+ - growpart: fix some issues in error path reporting
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
