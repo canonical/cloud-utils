@@ -457,10 +457,18 @@ verify_ptupdate() {
 	fi
 
 	if command -v partx >/dev/null 2>&1; then
-		partx --help | grep -q -- --update || {
-			reason="partx has no '--update' flag in usage."
+		local out="" ret=0
+		out=$(partx --help 2>&1)
+		ret=$?
+		if [ $ret -eq 0 ]; then
+			echo "$out" | grep -q -- --update || {
+				reason="partx has no '--update' flag in usage."
+				found="off"
+			}
+		else
+			reason="'partx --help' returned $ret. assuming it is old."
 			found="off"
-		}
+		fi
 	else
 		reason="no 'partx' command"
 		found="off"
