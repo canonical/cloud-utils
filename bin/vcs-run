@@ -175,6 +175,7 @@ vcsget_url() {
 
 	mkdir -p "$target" ||
 		{ error "failed mkdir -p '$target'"; return $RET_FAIL; }
+	debug 1 "wget -O '$target/$cmdname' '$src'"
 	wget $quiet -O "$target/$cmdname" "$src" || {
 		error "failed wget -O '$target/$cmdname' '$src'"
 		return $RET_FAIL
