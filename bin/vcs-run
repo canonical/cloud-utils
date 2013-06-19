@@ -187,7 +187,7 @@ vcsget_url() {
 
 main() {
 	local short_opts="hDt:v"
-	local long_opts="help,deps:,target:,vcs-type:,verbose"
+	local long_opts="help,deps,target:,vcs-type:,verbose"
 	local getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
