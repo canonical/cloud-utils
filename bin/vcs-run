@@ -159,7 +159,7 @@ vcsget_url() {
 			*) return $RET_UNCLAIMED;;
 		esac
 	fi
-	get_cmd curl "$deps" curl || return $RET_FAIL
+	get_cmd wget "$deps" wget || return $RET_FAIL
 	if [ -z "$target" ]; then
 		target=$(echo "$src" | md5sum)
 		target=${target%  -}
@@ -170,12 +170,12 @@ vcsget_url() {
 		cmdname="./$DEF_COMMAND"
 	fi
 
-	local quiet="--silent"
+	local quiet="--quiet"
 	[ $VERBOSITY -gt 1 ] && quiet=""
 
 	mkdir -p "$target"
-	curl $quiet "$src" > "$target/$cmdname" || {
-		error "failed curl '$src' to '$target/$cmdname'"
+	wget $quiet -O "$target/$cmdname" "$src" || {
+		error "failed wget -O '$target/$cmdname' '$src'"
 		return $RET_FAIL
 	}
 	
