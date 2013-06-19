@@ -1,6 +1,11 @@
 cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
 
   * ubuntu-cloudimg-query: change default release to 'precise'
+  * growpart: fix some issues in error path reporting
+  * growpart: capture output of 'partx --help' as older versions
+    do not support that flag, and send output to stderr.
+  * add 'vcs-run' utility for easily executing / bootstrapping
+    from a version control system (hg, git, bzr)
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
