@@ -1,0 +1,269 @@
+#!/bin/bash
+set -f
+
+VERBOSITY=0
+SUPPORTED_VCS="bzr hg git url"
+RET_UNCLAIMED=3
+RET_SUCCESS=0
+RET_FAIL=1
+DEF_COMMAND="vcs_run"
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] repo-url [command [arguments]]
+
+   obtain repository from repo-url, and execute 'command' with 'arguments'
+
+   Command will default to '$DEF_COMMAND' in the top level of the repository.
+
+   options:
+      -t | --target  DIR   checkout branch to DIR [./(basename repo)]
+           --vcs-type  V   repo-url is of type 'V' [auto]
+                           supported: auto $SUPPORTED_VCS
+      -v | --verbose       increase verbosity
+      -D | --deps          attempt to install dependencies if necessary
+EOF
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; return 1; }
+error() { echo "$@" 1>&2; }
+debug() {
+	local level=${1}; shift;
+	[ "${level}" -gt "${VERBOSITY}" ] && return
+	error "${@}"
+}
+
+has_cmd() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+get_cmd() {
+	# get_cmd(cmd, get_deps, packages)
+	#   get command 'cmd' if necessary by installing 'packages'
+	#   if 'get_deps' is false, then return error.
+	local cmd="$1" deps="$2"
+	shift 2
+	has_cmd "$1" && return 0
+	$deps || { error "No cmd '$cmd', but nodeps specified"; return 1; }
+	apt_install "$@"
+}
+
+apt_install() {
+	local cmd=""
+	cmd=( env DEBIAN_FRONTEND=noninteractive apt-get --quiet 
+		  --assume-yes install "$@" )
+	[ "$(id -u)" = "0" ] ||
+		cmd=( sudo "${cmd[@]}" )
+	debug 1 "installing dependencies:" "${cmd[@]}"
+	"${cmd[@]}"
+}
+
+vcsget_bzr() {
+	# deps type src target cmd
+	local deps="$1" rtype="$2" src="$3" target="$4" tmp=""
+	if [ "$rtype" = "auto" ]; then
+		case "$src" in
+			*.bzr|bzr:*|lp:*) :;;
+			*)
+				if ! [ -d "$src" -a -d "$src/.bzr" ]; then
+					return $RET_UNCLAIMED
+				fi
+				src=$(cd "$src" && pwd) || return $RET_FAIL
+				;;
+		esac
+	fi
+	get_cmd bzr "$deps" bzr || return $RET_FAIL
+	if [ -z "$target" ]; then
+		tmp="${src##*/}"
+		target="${tmp%.bzr}"
+	fi
+	local cmd="" q="--quiet"
+	[ $VERBOSITY -gt 1 ] && q=""
+
+	if [ -d "$target/.bzr" ]; then
+		debug 1 "updating $target: bzr pull ${q:+$q }$src"
+		( cd "$target" && bzr pull $q "$src" )
+	else
+		debug 1 "branching to $target: bzr branch ${q:+$q }$src"
+		bzr branch $q "$src" "$target"
+	fi
+	[ $? -eq 0 ] || return $RET_FAIL
+	_RET="$target"
+	return 0
+}
+
+vcsget_git() {
+	# deps type src target cmd
+	local deps="$1" rtype="$2" src="$3" target="$4" tmp=""
+	if [ "$rtype" = "auto" ]; then
+		case "$src" in
+			*.git|git:*) :;;
+			*)
+				if ! [ -d "$src" -a -d "$src/.git" ]; then
+					return $RET_UNCLAIMED
+				fi
+				src=$(cd "$src" && pwd) || return $RET_FAIL
+				;;
+		esac
+	fi
+	get_cmd git "$deps" git || return $RET_FAIL
+	if [ -z "$target" ]; then
+		tmp="${src##*/}"
+		target="${tmp%.git}"
+	fi
+	local q="--quiet"
+	[ $VERBOSITY -gt 1 ] && q=""
+	if [ -d "$target/.git" ]; then
+		debug 1 "updating $target: git pull ${q:+$q }${src}"
+		( cd "$target" && git pull $q "$src" )
+	else
+		debug 1 "cloning to $target: git clone ${q:+$q }$src $target"
+		git clone $q "$src" "$target" || return $RET_FAIL
+	fi
+	[ $? -eq 0 ] || return $RET_FAIL
+	_RET="$target"
+	return 0
+}
+
+vcsget_hg() {
+	# deps type src target cmd
+	local deps="$1" rtype="$2" src="$3" target="$4" tmp=""
+	if [ "$rtype" = "auto" ]; then
+		case "$src" in
+			*.hg|hg:*) :;;
+			*) return $RET_UNCLAIMED;;
+		esac
+	fi
+	get_cmd hg "$deps" mercurial || return $RET_FAIL
+	if [ -z "$target" ]; then
+		tmp="${src##*/}"
+		target="${tmp%.hg}"
+	fi
+	local quiet="--quiet"
+	[ $VERBOSITY -gt 1 ] && quiet=""
+	hg clone $quiet "$src" "$target" || return $RET_FAIL
+	_RET="$target"
+	return 0
+}
+
+vcsget_url() {
+	# deps type src target cmd
+	# if target is not specified, target directory is md5sum
+	# of the url.  If cmd does not start with a /, then use it
+	# as the output filename.  If it does start with a /, then
+	# store the url in DEF_COMMAND in this directory.
+	local deps="$1" rtype="$2" src="$3" target="$4" cmd="$5" tmp=""
+	if [ "$rtype" = "auto" ]; then
+		case "$src" in
+			http://*|https://*) :;;
+			*) return $RET_UNCLAIMED;;
+		esac
+	fi
+	get_cmd curl "$deps" curl || return $RET_FAIL
+	if [ -z "$target" ]; then
+		target=$(echo "$src" | md5sum)
+		target=${target%  -}
+	fi
+
+	local cmdname="$cmd"
+	if [ "${cmd#/}" != "$cmd" ]; then
+		cmdname="./$DEF_COMMAND"
+	fi
+
+	local quiet="--silent"
+	[ $VERBOSITY -gt 1 ] && quiet=""
+
+	mkdir -p "$target"
+	curl $quiet "$src" > "$target/$cmdname" || {
+		error "failed curl '$src' to '$target/$cmdname'"
+		return $RET_FAIL
+	}
+	
+	_RET="$target"
+	return 0
+}
+
+main() {
+	local short_opts="hDt:v"
+	local long_opts="help,deps:,target:,vcs-type:,verbose"
+	local getopt_out=$(getopt --name "${0##*/}" \
+		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+		eval set -- "${getopt_out}" ||
+		{ bad_Usage; return; }
+
+	local cur="" next="" target="" rtype="auto" tmp=""
+	local def_target="" deps="" getdeps=false arg0=""
+
+	while [ $# -ne 0 ]; do
+		cur="$1"; next="$2";
+		case "$cur" in
+			-h|--help) Usage ; exit 0;;
+			-D|--deps) getdeps=true;;
+			-t|--target) target=$next; shift;;
+			   --vcs-type) rtype=$next; shift;;
+			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+			--) shift; break;;
+		esac
+		shift;
+	done
+
+	[ $# -gt 0 ] || { bad_Usage "must provide at least repo"; return; }
+
+	src_repo="$1"
+	shift
+	[ -n "$src_repo" ] || { error "empty source repo?"; return 1; }
+
+	if [ -n "$target" ]; then
+		tmp=$(dirname "${target}")
+		[ -d "$tmp" ] || mkdir -p "$tmp" ||
+			{ error "failed to create $tmp for '$target'"; return 1; }
+	fi
+
+	if [ $# -eq 0 ]; then
+		set -- "$DEF_COMMAND"
+	fi
+	arg0="$1"
+
+	local vcs vcslist="${SUPPORTED_VCS}"
+	[ "$rtype" = "auto" ] || vcslist="$rtype"
+
+	local workd=""
+	for vcs in $vcslist; do
+		has_cmd "vcsget_$vcs" ||
+			{ error "unknown vcs type '$vcs'"; return 1; }
+		"vcsget_$vcs" "$getdeps" "$rtype" "$src_repo" "$target" "$arg0"
+		ret=$?
+		case "$ret" in
+			$RET_UNCLAIMED) :;; # not claimed
+			$RET_SUCCESS) workd="$_RET"; break;;
+			*) error "failed to get '$src_repo' of type '$vcs'";
+				return $ret;;
+		esac
+	done
+
+	[ -d "$workd" ] ||
+		{ error "unknown source repo '$src_repo'"; return 1; }
+
+	cd "$workd" ||
+		{ error "failed to enter target dir '$workd'"; return 1; }
+
+	if [ -f "./$1" ]; then
+		if [ ! -x "./$1" ]; then
+			debug 1 "adding execute to ./$1"
+			chmod ugo+x "./$1" ||
+				{ error "failed add execute to ./$1"; return 1; }
+		fi
+		tmp="./$1"
+		shift
+		set -- "$tmp" "$@"
+	elif ! has_cmd "$1"; then
+		error "command '$1' not available anywhere"
+		return 1
+	fi
+
+	debug 1 "executing command in $PWD:" "$@"
+	exec "$@"
+}
+
+main "$@"
+# vi: ts=4 noexpandtab

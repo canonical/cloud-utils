@@ -3,6 +3,8 @@
  - growpart: fix some issues in error path reporting
  - growpart: capture output of 'partx --help' as older versions
    do not support that flag, and send output to stderr.
+ - add 'vcs-run' utility for easily executing / bootstrapping
+   from a version control system (hg, git, bzr)
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
