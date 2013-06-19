@@ -173,7 +173,8 @@ vcsget_url() {
 	local quiet="--quiet"
 	[ $VERBOSITY -gt 1 ] && quiet=""
 
-	mkdir -p "$target"
+	mkdir -p "$target" ||
+		{ error "failed mkdir -p '$target'"; return $RET_FAIL; }
 	wget $quiet -O "$target/$cmdname" "$src" || {
 		error "failed wget -O '$target/$cmdname' '$src'"
 		return $RET_FAIL
