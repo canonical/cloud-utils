@@ -64,6 +64,7 @@ Usage: ${0##*/} [ options ] arch image bucket
                                 specify 'none' for no ramdisk
       -R | --ramdisk-file f   : bundle, upload, use file 'f' as ramdisk
       -B | --block-device-mapping m : specify block device mapping in bundle
+           --root-device-name r: pass '--root-device-name' in register
 EOF
 }
 
@@ -186,7 +187,7 @@ dl_input_image() {
 	error "WARNING: '${0##*/}' is now to 'cloud${_n#uec}'. Please update your tools or docs"
 
 short_opts="B:h:k:K:l:no:r:R:t:vw:"
-long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,hook-img:,kernel:,kernel-file:,name:,output:,image-to-raw,ramdisk:,ramdisk-file:,rename:,save-downloaded,type:,verbose,working-dir:"
+long_opts="add-launch:,allow-existing,block-device-mapping:,dry-run,help,hook-img:,kernel:,kernel-file:,name:,output:,image-to-raw,ramdisk:,ramdisk-file:,rename:,root-device-name:,save-downloaded,type:,verbose,working-dir:"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -213,6 +214,7 @@ image2raw=0
 raw_image=""
 hook_img=""
 arch_in_register=true
+rdname=""
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -244,6 +246,7 @@ while [ $# -ne 0 ]; do
 		-R|--ramdisk-file) ramdisk_file=${next}; shift;;
 		-n|--dry-run) dry_run=1;;
 		   --rename) rename=${next}; shift;;
+		   --root-device-name) rdname=${next}; shift;;
 		   --save-downloaded) save_dl=1;;
 		-t|--type) 
 			img_type=${next};
@@ -512,6 +515,9 @@ else
 
 	junk="" img_id="";
 	ex_register_args[${#ex_register_args[@]}]="--arch=$arch"
+	[ -n "$rdname" ] &&
+		ex_register_args[${#ex_register_args[@]}]="--root-device-name=$rdname"
+		
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
 		${EC2PRE}register ${name:+--name "${name}"} \
 			"${ex_register_args[@]}" "${bucket}/${manifest}" &&
