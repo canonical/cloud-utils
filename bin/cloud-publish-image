@@ -79,7 +79,7 @@ cleanup() {
 debug() {
 	local level=${1}
 	shift;
-	[ "${level}" -ge "${VERBOSITY}" ] && return
+	[ "${level}" -gt "${VERBOSITY}" ] && return
 	error "$(date):" "${@}"
 }
 run() {
