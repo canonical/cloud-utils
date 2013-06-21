@@ -88,6 +88,8 @@ run() {
 	[ -e "${dir}/stamp.${pre}" ] &&
 		{ debug 1 "skipping ${pre}"; return 0; }
 	debug 1 "${msg}"
+	debug 2 "running:" "${@}"
+
 	echo "$@" > "${dir}/${pre}.cmd"
 	"$@" > "${dir}/${pre}.stdout" 2> "${dir}/${pre}.stderr" &&
 		: > "${dir}/stamp.${pre}" && return 0
