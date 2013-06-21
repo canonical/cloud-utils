@@ -212,6 +212,7 @@ dev_mapping=""
 image2raw=0
 raw_image=""
 hook_img=""
+arch_in_register=true
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
@@ -360,6 +361,11 @@ if [ "${name}" = "__unset__" ]; then
 		debug 1 "${EC2PRE}register seems not to support --name, not passing"
 		name=""
 	fi
+
+	# check 'register' for arch
+	if ! grep -q -- "--architecture" "${TMPD}/register-help.out"; then
+		arch_in_register="false"
+	fi
 	
 elif [ -z "${name}" -o "${name}" == "none" ]; then
 	# if user passed in '--name=""' or '--name=none", do not pass --name
@@ -505,6 +511,7 @@ else
 			fail "failed to upload bundle to ${bucket}/${manifest}"
 
 	junk="" img_id="";
+	ex_register_args[${#ex_register_args[@]}]="--arch=$arch"
 	run "${wdir}" "register" "register ${bucket}/${manifest}" \
 		${EC2PRE}register ${name:+--name "${name}"} \
 			"${ex_register_args[@]}" "${bucket}/${manifest}" &&
