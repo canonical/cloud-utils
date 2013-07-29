@@ -1,0 +1,95 @@
+.\" cloud-localds (1) manual page
+.\" Copyright (C) 2013 Thomas Bechtold <thomasbechtold@jpberlin.de>
+.\" License: GPL-3
+.\"
+
+.TH cloud-localds 1 "July 2013" cloud\-utils "cloud\-utils"
+.SH NAME
+cloud-localds \- create a disk for cloud-init to utilize nocloud
+.SH SYNOPSIS
+.B cloud-localds
+[options] output user-data [meta-data]
+
+.SH DESCRIPTION
+.B cloud-localds
+creates a disk-image with user-data and/or meta-data for
+.BR cloud-init (1).
+user-data can contain everything which is supported by
+.BR cloud-init (1)
+.
+.SH OPTIONS
+.TP
+.BR \-d ", " \-\-disk_format =\fIDISKFORMAT\fR
+Disk format to output. See
+.BR qemu-img (1)
+for allowed disk formats.
+Default is raw.
+
+.TP
+.BR \-f ", " \-\-filesystem =\fIFORMAT\fR
+Filesystem format. Allowed formats are vfat and iso.
+Default is iso9660.
+
+.TP
+.BR \-h ", " \-\-help
+Show usage.
+
+.TP
+.BR \-i ", " \-\-interfaces
+Write network interfaces file into metadata.
+
+.TP
+.BR \-m ", " \-\-dsmode =\fIMODE\fR
+Add dsmode to the metadata. Allowed are local or net.
+Default in
+.BR cloud-init (1)
+is net.
+
+.SH EXAMPLES
+This example creates a disk image with user-data which can be used to start a cloud image which supports
+.BR cloud-init (1).
+
+.IP "Create some user-data:"
+.IP
+.PP
+.nf
+.RS
+cat > my-user-data <<EOF
+password: passw0rd
+chpasswd: { expire: False }
+ssh_pwauth: True
+EOF
+.RE
+.fi
+.PP
+
+.IP "Create the disk image which contains the user-data:"
+.IP
+.PP
+.nf
+.RS
+cloud-localds my-seed.img my-user-data
+.RE
+.fi
+.PP
+
+.IP "Boot the cloud-image:"
+.IP
+.PP
+.nf
+.RS
+qemu -net nic -net user -hda cloud-image.img -hdb my-seed.img -m 512
+.RE
+.fi
+.PP
+cloud-image.img is a image which supports
+.BR cloud-init (1)
+during the boot process.
+
+.SH SEE ALSO
+.BR cloud-init (1),
+.BR qemu-img (1),
+.BR qemu (1)
+
+.SH AUTHOR
+This manpage was written by Thomas Bechtold <thomasbechtold@jpberlin.de> for Debian systems (but may be used by others). Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 3 published by the Free Software Foundation.
