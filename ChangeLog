@@ -5,6 +5,7 @@
    do not support that flag, and send output to stderr.
  - add 'vcs-run' utility for easily executing / bootstrapping
    from a version control system (hg, git, bzr)
+ - cloud-localds: add man page [Thomas Bechtold]
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
