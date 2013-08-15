@@ -143,8 +143,13 @@ case "$filesystem" in
 esac
 
 [ "$output" = "-" ] && output="$TEMP_D/final"
-qemu-img convert -f raw -O "$diskformat" "$img" "$output" ||
-	fail "failed to convert to disk format $diskformat"
+if [ "$diskformat" != "raw" ]; then
+	qemu-img convert -f raw -O "$diskformat" "$img" "$output" ||
+		fail "failed to convert to disk format $diskformat"
+else
+	cp "$img" "$output" ||
+		fail "failed to copy image to $output"
+fi
 
 [ "$output" != "$TEMP_D/final" ] || { cat "$output" && output="-"; } ||
 	fail "failed to write to -"

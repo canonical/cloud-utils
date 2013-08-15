@@ -6,6 +6,7 @@
  - add 'vcs-run' utility for easily executing / bootstrapping
    from a version control system (hg, git, bzr)
  - cloud-localds: add man page [Thomas Bechtold]
+ - cloud-localds: only use qemu-img convert if output format is not 'raw'
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
