@@ -4,11 +4,11 @@ VERBOSITY=0
 TEMP_D=""
 DEF_DISK_FORMAT="raw"
 DEF_FILESYSTEM="iso9660"
+CR="
+"
 
 error() { echo "$@" 1>&2; }
-errorp() { printf "$@" 1>&2; }
 fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
-failp() { [ $# -eq 0 ] || errorp "$@"; exit 1; }
 
 Usage() {
 	cat <<EOF
@@ -19,12 +19,16 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
    options:
      -h | --help            show usage
      -d | --disk-format D   disk format to output. default: raw
+     -H | --hostname    H   set hostname in metadata to H
      -f | --filesystem  F   filesystem format (vfat or iso), default: iso9660
 
      -i | --interfaces  F   write network interfaces file into metadata
      -m | --dsmode      M   add 'dsmode' ('local' or 'net') to the metadata
                             default in cloud-init is 'net', meaning network is
                             required.
+
+   Note, --dsmode, --hostname, and --interfaces are incompatible
+   with metadata.
 
    Example:
     * cat my-user-data
@@ -51,8 +55,8 @@ debug() {
 	error "${@}"
 }
 
-short_opts="hi:d:f:m:o:v"
-long_opts="disk-format:,dsmode:,filesystem:,help,interfaces:,output:,verbose"
+short_opts="hH:i:d:f:m:o:v"
+long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,output:,verbose"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -66,6 +70,7 @@ filesystem=$DEF_FILESYSTEM
 diskformat=$DEF_DISK_FORMAT
 interfaces=_unset
 dsmode=""
+hostname=""
 
 
 while [ $# -ne 0 ]; do
@@ -77,6 +82,7 @@ while [ $# -ne 0 ]; do
 		-f|--filesystem) filesystem=$next; shift;;
 		-m|--dsmode) dsmode=$next; shift;;
 		-i|--interfaces) interfaces=$next; shift;;
+		-H|--hostname) hostname=$next; shift;;
 		--) shift; break;;
 	esac
 	shift;
@@ -91,10 +97,12 @@ output=$1
 userdata=$2
 metadata=$3
 
-[ -n "$metadata" -a "${interfaces}" != "_unset" ] &&
-	fail "metadata and --interfaces are incompatible"
-[ -n "$metadata" -a -n "$dsmode" ] &&
-	fail "metadata and dsmode are incompatible"
+if [ -n "$metadata" ]; then
+	[ "$interfaces" = "_unset" -a -z "$dsmode" -a -z "$hostname" ] ||
+		fail "metadata is incompatible with:" \
+			"--interfaces, --hostname, --dsmode"
+fi
+
 [ "$interfaces" = "_unset" -o -r "$interfaces" ] ||
 	fail "$interfaces: not a readable file"
 
@@ -105,16 +113,21 @@ trap cleanup EXIT
 if [ -n "$metadata" ]; then
 	cp "$metadata" "$TEMP_D/meta-data" || fail "$metadata: failed to copy"
 else
+	instance_id="iid-local01"
 	iface_data=""
-	dsmode_data=""
 	[ "$interfaces" != "_unset" ] &&
-		iface_data=$(sed ':a;N;$!ba;s/\n/\\n/g' "$interfaces") &&
-		iface_data="\"interfaces\": '$iface_data'"
-	[ -n "$dsmode" ] && dsmode_data="\"dsmode\": \"$dsmode\""
+		iface_data=$(sed ':a;N;$!ba;s/\n/\\n/g' "$interfaces")
 
 	# write json formatted user-data (json is a subset of yaml)
-	printf "{\n%s\n%s\n%s\n}" "\"instance-id\": \"iid-local01\"" \
-		"${iface_data}" "${dsmode_data}" > "${TEMP_D}/meta-data"
+	mdata=""
+	for kv in "instance-id:$instance_id" "local-hostname:$hostname" \
+		"interfaces:${iface_data}" "dsmode:$dsmode"; do
+		key=${kv%%:*}
+		val=${kv#*:}
+		[ -n "$val" ] || continue
+		mdata="${mdata:+${mdata},${CR}}\"$key\": \"$val\""
+	done
+	printf "{\n%s\n}\n" "$mdata" > "${TEMP_D}/meta-data"
 fi
 
 if [ "$userdata" = "-" ]; then
