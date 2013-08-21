@@ -6,6 +6,10 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
     do not support that flag, and send output to stderr.
   * add 'vcs-run' utility for easily executing / bootstrapping
     from a version control system (hg, git, bzr)
+  * cloud-localds: add man page [Thomas Bechtold]
+  * cloud-localds: only use qemu-img convert if output format is not 'raw'
+  * cloud-localds: add '--hostname' flag to specify local-hostname in
+    meta-data.
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
