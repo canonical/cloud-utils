@@ -22,6 +22,13 @@ Usage: ${0##*/} [ options ] repo-url [command [arguments]]
                            supported: auto $SUPPORTED_VCS
       -v | --verbose       increase verbosity
       -D | --deps          attempt to install dependencies if necessary
+
+   Example:
+    * run 'stack.sh' in git://github.com/openstack-dev/devstack.git
+      vcs-run --deps git://github.com/openstack-dev/devstack.git stack.sh
+    * build cloud-utils 
+      vcs-run --deps lp:cloud-utils -- ./tools/build-deb -us -uc
+      
 EOF
 }
 
@@ -74,7 +81,11 @@ vcsget_bzr() {
 	fi
 	get_cmd bzr "$deps" bzr || return $RET_FAIL
 	if [ -z "$target" ]; then
-		tmp="${src##*/}"
+		case "$src" in
+			*/*) tmp="${src##*/}";;
+			*:*) tmp="${src#*:}";;
+			*)   tmp="$src"
+		esac
 		target="${tmp%.bzr}"
 	fi
 	local cmd="" q="--quiet"
