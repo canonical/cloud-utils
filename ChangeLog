@@ -9,6 +9,9 @@
  - cloud-localds: only use qemu-img convert if output format is not 'raw'
  - cloud-localds: add '--hostname' flag to specify local-hostname in
    meta-data.
+ - cloud-publish-image: add '--architecture' when using 'register'
+ - cloud-publish-image: improvements to -v (debugging)
+ - cloud-publish-image: pass through --root-device-name
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and

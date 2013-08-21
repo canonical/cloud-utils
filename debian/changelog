@@ -10,6 +10,9 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * cloud-localds: only use qemu-img convert if output format is not 'raw'
   * cloud-localds: add '--hostname' flag to specify local-hostname in
     meta-data.
+  * cloud-publish-image: add '--architecture' when using 'register'
+  * cloud-publish-image: improvements to '-v' (debugging)
+  * cloud-publish-image: pass through --root-device-name
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
