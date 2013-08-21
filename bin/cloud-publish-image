@@ -213,7 +213,6 @@ dev_mapping=""
 image2raw=0
 raw_image=""
 hook_img=""
-arch_in_register=true
 rdname=""
 
 while [ $# -ne 0 ]; do
@@ -365,11 +364,6 @@ if [ "${name}" = "__unset__" ]; then
 		name=""
 	fi
 
-	# check 'register' for arch
-	if ! grep -q -- "--architecture" "${TMPD}/register-help.out"; then
-		arch_in_register="false"
-	fi
-	
 elif [ -z "${name}" -o "${name}" == "none" ]; then
 	# if user passed in '--name=""' or '--name=none", do not pass --name
 	name=""
@@ -514,7 +508,7 @@ else
 			fail "failed to upload bundle to ${bucket}/${manifest}"
 
 	junk="" img_id="";
-	ex_register_args[${#ex_register_args[@]}]="--arch=$arch"
+	ex_register_args[${#ex_register_args[@]}]="--architecture=$arch"
 	[ -n "$rdname" ] &&
 		ex_register_args[${#ex_register_args[@]}]="--root-device-name=$rdname"
 		
