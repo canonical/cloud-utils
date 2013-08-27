@@ -15,6 +15,7 @@
  - cloud-run-instances: dropped (obsolete, not recommended)
  - dropped installation of (obsolete) ubuntu cloud-image keyring.
    See ubuntu package 'ubuntu-cloudimage-keyring'
+ - add mount-image-callback
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and

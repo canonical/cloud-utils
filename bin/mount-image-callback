@@ -1,0 +1,279 @@
+#!/bin/bash
+
+VERBOSITY=0
+TEMP_D=""
+UMOUNT=""
+QEMU_DISCONNECT=""
+
+error() { echo "$@" 1>&2; }
+
+Usage() {
+	cat <<EOF
+Usage: ${0##*/} [ options ] file cmd [ args ]
+
+   mount a file to a temporary mount point and then
+   invoke the provided cmd with args
+
+   the temporary mountpoint will be put in an a environment variable
+   named MOUNTPOINT.
+
+   if any of the arguments are the literal string '_MOUNTPOINT_', then
+   they will be replaced with the mount point. Example:
+      ${0##*/} my.img chroot _MOUNTPOINT_ /bin/sh
+
+   options:
+    -v | --verbose             increase verbosity
+         --read-only           use read-only mount.
+    -p | --proc                bind mount /proc
+    -s | --sys                 bind mount /sys
+    -d | --dev                 bind mount /dev
+         --system-mounts       bind mount /sys, /proc, /dev
+         --system-resolvconf   copy host's resolvconf into /etc/resolvconf
+EOF
+}
+
+# umount_r(mp) : unmount any filesystems under r
+#  this is useful to unmount a chroot that had sys, proc ... mounted
+umount_r() {
+	local p
+	for p in "$@"; do
+		[ -n "$p" ] || continue
+		tac /proc/mounts | sh -c '
+			p=$1
+			while read s mp t opt a b ; do
+				[ "${mp}" = "${p}" -o "${mp#${p}/}" != "${mp}" ] ||
+					continue
+				umount "$mp" || exit 1
+			done
+			exit 0' umount_r "${p%/}"
+		[ $? -eq 0 ] || return
+	done
+}
+
+bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
+cleanup() {
+	if [ -n "$UMOUNT" ]; then
+		umount_r "$UMOUNT" ||
+			error "WARNING: unmounting filesystems failed!"
+	fi
+	if [ -n "$QEMU_DISCONNECT" ]; then
+		local out=""
+		out=$(qemu-nbd --disconnect "$QEMU_DISCONNECT" 2>&1) || {
+			error "warning: failed: qemu-nbd --disconnect $QEMU_DISCONNECT"
+			error "$out"
+		}
+	fi
+	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] ||
+		rm --one-file-system -Rf "${TEMP_D}" ||
+		error "removal of temp dir failed!"
+}
+
+debug() {
+	local level="$1"; shift;
+	[ "${level}" -gt "${VERBOSITY}" ] && return
+	error "${@}"
+}
+
+mount_callback_umount() {
+	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
+	local opts="" bmounts="" system_resolvconf=false
+
+	short_opts="dhpsv"
+	long_opts="dev,help,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	getopt_out=$(getopt --name "${0##*/}" \
+		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+		eval set -- "${getopt_out}" ||
+		{ bad_Usage; return 1; }
+
+	while [ $# -ne 0 ]; do
+		cur=${1}; next=${2};
+		case "$cur" in
+			-d|--dev) bmounts="${bmounts:+${bmounts} /dev}";;
+			-h|--help) Usage ; exit 0;;
+			-p|--proc) bmounts="${bmounts:+${bmounts} /proc}";;
+			-s|--sys) bmounts="${bmounts:+${bmounts} /sys}";;
+			   --system-mounts) bmounts="/dev /proc /sys";;
+			   --system-resolvconf) system_resolvconf=true;;
+			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
+			   --opts) opts="${opts} $next"; shift;;
+			   --read-only) ro="ro";;
+			--) shift; break;;
+		esac
+		shift;
+	done
+
+	[ $# -ge 2 ] || { bad_Usage "must provide image and cmd"; return 1; }
+
+	[ -n "$ro" ] && $system_resolvconf && {
+		error "--read-only is incompatible with system-resolvconf";
+		return 1;
+	}
+
+	img_in="$1"
+	shift 1
+
+	img=$(readlink -f "$img_in") ||
+		{ error "failed to get full path to $img_in"; return 1; }
+
+	[ "$(id -u)" = "0" ] || 
+		{ error "sorry, must be root"; return 1; }
+
+	TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
+		{ error "failed to make tempdir"; return 1; }
+	trap cleanup EXIT
+
+	mp="${TEMP_D}/mp"
+
+	mkdir "$mp" || return
+
+	local cmd="" arg="" found=false
+	cmd=( )
+	for arg in "$@"; do
+		if [ "${arg}" = "_MOUNTPOINT_" ]; then
+			debug 1 "replaced string _MOUNTPOINT_ in arguments arg ${#cmd[@]}"
+			arg=$mp
+		fi
+		cmd[${#cmd[@]}]="$arg"
+	done
+
+	if [ "${cmd[0]##*/}" = "bash" -o "${cmd[0]##*/}" = "sh" ] &&
+	   [ ${#cmd[@]} -eq 0 ]; then
+		debug 1 "invoking shell ${cmd[0]}"
+		error "MOUNTPOINT=$mp"
+	fi
+
+	local hasqemu=false
+	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
+
+	if out=$(set -f; mount -o loop${ro:+,$ro} $opts \
+	         "$img" "$mp" 2>&1); then
+		debug 1 "mounted simple filesystem image '$img_in'"
+		UMOUNT="$mp"
+	else
+		if ! $hasqemu; then
+			error "simple mount of '$img_in' failed."
+			error "if this not a raw image, or it is partitioned"
+			error "you must have qemu-nbd (apt-get install qemu-utils)"
+			error "mount failed with: $out"
+			return 1
+		fi
+	fi
+
+	if [ -z "$UMOUNT" ]; then
+		if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
+			debug 1 "trying to load nbd module"
+			modprobe nbd >/dev/null 2>&1
+			udevadm settle >/dev/null 2>&1
+		fi
+		[ -e /sys/block/nbd0 ] || {
+			error "no nbd kernel support, but simple mount failed"
+			return 1;
+		}
+
+		local f nbd=""
+		for f in /sys/block/nbd*; do
+			[ -d "$f" -a ! -f "$f/pid" ] && nbd=${f##*/} && break
+		done
+		if [ -z "$nbd" ]; then
+			error "failed to find an nbd device"
+			return 1;
+		fi
+		nbd="/dev/$nbd"
+
+		if ! qemu-nbd --connect "$nbd" "$img"; then
+			error "failed to qemu-nbd connect $img to $nbd"
+			return 1
+		fi
+		QEMU_DISCONNECT="$nbd"
+
+		local pfile="/sys/block/${nbd#/dev/}/pid"
+		if [ ! -f "$pfile" ]; then
+			debug 1 "waiting on pidfile for $nbd in $pfile"
+			local i=0
+			while [ ! -f "$pfile" ] && i=$(($i+1)); do
+				if [ $i -eq 200 ]; then
+					error "giving up on pidfile $pfile for $nbd"
+					return 1
+				fi
+				sleep .1
+				debug 2 "."
+			done
+		fi
+
+		debug 1 "connected $img_in to $nbd. now udev-settling"
+		udevadm settle >/dev/null 2>&1
+
+		local mdev="$nbd"
+		if [ -b "${nbd}p1" ]; then
+			mdev="${nbd}p1"
+		fi
+		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$mp" ) &&
+			UMOUNT="$mp"; then
+			debug 1 "mounted $mdev via qemu-nbd $nbd"
+		else
+			local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
+			{ read pid < "$pfile" ; } >/dev/null 2>&1
+			[ -n "$pid" -a ! -d "/proc/$pid" ] ||
+				error "qemu-nbd process seems to have died. was '$pid'"
+
+			qemu-nbd --disconnect "$nbd" && QEMU_DISCONNECT=""
+			error "failed to mount $mdev"
+			return 1
+		fi
+
+	fi
+
+	local bindmp=""
+	for bindmp in $bmounts; do
+		[ -d "$mp${bindmp}" ] || mkdir "$mp${bindmp}" ||
+			{ error "failed mkdir $bindmp in mount"; return 1; }
+		mount --bind "$bindmp" "$mp/${bindmp}" ||
+			{ error "failed bind mount '$bindmp'"; return 1; }
+	done
+
+	if ${system_resolvconf}; then
+		local rcf="$mp/etc/resolv.conf"
+		debug 1 "replacing /etc/resolvconf"
+		if [ -e "$rcf" -o -L "$rcf" ]; then
+			local trcf="$rcf.${0##*/}.$$"
+			rm -f "$trcf" &&
+				mv "$rcf" "$trcf" && ORIG_RESOLVCONF="$trcf" ||
+				{ error "failed mv $rcf"; return 1; }
+		fi
+		cp "/etc/resolv.conf" "$rcf" ||
+			{ error "failed copy /etc/resolv.conf"; return 1; }
+	fi
+
+	debug 1 "invoking: MOUNTPOINT=$mp" "${cmd[@]}"
+	MOUNTPOINT="$mp" "${cmd[@]}"
+	ret=$?
+
+	if ${system_resolvconf}; then
+		local rcf="$mp/etc/resolv.conf"
+		cmp --quiet "/etc/resolv.conf" "$rcf" >/dev/null ||
+			error "WARN: /etc/resolv.conf changed in image!"
+		rm "$rcf" &&
+			{ [ -z "$ORIG_RESOLVCONF" ] || mv "$ORIG_RESOLVCONF" "$rcf"; } ||
+			{ error "failed to restore /etc/resolv.conf"; return 1; }
+	fi
+
+	debug 1 "cmd returned $ret. unmounting $mp"
+	umount_r "$mp" || { error "failed umount $img"; return 1; }
+	UMOUNT=""
+	rmdir "$mp"
+
+	if [ -n "$QEMU_DISCONNECT" ]; then
+		local out=""
+		out=$(qemu-nbd --disconnect "$QEMU_DISCONNECT" 2>&1) &&
+			QEMU_DISCONNECT="" || {
+				error "failed to disconnect $QEMU_DISCONNECT";
+				error "$out"
+				return 1;
+		}
+	fi
+	return $ret
+}
+
+mount_callback_umount "$@"
+
+# vi: ts=4 noexpandtab
