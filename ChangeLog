@@ -12,6 +12,9 @@
  - cloud-publish-image: add '--architecture' when using 'register'
  - cloud-publish-image: improvements to -v (debugging)
  - cloud-publish-image: pass through --root-device-name
+ - cloud-run-instances: dropped (obsolete, not recommended)
+ - dropped installation of (obsolete) ubuntu cloud-image keyring.
+   See ubuntu package 'ubuntu-cloudimage-keyring'
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
