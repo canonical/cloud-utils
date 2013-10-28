@@ -17,6 +17,7 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * remove ubuntu-cloud-keyring (replaced in ubuntu by
     ubuntu-cloudimage-keyring)
   * mount-image-callback: add utility
+  * cloud-localds: make quiet by default (increase verbosity with '-v')
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 

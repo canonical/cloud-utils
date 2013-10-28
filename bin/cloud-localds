@@ -26,6 +26,7 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
      -m | --dsmode      M   add 'dsmode' ('local' or 'net') to the metadata
                             default in cloud-init is 'net', meaning network is
                             required.
+     -v | --verbose         increase verbosity
 
    Note, --dsmode, --hostname, and --interfaces are incompatible
    with metadata.
@@ -167,5 +168,5 @@ fi
 [ "$output" != "$TEMP_D/final" ] || { cat "$output" && output="-"; } ||
 	fail "failed to write to -"
 
-error "wrote ${output} with filesystem=$filesystem and diskformat=$diskformat"
+debug 1 "wrote ${output} with filesystem=$filesystem and diskformat=$diskformat"
 # vi: ts=4 noexpandtab

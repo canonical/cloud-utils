@@ -16,6 +16,7 @@
  - dropped installation of (obsolete) ubuntu cloud-image keyring.
    See ubuntu package 'ubuntu-cloudimage-keyring'
  - add mount-image-callback
+ - cloud-localds: make quiet by default (increase verbosity with '-v')
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
