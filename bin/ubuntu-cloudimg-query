@@ -249,7 +249,13 @@ ami=$(awk '-F\t' \
 	$6 == arch && $7 == region && $11 == ptype { print $8 }' \
 	"release=$release" "bname=${bname}" \
 	"store=$store" "arch=$arch" "region=$region" "ptype=$ptype" \
-	"${ec2_curf}") && [ -n "$ami" ] || fail "failed to find ami"
+	"${ec2_curf}")
+
+if [ -z "$ami" ]; then
+	amifmt="%{ami}"
+	[ "$format" = "${format#*${amifmt}}" ] ||
+		fail "no matching ami id found, but '%{ami}' in output format"
+fi
 
 case "$arch:$store:$ptype" in
 	*:hvm) itypes_all="${itypes_hvm}";;

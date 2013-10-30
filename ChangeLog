@@ -17,6 +17,8 @@
    See ubuntu package 'ubuntu-cloudimage-keyring'
  - add mount-image-callback
  - cloud-localds: make quiet by default (increase verbosity with '-v')
+ - ubuntu-cloudimg-query: do not fail on no ami id found if no ami id is
+   necessary for the output requested (ie, allow 'armhf' queries of url)
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
