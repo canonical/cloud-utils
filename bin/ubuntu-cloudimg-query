@@ -169,7 +169,9 @@ for i in "$@"; do
 		rel*) stream="released";;
 		daily) stream=${i};;
 		server|desktop) bname=${i};;
-		i386|amd64|x86_64) arch=${i}; [ "${i}" = "x86_64" ] && arch="amd64";;
+		i386|amd64|x86_64|armhf)
+			arch=${i};
+			[ "${i}" = "x86_64" ] && arch="amd64";;
 		*-*-[0-9]) region=${i};;
 		ebs) store="$i";;
 		instance|instance-store) store="instance-store";;
