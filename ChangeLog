@@ -19,6 +19,7 @@
  - cloud-localds: make quiet by default (increase verbosity with '-v')
  - ubuntu-cloudimg-query: do not fail on no ami id found if no ami id is
    necessary for the output requested (ie, allow 'armhf' queries of url)
+ - growpart: fix bug when growing partitions on disks > 2TB. (LP: #1259703)
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and

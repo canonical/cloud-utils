@@ -160,6 +160,7 @@ mbr_resize() {
 	local dump_mod=${TEMP_D}/dump.mod
 	local tmp="${TEMP_D}/tmp.out"
 	local err="${TEMP_D}/err.out"
+	local mbr_max_512="4294967296"
 
 	local _devc cyl _w1 heads _w2 sectors _w3 tot dpart
 	local pt_start pt_size pt_end max_end new_size change_info
@@ -174,6 +175,9 @@ mbr_resize() {
 	tot=$((${cyl}*${heads}*${sectors}))
 
 	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
+	[ "$tot" -gt "$mbr_max_512" ] &&
+		debug 1 "WARN: disk is larger than 2TB. additional space will go unused."
+
 	rqe sfd_dump sfdisk ${MBR_CHS} --unit=S --dump "${DISK}" \
 		>"${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
@@ -216,6 +220,10 @@ mbr_resize() {
 		min=${tot} pt_end=${pt_end} "${dump_mod}") &&
 		[ -n "${max_end}" ] ||
 		fail "failed to get max_end for partition ${PART}"
+
+	if [ "$max_end" -gt "$mbr_max_512" ]; then
+		max_end=$mbr_max_512;
+	fi
 
 	debug 1 "max_end=${max_end} tot=${tot} pt_end=${pt_end}" \
 		"pt_start=${pt_start} pt_size=${pt_size}"
