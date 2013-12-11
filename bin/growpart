@@ -523,6 +523,8 @@ pt_update() {
 	if ! $update; then
 		return 0
 	fi
+	# partx only works on block devices (do not run on file)
+	[ -b "$dev" ] || return 0
 	partx --update "$part" "$dev"
 }
 
