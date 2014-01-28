@@ -169,7 +169,7 @@ for i in "$@"; do
 		rel*) stream="released";;
 		daily) stream=${i};;
 		server|desktop) bname=${i};;
-		i386|amd64|x86_64|armhf)
+		i386|amd64|x86_64|armhf|ppc64el)
 			arch=${i};
 			[ "${i}" = "x86_64" ] && arch="amd64";;
 		*-*-[0-9]) region=${i};;
