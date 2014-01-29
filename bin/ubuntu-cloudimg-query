@@ -5,7 +5,8 @@ TEMP_D=""
 NAME="ubuntu-cloudimg-query"
 DOT_D="$HOME/.$NAME"
 CACHE_D="$HOME/.cache/$NAME"
-KNOWN_RELEASES="hardy karmic lucid maverick natty oneiric precise quantal raring";
+KNOWN_RELEASES="hardy karmic lucid maverick natty oneiric precise quantal
+	raring trusty";
 cachelife=86400
 
 error() { echo "$@" 1>&2; }

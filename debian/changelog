@@ -23,6 +23,7 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * growpart: fix bug when growing partitions on disks > 2TB. (LP: #1259703)
   * growpart: run partx only on block devices (not files)
   * ubuntu-cloudimg-query: allow 'ppc64el' as input. (LP: #1273769)
+  * ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
