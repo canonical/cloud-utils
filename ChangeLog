@@ -23,6 +23,7 @@
  - growpart: run partx only on block devices (not files)
  - ubuntu-cloudimg-query: allow 'ppc64el', 'arm64' as input. (LP: #1273769)
  - ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
+ - ubuntu-cloudimg-query: add '--arch' to specifically state the arch.
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
