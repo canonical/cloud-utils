@@ -21,7 +21,7 @@
    necessary for the output requested (ie, allow 'armhf' queries of url)
  - growpart: fix bug when growing partitions on disks > 2TB. (LP: #1259703)
  - growpart: run partx only on block devices (not files)
- - ubuntu-cloudimg-query: allow 'ppc64el' as input. (LP: #1273769)
+ - ubuntu-cloudimg-query: allow 'ppc64el', 'arm64' as input. (LP: #1273769)
  - ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
 
 0.27

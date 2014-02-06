@@ -24,6 +24,7 @@ Usage: ${0##*/} [ options ] criteria
       -o | --output FILE    output to file rather than stdout
       -f | --format format  change output to 'format'.
                             default: '%{ami}\n'
+           --arch   ARCH    use the specified arch
 
    Examples:
    - get the latest ami matching default criteria for release 'n'
@@ -123,7 +124,7 @@ getreleases() {
 }
 
 short_opts="f:ho:v"
-long_opts="format:,help,no-cache,output:,verbose"
+long_opts="arch:,format:,help,no-cache,output:,verbose"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -151,6 +152,7 @@ itypes_ebs_only="t1.micro m3.xlarge m3.2xlarge"
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
+           --arch) arch="$next"; shift;;
 		-h|--help) Usage ; exit 0;;
 		-f|--format) format=${2}; shift;;
 		-o|--output) output=${2}; shift;;
@@ -170,7 +172,7 @@ for i in "$@"; do
 		rel*) stream="released";;
 		daily) stream=${i};;
 		server|desktop) bname=${i};;
-		i386|amd64|x86_64|armhf|ppc64el)
+		i386|amd64|x86_64|armhf|ppc64el|arm64)
 			arch=${i};
 			[ "${i}" = "x86_64" ] && arch="amd64";;
 		*-*-[0-9]) region=${i};;
