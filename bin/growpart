@@ -374,6 +374,8 @@ gpt_resize() {
 		fail "${dev}: failed to parse sgdisk details"
 
 	debug 1 "${dev}: code=${code} guid=${guid} name='${name}'"
+	local wouldrun=""
+	[ "$DRY_RUN" -ne 0 ] && wouldrun="would-run"
 
 	# Calculate the new size of the partition
 	new_size=$((${pt_max} - ${pt_start}))
@@ -381,11 +383,8 @@ gpt_resize() {
 	new="new: size=${new_size},end=${pt_max}"
 	change_info="${dev}: start=${pt_start} ${old} ${new}"
 	
-	# Dry run
-	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
-
 	# Backup the current partition table, we're about to modify it
-	rq sgd_backup sgdisk "--backup=${GPT_BACKUP}" "${DISK}" ||
+	rq sgd_backup $wouldrun sgdisk "--backup=${GPT_BACKUP}" "${DISK}" ||
 		fail "${dev}: failed to backup the partition table"
 
 	# Modify the partition table. We do it all in one go (the order is
@@ -396,15 +395,18 @@ gpt_resize() {
 	#  - set the partition code
 	#  - set the partition GUID
 	#  - set the partition name
-	rq sgdisk_mod sgdisk --move-second-header "--delete=${PART}" \
+	rq sgdisk_mod $wouldrun sgdisk --move-second-header "--delete=${PART}" \
 		"--new=${PART}:${pt_start}:${pt_max}" \
 		"--typecode=${PART}:${code}" \
 		"--partition-guid=${PART}:${guid}" \
 		"--change-name=${PART}:${name}" "${DISK}" &&
-		rq pt_update pt_update "$DISK" "$PART" || {
+		rq pt_update $wouldrun pt_update "$DISK" "$PART" || {
 		RESTORE_FUNC=gpt_restore
 		fail "${dev}: failed to repartition"
 	}
+
+	# Dry run
+	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
 
 	changed "${change_info}"
 }
@@ -435,7 +437,20 @@ rq() {
 	local label="$1" ret="" efile=""
 	efile="$TEMP_D/$label.err"
 	shift;
-	debug 2 "running[$label][$_capture]" "$@"
+
+	local rlabel="running"
+	[ "$1" = "would-run" ] && rlabel="would-run" && shift
+
+	local cmd="" x=""
+	for x in "$@"; do
+		[ "${x#* }" != "$x" -o "${x#* \"}" != "$x" ] && x="'$x'"
+		cmd="$cmd $x"
+	done
+	cmd=${cmd# }
+
+	debug 2 "$rlabel[$label][$_capture]" "$cmd"
+	[ "$rlabel" = "would-run" ] && return 0
+
 	if [ "${_capture}" = "erronly" ]; then
 		"$@" 2>"$TEMP_D/$label.err"
 		ret=$?

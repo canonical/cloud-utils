@@ -24,6 +24,8 @@
  - ubuntu-cloudimg-query: allow 'ppc64el', 'arm64' as input. (LP: #1273769)
  - ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
  - ubuntu-cloudimg-query: add '--arch' to specifically state the arch.
+ - growpart: better --dry-run output for gpt disks, providing sgdisk command
+   line that would be used.
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
