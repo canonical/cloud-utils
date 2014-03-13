@@ -27,6 +27,7 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * ubuntu-cloudimg-query: add '--arch' to specifically state the arch.
   * growpart: better --dry-run output for gpt disks, providing sgdisk command
     line that would be used.
+  * ubuntu-ec2-run: know about more instance types
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 

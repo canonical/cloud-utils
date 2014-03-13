@@ -76,6 +76,42 @@ aliases = [
   "hvm", "paravirtual", "pv",
 ]
 
+SSD = "ssd"
+SPIN = "spin"
+
+# cleaned from http://aws.amazon.com/ec2/instance-types/
+# (vcpu, compute-units, mem, disknum, disksize, diskback)
+SIZE_DATA = {
+    'm3.medium': (1,3,3.75,1,4,SSD),
+    'm3.large': (2,6.5,7.5,1,32,SSD),
+    'm3.xlarge': (4,13,15,2,40,SSD),
+    'm3.2xlarge': (8,26,30,2,80,SSD),
+    'm1.small': (1,1,1.7,1,160,SPIN),
+    'm1.medium': (1,2,3.75,1,410,SPIN),
+    'm1.large': (2,4,7.5,2,420,SPIN),
+    'm1.xlarge': (4,8,15,4,420,SPIN),
+    'c3.large': (2,7,3.75,2,16,SSD),
+    'c3.xlarge': (4,14,7.5,2,40,SSD),
+    'c3.2xlarge': (8,28,15,2,80,SSD),
+    'c3.4xlarge': (16,55,30,2,160,SSD),
+    'c3.8xlarge': (32,108,60,2,320,SSD),
+    'c1.medium': (2,5,1.7,1,350,SPIN),
+    'c1.xlarge': (8,20,7,4,420,SPIN),
+    'cc2.8xlarge': (32,88,60.5,4,840,SPIN),
+    'g2.2xlarge': (8,26,15,1,60,SSD),
+    'cg1.4xlarge': (16,33.5,22.5,2,840,SPIN),
+    'm2.xlarge': (2,6.5,17.1,1,420,SPIN),
+    'm2.2xlarge': (4,13,34.2,1,850,SPIN),
+    'm2.4xlarge': (8,26,68.4,2,840,SPIN),
+    'cr1.8xlarge': (32,88,244,2,120,SSD),
+    'i2.xlarge': (4,14,30.5,1,800,SSD),
+    'i2.2xlarge': (8,27,61,2,800,SSD),
+    'i2.4xlarge': (16,53,122,4,800,SSD),
+    'i2.8xlarge': (32,104,244,8,800,SSD),
+    'hs1.8xlarge': (16,35,117,2,2048,SPIN),
+    'hi1.4xlarge': (16,35,60.5,2,1024,SSD),
+    't1.micro': (1,.1,0.615,0x0,None),
+}
 
 def get_argopt(args, optnames):
     ret = None
@@ -101,27 +137,13 @@ def get_argopt(args, optnames):
 
 
 def get_block_device_mappings(itype):
-    # cleaned from http://aws.amazon.com/ec2/instance-types/
-    # t1.micro        0   # m1.large      850   # cg1.4xlarge  1690
-    # m1.small      160   # m2.2xlarge    850   # m1.xlarge    1690
-    # c1.medium     350   # c1.xlarge    1690   # m2.4xlarge   1690
-    # m1.medium     410   # cc1.4xlarge  1690   # hi1.4xlarge  2048
-    # m2.xlarge     420   # cc1.4xlarge  1690   # cc2.8xlarge  3370
-    # m3.xlarge       0
-    # m3.2xlarge      0
     bdmaps = []
-    if (itype in ("t1.micro", "m1.small", "c1.medium") or
-        itype.startswith("m3.")):
-        pass  # the first one is always attached. ephemeral0=sda2
-    elif itype in ("m2.xlarge", "m1.medium"):
-        bdmaps = ["/dev/sdb=ephemeral0"]
-    elif (itype in ("m1.large", "m2.2xlarge", "hi1.4xlarge") or
-          itype.startswith("cg1.") or itype.startswith("cc1.")):
-        bdmaps = ["/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1"]
-    elif (itype in ("m1.xlarge", "m2.4xlarge", "c1.xlarge") or
-          itype.startswith("cc2.8xlarge")):
-        bdmaps = ["sdb=ephemeral0", "sdc=ephemeral1",
-                  "sdd=ephemeral2", "sde=ephemeral3"]
+    allmaps = ["/dev/sdb=ephemeral0", "/dev/sdc=ephemeral1",
+               "/dev/sdd=ephemeral2", "/dev/sde=ephemeral3"]
+    if itype in SIZE_DATA:
+        (vcpu, ec2, mem, disknum, disksize, diskback) = SIZE_DATA[itype]
+        bdmaps = allmaps[0:disknum]
+
     args = []
     for m in bdmaps:
         args.extend(("--block-device-mapping", m,))
