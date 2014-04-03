@@ -88,10 +88,10 @@ mount_callback_umount() {
 	while [ $# -ne 0 ]; do
 		cur=${1}; next=${2};
 		case "$cur" in
-			-d|--dev) bmounts="${bmounts:+${bmounts} /dev}";;
+			-d|--dev) bmounts="${bmounts:+${bmounts} }/dev";;
 			-h|--help) Usage ; exit 0;;
-			-p|--proc) bmounts="${bmounts:+${bmounts} /proc}";;
-			-s|--sys) bmounts="${bmounts:+${bmounts} /sys}";;
+			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
+			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
 			   --system-mounts) bmounts="/dev /proc /sys";;
 			   --system-resolvconf) system_resolvconf=true;;
 			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
