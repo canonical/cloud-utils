@@ -110,7 +110,7 @@ SIZE_DATA = {
     'i2.8xlarge': (32,104,244,8,800,SSD),
     'hs1.8xlarge': (16,35,117,2,2048,SPIN),
     'hi1.4xlarge': (16,35,60.5,2,1024,SSD),
-    't1.micro': (1,.1,0.615,0x0,None),
+    't1.micro': (1,.1,0.615,0,0,None),
 }
 
 def get_argopt(args, optnames):
