@@ -24,6 +24,7 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
    options:
     -v | --verbose             increase verbosity
          --read-only           use read-only mount.
+    -P | --partition PARTNUM   mount partition PARTNUM (default 1)
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
     -d | --dev                 bind mount /dev
@@ -76,10 +77,10 @@ debug() {
 
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
-	local opts="" bmounts="" system_resolvconf=false
+	local opts="" bmounts="" system_resolvconf=false ptnum=1
 
-	short_opts="dhpsv"
-	long_opts="dev,help,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	short_opts="dhPpsv"
+	long_opts="dev,help,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
@@ -90,6 +91,7 @@ mount_callback_umount() {
 		case "$cur" in
 			-d|--dev) bmounts="${bmounts:+${bmounts} }/dev";;
 			-h|--help) Usage ; exit 0;;
+			-P|--partition) ptnum=$next;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
 			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
 			   --system-mounts) bmounts="/dev /proc /sys";;
@@ -204,8 +206,8 @@ mount_callback_umount() {
 		udevadm settle >/dev/null 2>&1
 
 		local mdev="$nbd"
-		if [ -b "${nbd}p1" ]; then
-			mdev="${nbd}p1"
+		if [ -b "${nbd}p${ptnum}" ]; then
+			mdev="${nbd}p${ptnum}"
 		fi
 		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$mp" ) &&
 			UMOUNT="$mp"; then

@@ -27,6 +27,7 @@
  - growpart: better --dry-run output for gpt disks, providing sgdisk command
    line that would be used.
  - ubuntu-ec2-run: know about more instance types
+ - mount-image-callback: add '--partition' flag to mount other than first
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
