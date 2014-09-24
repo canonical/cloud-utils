@@ -54,6 +54,11 @@ umount_r() {
 bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
 cleanup() {
 	if [ -n "$UMOUNT" ]; then
+		local mydir="$PWD/"
+		[ "${mydir#${UMOUNT}/}" != "${mydir}" ] && {
+			error "WARNING: leaving '$mydir' to unmount $UMOUNT";
+			cd /
+		}
 		umount_r "$UMOUNT" ||
 			error "WARNING: unmounting filesystems failed!"
 	fi
@@ -78,9 +83,10 @@ debug() {
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=1
+	local cd_mountpoint=false
 
-	short_opts="dhPpsv"
-	long_opts="dev,help,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	short_opts="CdhPpsv"
+	long_opts="cd-mountpoint,dev,help,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
@@ -89,6 +95,7 @@ mount_callback_umount() {
 	while [ $# -ne 0 ]; do
 		cur=${1}; next=${2};
 		case "$cur" in
+			-C|--cd-mountpoint) cd_mountpoint=true;;
 			-d|--dev) bmounts="${bmounts:+${bmounts} }/dev";;
 			-h|--help) Usage ; exit 0;;
 			-P|--partition) ptnum=$next;;
@@ -246,9 +253,13 @@ mount_callback_umount() {
 			{ error "failed copy /etc/resolv.conf"; return 1; }
 	fi
 
+	local startwd="$PWD"
 	debug 1 "invoking: MOUNTPOINT=$mp" "${cmd[@]}"
+
+	${cd_mountpoint} && cd "$mp"
 	MOUNTPOINT="$mp" "${cmd[@]}"
 	ret=$?
+	cd "$startwd"
 
 	if ${system_resolvconf}; then
 		local rcf="$mp/etc/resolv.conf"
