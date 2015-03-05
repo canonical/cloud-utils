@@ -67,8 +67,17 @@ Options:
 import sys
 import time
 import getopt
-import urllib.request, urllib.error, urllib.parse
 import socket
+try:
+    from urllib import request as urllib_request
+    from urllib import error as urllib_error
+    from urllib import parse as urllib_parse
+except ImportError as e:
+    # python2
+    import urllib2 as urllib_request
+    import urllib2 as urllib_error
+    import urlparse as urllib_parse
+
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
@@ -89,7 +98,7 @@ class EC2Metadata:
     def __init__(self, burl=instdata_url):
         self.burl = burl
 
-        s = urllib.parse.urlsplit(burl)
+        s = urllib_parse.urlsplit(burl)
         addr = s.netloc.split(":")[0]
         port = s.port
         if s.port is None:
@@ -114,9 +123,9 @@ class EC2Metadata:
     def _get(self, uri):
         url = "%s/%s" % (self.burl, uri)
         try:
-            resp = urllib.request.urlopen(urllib.request.Request(url))
+            resp = urllib_request.urlopen(urllib_request.Request(url))
             value = resp.read().decode()
-        except urllib.error.HTTPError as e:
+        except urllib_error.HTTPError as e:
             if e.code == 404:
                 return None
             # Eucalyptus may raise a 500 (Internal Server Error)
@@ -180,10 +189,12 @@ def display(metaopts, burl, prefix=False):
 def usage(s=None):
     """display usage and exit"""
 
+    msg = ""
     if s:
-        print("Error:", s, file=sys.stderr)
-    print("Syntax: %s [options]" % sys.argv[0], file=sys.stderr)
-    print(__doc__, file=sys.stderr)
+        msg = "Error: %s\n" % s
+    msg += "Syntax: %s [options]\n" % sys.argv[0]
+    msg += __doc__
+    sys.stderr.write(msg + "\n")
     sys.exit(1)
 
 
