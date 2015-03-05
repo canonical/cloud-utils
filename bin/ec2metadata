@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #    Query and display EC2 metadata related to the AMI instance
 #    Copyright (c) 2009 Canonical Ltd. (Canonical Contributor Agreement 2.5)
@@ -67,9 +67,8 @@ Options:
 import sys
 import time
 import getopt
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import socket
-import urlparse
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
@@ -90,7 +89,7 @@ class EC2Metadata:
     def __init__(self, burl=instdata_url):
         self.burl = burl
 
-        s = urlparse.urlsplit(burl)
+        s = urllib.parse.urlsplit(burl)
         addr = s.netloc.split(":")[0]
         port = s.port
         if s.port is None:
@@ -107,7 +106,7 @@ class EC2Metadata:
                 s.connect((addr, port))
                 s.close()
                 return True
-            except socket.error, e:
+            except socket.error as e:
                 time.sleep(1)
 
         return False
@@ -115,9 +114,9 @@ class EC2Metadata:
     def _get(self, uri):
         url = "%s/%s" % (self.burl, uri)
         try:
-            resp = urllib2.urlopen(urllib2.Request(url))
-            value = resp.read()
-        except urllib2.HTTPError as e:
+            resp = urllib.request.urlopen(urllib.request.Request(url))
+            value = resp.read().decode()
+        except urllib.error.HTTPError as e:
             if e.code == 404:
                 return None
             # Eucalyptus may raise a 500 (Internal Server Error)
@@ -173,18 +172,18 @@ def display(metaopts, burl, prefix=False):
             value = "unavailable"
 
         if prefix:
-            print "%s: %s" % (metaopt, value)
+            print("%s: %s" % (metaopt, value))
         else:
-            print value
+            print(value)
 
 
 def usage(s=None):
     """display usage and exit"""
 
     if s:
-        print >> sys.stderr, "Error:", s
-    print >> sys.stderr, "Syntax: %s [options]" % sys.argv[0]
-    print >> sys.stderr, __doc__
+        print("Error:", s, file=sys.stderr)
+    print("Syntax: %s [options]" % sys.argv[0], file=sys.stderr)
+    print(__doc__, file=sys.stderr)
     sys.exit(1)
 
 
@@ -196,7 +195,7 @@ def main():
         getopt_metaopts.append('help')
         getopt_metaopts.append('url=')
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
-    except getopt.GetoptError, e:
+    except getopt.GetoptError as e:
         usage(e)
 
     burl = instdata_url
