@@ -2,7 +2,7 @@ Source: cloud-utils
 Section: admin
 Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: cdbs, debhelper (>= 7), python-all (>= 2.6)
+Build-Depends: cdbs, debhelper (>= 7), python3-all
 XS-Python-Version: >= 2.6
 Standards-Version: 3.9.4
 
@@ -13,12 +13,12 @@ Depends: ca-certificates,
          euca2ools,
          file,
          genisoimage,
-         python,
+         python3,
          qemu-utils,
          util-linux (>= 2.17.2),
          wget,
          ${misc:Depends}
-Recommends: distro-info, python-distro-info, gdisk
+Recommends: distro-info, gdisk
 Suggests: mtools
 Description: cloud image management utilities
  This package provides a useful set of utilities for managing cloud
