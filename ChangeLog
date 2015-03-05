@@ -28,6 +28,7 @@
    line that would be used.
  - ubuntu-ec2-run: know about more instance types
  - mount-image-callback: add '--partition' flag to mount other than first
+ - ec2metadata, ubuntu-ec2-run, write-mime-multipart: move to python3
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
