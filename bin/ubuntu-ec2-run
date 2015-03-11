@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #    ubuntu-ec2-run: ec2-run-instances that support human readable
 #                    aliases for AMI's
@@ -65,7 +65,6 @@ import os
 import string
 import subprocess
 import sys
-import urllib2
 
 # This could/should use `distro-info --supported`
 aliases = [
@@ -177,7 +176,7 @@ query_cmd = ["ubuntu-cloudimg-query",
 # otherwise, fall back to our builtin list of releases
 try:
     out = subprocess.check_output(["ubuntu-distro-info", "--all"])
-    all_rels = out.strip().split("\n")
+    all_rels = out.decode().strip().split("\n")
     releases = []
     seen_lucid = False
     for r in all_rels:
@@ -221,7 +220,7 @@ cmd = cmd[1:]
 
 try:
     (ami, itype, summary, store, endl) = \
-        subprocess.check_output(query_cmd).split("\n")
+        subprocess.check_output(query_cmd).decode().split("\n")
     if endl.strip():
         sys.stderr.write("Unexpected output of command:\n  %s" % cmd)
 except subprocess.CalledProcessError as e:
@@ -242,7 +241,7 @@ ri_cmd.append(ami)
 
 sys.stderr.write("# %s\n" % summary)
 if dry_run:
-    print ' '.join(ri_cmd)
+    print(' '.join(ri_cmd))
 else:
     os.execvp(ri_cmd[0], ri_cmd)
 ###############################################################################

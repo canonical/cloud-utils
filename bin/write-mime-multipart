@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # largely taken from python examples
 # http://docs.python.org/library/email-examples.html
 
@@ -27,13 +27,13 @@ starts_with_mappings = {
 
 
 def get_type(fname, deftype):
-    f = file(fname, "rb")
-    line = f.readline()
+    f = open(fname, "rb")
+    line = f.readline().decode()
     f.close()
     rtype = deftype
 
     # slist is sorted longest first
-    slist = sorted(starts_with_mappings.keys(), key=lambda e: 0 - len(e))
+    slist = sorted(list(starts_with_mappings.keys()), key=lambda e: 0 - len(e))
     for sstr in slist:
         if line.startswith(sstr):
             rtype = starts_with_mappings[sstr]
@@ -96,14 +96,14 @@ def main():
     if options.output is "-":
         ofile = sys.stdout
     else:
-        ofile = file(options.output, "wb")
+        ofile = open(options.output, "wb")
 
     if options.compress:
         gfile = gzip.GzipFile(fileobj=ofile, filename=options.output)
-        gfile.write(outer.as_string())
+        gfile.write(outer.as_string().encode())
         gfile.close()
     else:
-        ofile.write(outer.as_string())
+        ofile.write(outer.as_string().encode())
 
     ofile.close()
 
