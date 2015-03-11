@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from optparse import OptionParser
 import gzip
+import six
 
 COMMASPACE = ', '
 
@@ -103,7 +104,11 @@ def main():
         outer.attach(msg)
 
     if options.output is "-":
-        ofile = sys.stdout
+        if six.PY3:
+            # We want to write bytes not strings
+            ofile = sys.stdout.buffer
+        else:
+            ofile = sys.stdout
     else:
         ofile = open(options.output, "wb")
 
