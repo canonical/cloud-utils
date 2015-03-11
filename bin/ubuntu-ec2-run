@@ -20,7 +20,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 KNOWN_RELEASES = ["lucid", "maverick", "natty", "oneiric", "precise",
-                  "quantal", "raring", "trusty"]
+                  "quantal", "raring", "trusty", "utopic", "vivid"]
 
 USAGE = """
 Usage: ubuntu-ec2-run [ options ] arguments
