@@ -68,6 +68,7 @@ import sys
 import time
 import getopt
 import socket
+import os
 try:
     from urllib import request as urllib_request
     from urllib import error as urllib_error
@@ -87,6 +88,10 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'public-keys', 'ramdisk-id', 'reserveration-id', 'security-groups',
             'user-data']
 
+binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
+def print_binary(data):
+    binstdout.write(data)
+    binstdout.flush()
 
 class Error(Exception):
     pass
@@ -184,6 +189,9 @@ def display(metaopts, burl, prefix=False):
 
         if prefix:
             print("%s: %s" % (metaopt, value))
+        elif metaopt == "user-data":
+            # We want to avoid binary blob corruption while printing as string
+            print_binary(value)
         else:
             print(value)
 
