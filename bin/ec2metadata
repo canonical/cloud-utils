@@ -90,6 +90,8 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
 def print_binary(data):
+    if not isinstance(data, bytes):
+        data = data.encode()
     binstdout.write(data)
     binstdout.flush()
 
