@@ -25,19 +25,28 @@ starts_with_mappings = {
     '#cloud-boothook': 'text/cloud-boothook'
 }
 
+def try_decode(data):
+    try:
+        return (True, data.decode())
+    except UnicodeDecodeError:
+        return (False, data)
 
 def get_type(fname, deftype):
-    f = open(fname, "rb")
-    line = f.readline().decode()
-    f.close()
     rtype = deftype
 
-    # slist is sorted longest first
-    slist = sorted(list(starts_with_mappings.keys()), key=lambda e: 0 - len(e))
-    for sstr in slist:
-        if line.startswith(sstr):
-            rtype = starts_with_mappings[sstr]
-            break
+    with open(fname, "rb") as f:
+        (can_be_decoded, line) = try_decode(f.readline())
+
+    if can_be_decoded:
+        # slist is sorted longest first
+        slist = sorted(list(starts_with_mappings.keys()), key=lambda e: 0 - len(e))
+        for sstr in slist:
+            if line.startswith(sstr):
+                rtype = starts_with_mappings[sstr]
+                break
+    else:
+        rtype = 'application/octet-stream'
+            
     return(rtype)
 
 
@@ -94,7 +103,11 @@ def main():
         outer.attach(msg)
 
     if options.output is "-":
-        ofile = sys.stdout
+        if hasattr(sys.stdout, "buffer")
+            # We want to write bytes not strings
+            ofile = sys.stdout.buffer
+        else:
+            ofile = sys.stdout
     else:
         ofile = open(options.output, "wb")
 
