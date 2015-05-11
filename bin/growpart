@@ -152,7 +152,7 @@ sfdisk_restore() {
 			error "WARN: confused by file $f";
 			continue;
 		}
-        dd "if=$f" "of=${DISK}" seek=$(($offset)) bs=1 conv=notrunc ||
+		dd "if=$f" "of=${DISK}" seek=$(($offset)) bs=1 conv=notrunc ||
 			{ error "WARN: failed restore from $f"; fails=$(($fails+1)); }
 	done
 	return $fails
