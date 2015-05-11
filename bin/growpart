@@ -203,32 +203,33 @@ mbr_resize() {
 	local pt_start pt_size pt_end max_end new_size change_info dpart
 	local sector_num sector_size disk_size tot out
 
+	rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
+		fail "failed: sfdisk --list $DISK"
 	if [ "${SFDISK_VERSION}" -lt ${SFDISK_2_26} ]; then
+		# exected output contains: Units: sectors of 512 bytes, ...
+		out=$(awk '$1 == "Units:" && $5 ~ /bytes/ { print $4 }' "$tmp") ||
+			fail "failed to read sfdisk output"
+		if [ -z "$out" ]; then
+			error "WARN: sector size not found in sfdisk output, assuming 512"
+			sector_size=512
+		else
+			sector_size="$out"
+		fi
 		local _w _cyl _w1 _heads _w2 sectors _w3 t s
-		# --show-pt-geometry outputs something like
-		#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
-		rqe sfd_geom sfdisk --show-pt-geometry "${DISK}" >"${tmp}" &&
-			read _w _cyl _w _heads _w _secper _w <"${tmp}" ||
-			fail "failed: sfdisk --show-pt-geometry $DISK"
-		sector_num=$((${_cyl}*${_heads}*${_secper}))
 		# show-size is in units of 1024 bytes (same as /proc/partitions)
 		t=$(sfdisk --show-size "${DISK}") ||
 			fail "failed: sfdisk --show-size $DISK"
 		disk_size=$((t*1024))
-		t=$(($disk_size/$sector_num))
-		# trust sector_num and disk_size more, and get a sane sector size
-		sector_size=512
-		for s in 1024 2048 4096 8192 16384; do
-			[ "$t" -le "$s" ] && sector_size=$s
-		done
+		sector_num=$(($disk_size/$sector_size))
+		msg="disk size '$disk_size' not evenly div by sector size '$sector_size'"
+		[ "$((${disk_size}%${sector_size}))" -eq 0 ] ||
+			error "WARN: $msg"
 		restore_func=sfdisk_restore_legacy
 	else
 		# --list first line output:
 		# Disk /dev/vda: 20 GiB, 21474836480 bytes, 41943040 sectors
 		local _x
-		rqe sfd_list sfdisk --list "$DISK" >"$tmp" &&
-			read _x _x _x _x disk_size _x sector_num _x  < "$tmp" ||
-			fail "failed: sfdisk --list ${DISK}"
+		read _x _x _x _x disk_size _x sector_num _x  < "$tmp"
 		sector_size=$((disk_size/$sector_num))
 		restore_func=sfdisk_restore
 	fi
