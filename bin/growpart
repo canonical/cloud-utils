@@ -204,7 +204,7 @@ mbr_resize() {
 	local sector_num sector_size disk_size tot out
 
 	if [ "${SFDISK_VERSION}" -lt ${SFDISK_2_26} ]; then
-		local _w _cyl _w1 _heads _w2 sectors _w3 t
+		local _w _cyl _w1 _heads _w2 sectors _w3 t s
 		# --show-pt-geometry outputs something like
 		#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
 		rqe sfd_geom sfdisk --show-pt-geometry "${DISK}" >"${tmp}" &&
