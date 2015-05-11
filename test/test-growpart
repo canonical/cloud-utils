@@ -78,7 +78,6 @@ grep "${lodev##*/}" /proc/partitions
 sfdisk --list --unit=S "$lodev"
 
 growpart -v -v "$lodev" 1
-#growpart -v -v "$lodev" 1
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
