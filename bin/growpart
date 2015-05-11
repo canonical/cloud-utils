@@ -215,7 +215,12 @@ mbr_resize() {
 		t=$((sfdisk --show-size "${DISK}")) ||
 			fail "failed: sfdisk --show-size $DISK"
 		disk_size=$((t*1024))
-		sector_size=$(($disk_size/$sector_num))
+		t=$(($disk_size/$sector_num))
+		# trust sector_num and disk_size more, and get a sane sector size
+		sector_size=512
+		for s in 1024 2048 4096 8192 16384; do
+			[ "$t" -le "$s" ] && sector_size=$s
+		done
 		restore_func=sfdisk_restore_legacy
 	else
 		# --list first line output:
