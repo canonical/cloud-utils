@@ -53,9 +53,9 @@ fi
 echo "==== growpart-stderr ==="
 cat "$err"
 echo "==== growpart-stdout ===="
+cat "$out"
 grep -q "^CHANGED:" "$out" ||
    { echo "did not find 'CHANGED'"; exit 1; }
-cat "$out"
 
 echo "==== after ===="
 sfdisk --list --unit=S "$img"

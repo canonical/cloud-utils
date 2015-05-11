@@ -2,7 +2,7 @@
 
 set -e
 
-PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt or sfdisk-gpt
 MP=""
 LODEV=""
 TEMP_D=""
@@ -51,7 +51,9 @@ truncate --size $osize "$img"
 if [ "${PT_TYPE}" = "gpt" ]; then
 	rq sgdisk --new 1:2048: "$img"
 else
-	echo "2048," | rq sfdisk --force --unit=S "$img"
+	label="--label=dos"
+	[ "${PT_TYPE}" = "sfdisk-gpt" ] && label="--label=gpt"
+	echo "2048," | rq sfdisk $label --force --unit=S "$img"
 fi
 
 truncate --size "$size" "$img"
@@ -73,8 +75,10 @@ MP="$mp"
 
 echo "==== before ===="
 grep "${lodev##*/}" /proc/partitions
+sfdisk --list --unit=S "$lodev"
 
 growpart -v -v "$lodev" 1
+#growpart -v -v "$lodev" 1
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
