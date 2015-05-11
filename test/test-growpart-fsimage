@@ -41,7 +41,7 @@ fi
 truncate --size "$size" "$img"
 
 echo "==== before ===="
-sfdisk --unit=S "$img"
+sfdisk --list --unit=S "$img"
 
 err="${TEMP_D}/gp.err"
 out="${TEMP_D}/gp.out"
@@ -58,4 +58,4 @@ grep -q "^CHANGED:" "$out" ||
 cat "$out"
 
 echo "==== after ===="
-sfdisk --unit=S "$img"
+sfdisk --list --unit=S "$img"
