@@ -51,7 +51,7 @@ truncate --size $osize "$img"
 if [ "${PT_TYPE}" = "gpt" ]; then
 	rq sgdisk --new 1:2048: "$img"
 else
-	echo "1," | rq sfdisk "$img"
+	echo "2048," | rq sfdisk --unit=S "$img"
 fi
 
 truncate --size "$size" "$img"
@@ -74,7 +74,7 @@ MP="$mp"
 echo "==== before ===="
 grep "${lodev##*/}" /proc/partitions
 
-growpart -v "$lodev" 1
+growpart -v -v "$lodev" 1
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
