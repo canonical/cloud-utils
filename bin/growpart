@@ -17,8 +17,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# the fudge factor. if its within this many 512 byte sectors, dont bother
-FUDGE=${GROWPART_FUDGE:-$((20*1024))}
+# the fudge factor. if within this many bytes dont bother
+FUDGE=${GROWPART_FUDGE:-$((1024*1024))}
 TEMP_D=""
 RESTORE_FUNC=""
 RESTORE_HUMAN=""
@@ -28,7 +28,8 @@ PART=""
 PT_UPDATE=false
 DRY_RUN=0
 
-MBR_CHS=""
+SFDISK_VERSION=""
+SFDISK_2_26="22600"
 MBR_BACKUP=""
 GPT_BACKUP=""
 _capture=""
@@ -113,7 +114,7 @@ ${0##*/} disk partition
    options:
     -h | --help       print Usage and exit
          --fudge F    if part could be resized, but change would be
-                      less than 'F', do not resize (default: ${FUDGE})
+                      less than 'F' bytes, do not resize (default: ${FUDGE})
     -N | --dry-run    only report what would be done, show new 'sfdisk -d'
     -v | --verbose    increase verbosity / debug
     -u | --update  R  update the the kernel partition table info after growing
@@ -136,8 +137,25 @@ bad_Usage() {
 	exit 2
 }
 
-mbr_restore() {
-	sfdisk --no-reread "${DISK}" ${MBR_CHS} -I "${MBR_BACKUP}"
+sfdisk_restore_legacy() {
+	sfdisk --no-reread "${DISK}" -I "${MBR_BACKUP}"
+}
+
+sfdisk_restore() {
+	# files are named: sfdisk-<device>-<offset>.bak
+	local f="" offset="" fails=0
+	for f in "${MBR_BACKUP}"*.bak; do
+		[ -f "$f" ] || continue
+		offset=${f##*-}
+		offset=${offset%.bak}
+		[ "$offset" = "$f" ] && {
+			error "WARN: confused by file $f";
+			continue;
+		}
+		dd "if=$f" "of=${DISK}" seek=$(($offset)) bs=1 conv=notrunc ||
+			{ error "WARN: failed restore from $f"; fails=$(($fails+1)); }
+	done
+	return $fails
 }
 
 sfdisk_worked_but_blkrrpart_failed() {
@@ -150,9 +168,30 @@ sfdisk_worked_but_blkrrpart_failed() {
 	return
 }
 
-mbr_resize() {
+get_sfdisk_version() {
+	# set SFDISK_VERSION to MAJOR*10000+MINOR*100+MICRO
+	local out oifs="$IFS" ver=""
+	[ -n "$SFDISK_VERSION" ] && return 0
+	# expected output: sfdisk from util-linux 2.25.2
+	out=$(sfdisk --version) ||
+		{ error "failed to get sfdisk version"; return 1; }
+	set -- $out
+	ver=$4
+	case "$ver" in
+		[0-9]*.[0-9]*.[0-9]|[0-9].[0-9]*)
+			IFS="."; set -- $ver; IFS="$oifs"
+			SFDISK_VERSION=$(($1*10000+$2*100+${3:-0}))
+			return 0;;
+		*) error "unexpected output in sfdisk --version [$out]"
+			return 1;;
+	esac
+}
+
+resize_sfdisk() {
 	local humanpt="${TEMP_D}/recovery"
 	local mbr_backup="${TEMP_D}/orig.save"
+	local restore_func=""
+	local format="$1"
 
 	local change_out=${TEMP_D}/change.out
 	local dump_out=${TEMP_D}/dump.out
@@ -162,29 +201,50 @@ mbr_resize() {
 	local err="${TEMP_D}/err.out"
 	local mbr_max_512="4294967296"
 
-	local _devc cyl _w1 heads _w2 sectors _w3 tot dpart
-	local pt_start pt_size pt_end max_end new_size change_info
+	local pt_start pt_size pt_end max_end new_size change_info dpart
+	local sector_num sector_size disk_size tot out
 
-	# --show-pt-geometry outputs something like
-	#     /dev/sda: 164352 cylinders, 4 heads, 32 sectors/track
-	rqe sfd_geom sfdisk "${DISK}" --show-pt-geometry >"${tmp}" &&
-		read _devc cyl _w1 heads _w2 sectors _w3 <"${tmp}" &&
-		MBR_CHS="-C ${cyl} -H ${heads} -S ${sectors}" ||
-		fail "failed to get CHS from ${DISK}"
+	rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
+		fail "failed: sfdisk --list $DISK"
+	if [ "${SFDISK_VERSION}" -lt ${SFDISK_2_26} ]; then
+		# exected output contains: Units: sectors of 512 bytes, ...
+		out=$(awk '$1 == "Units:" && $5 ~ /bytes/ { print $4 }' "$tmp") ||
+			fail "failed to read sfdisk output"
+		if [ -z "$out" ]; then
+			error "WARN: sector size not found in sfdisk output, assuming 512"
+			sector_size=512
+		else
+			sector_size="$out"
+		fi
+		local _w _cyl _w1 _heads _w2 sectors _w3 t s
+		# show-size is in units of 1024 bytes (same as /proc/partitions)
+		t=$(sfdisk --show-size "${DISK}") ||
+			fail "failed: sfdisk --show-size $DISK"
+		disk_size=$((t*1024))
+		sector_num=$(($disk_size/$sector_size))
+		msg="disk size '$disk_size' not evenly div by sector size '$sector_size'"
+		[ "$((${disk_size}%${sector_size}))" -eq 0 ] ||
+			error "WARN: $msg"
+		restore_func=sfdisk_restore_legacy
+	else
+		# --list first line output:
+		# Disk /dev/vda: 20 GiB, 21474836480 bytes, 41943040 sectors
+		local _x
+		read _x _x _x _x disk_size _x sector_num _x  < "$tmp"
+		sector_size=$((disk_size/$sector_num))
+		restore_func=sfdisk_restore
+	fi
 
-	tot=$((${cyl}*${heads}*${sectors}))
-
-	debug 1 "geometry is ${MBR_CHS}. total size=${tot}"
-	[ "$tot" -gt "$mbr_max_512" ] &&
+	debug 1 "$sector_num sectors of $sector_size. total size=${disk_size} bytes"
+	[ $(($disk_size/512)) -gt $mbr_max_512 ] &&
 		debug 1 "WARN: disk is larger than 2TB. additional space will go unused."
 
-	rqe sfd_dump sfdisk ${MBR_CHS} --unit=S --dump "${DISK}" \
-		>"${dump_out}" ||
+	rqe sfd_dump sfdisk --unit=S --dump "${DISK}" >"${dump_out}" ||
 		fail "failed to dump sfdisk info for ${DISK}"
 	RESTORE_HUMAN="$dump_out"
 
 	{
-		echo "## sfdisk ${MBR_CHS} --unit=S --dump ${DISK}"
+		echo "## sfdisk --unit=S --dump ${DISK}"
 		cat "${dump_out}"
 	}  >"$humanpt"
 
@@ -217,21 +277,34 @@ mbr_resize() {
 	# find the minimal starting location that is >= pt_end 
 	max_end=$(awk '$3 == "start" { if($4 >= pt_end && $4 < min)
 		{ min = $4 } } END { printf("%s\n",min); }' \
-		min=${tot} pt_end=${pt_end} "${dump_mod}") &&
+		min=${sector_num} pt_end=${pt_end} "${dump_mod}") &&
 		[ -n "${max_end}" ] ||
 		fail "failed to get max_end for partition ${PART}"
 
-	if [ "$max_end" -gt "$mbr_max_512" ]; then
-		max_end=$mbr_max_512;
+	mbr_max_sectors=$((mbr_max_512*$((sector_size/512))))
+	if [ "$max_end" -gt "$mbr_max_sectors" ]; then
+		max_end=$mbr_max_sectors
 	fi
 
-	debug 1 "max_end=${max_end} tot=${tot} pt_end=${pt_end}" \
+	if [ "$format" = "gpt" ]; then
+		# sfdisk respects 'last-lba' in input, and complains about
+		# partitions that go past that.  without it, it does the right thing.
+		sed -i '/^last-lba:/d' "$dump_out" ||
+			fail "failed to remove last-lba from output"
+
+		if [ "${max_end}" -gt "$((${sector_num}-34))" ]; then
+			debug 1 "allowing for 34 sectors for gpt secondary header"
+			max_end=$((${sector_num}-34))
+		fi
+	fi
+
+	debug 1 "max_end=${max_end} tot=${sector_num} pt_end=${pt_end}" \
 		"pt_start=${pt_start} pt_size=${pt_size}"
 	[ $((${pt_end})) -eq ${max_end} ] &&
 		nochange "partition ${PART} is size ${pt_size}. it cannot be grown"
-	[ $((${pt_end}+${FUDGE})) -gt ${max_end} ] &&
+	[ $((${pt_end}+(${FUDGE}/$sector_size))) -gt ${max_end} ] &&
 		nochange "partition ${PART} could only be grown by" \
-		"$((${max_end}-${pt_end})) [fudge=${FUDGE}]"
+		"$((${max_end}-${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
 
 	# now, change the size for this partition in ${dump_out} to be the
 	# new size
@@ -253,10 +326,10 @@ mbr_resize() {
 	fi
 
 	MBR_BACKUP="${mbr_backup}"
-	LANG=C sfdisk --no-reread "${DISK}" ${MBR_CHS} --force \
+	LANG=C sfdisk --no-reread "${DISK}" --force \
 		-O "${mbr_backup}" <"${new_out}" >"${change_out}" 2>&1
 	ret=$?
-	[ $ret -eq 0 ] || RESTORE_FUNC="mbr_restore"
+	[ $ret -eq 0 ] || RESTORE_FUNC="${restore_func}"
 
 	if [ $ret -eq 0 ]; then
 		:
@@ -295,7 +368,7 @@ gpt_restore() {
 	sgdisk -l "${GPT_BACKUP}" "${DISK}"
 }
 
-gpt_resize() {
+resize_sgdisk() {
 	GPT_BACKUP="${TEMP_D}/pt.backup"
 
 	local pt_info="${TEMP_D}/pt.info"
@@ -306,7 +379,7 @@ gpt_resize() {
 	local dev="disk=${DISK} partition=${PART}"
 
 	local pt_start pt_end pt_size last pt_max code guid name new_size
-	local old new change_info
+	local old new change_info sector_size
 	
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
@@ -314,6 +387,12 @@ gpt_resize() {
 	rqe sgd_info sgdisk "--info=${PART}" --print "${DISK}" >"${pt_info}" ||
 		fail "${dev}: failed to dump original sgdisk info"
 	RESTORE_HUMAN="${pt_info}"
+
+	sector_size=$(awk '$0 ~ /^Logical sector size:.*bytes/ { print $4 }' \
+		"$pt_info") && [ -n "$sector_size" ] || {
+		sector_size=512
+		error "WARN: did not find sector size, assuming 512"
+	}
 
 	debug 1 "$dev: original sgdisk info:"
 	debugcat 1 "${pt_info}"
@@ -359,9 +438,9 @@ gpt_resize() {
 	# Check if the partition can be grown
 	[ "${pt_end}" -eq "${pt_max}" ] &&
 		nochange "${dev}: size=${pt_size}, it cannot be grown"
-	[ "$((${pt_end} + ${FUDGE}))" -gt "${pt_max}" ] &&
+	[ "$((${pt_end} + ${FUDGE}/${sector_size}))" -gt "${pt_max}" ] &&
 		nochange "${dev}: could only be grown by" \
-		"$((${pt_max} - ${pt_end})) [fudge=${FUDGE}]"
+		"$((${pt_max} - ${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
 
 	# The partition can be grown if we made it here. Get some more info
 	# about it so we can do it properly.
@@ -547,7 +626,75 @@ has_cmd() {
 	command -v "${1}" >/dev/null 2>&1
 }
 
+resize_sgdisk_gpt() {
+	resize_sgdisk gpt
+}
+
+resize_sgdisk_dos() {
+	fail "unable to resize dos label with sgdisk"
+}
+
+resize_sfdisk_gpt() {
+	resize_sfdisk gpt
+}
+
+resize_sfdisk_dos() {
+	resize_sfdisk dos
+}
+
+get_table_format() {
+	local out="" disk="$1"
+	if has_cmd blkid && out=$(blkid -o value -s PTTYPE "$disk") &&
+		[ "$out" = "dos" -o "$out" = "gpt" ]; then
+		_RET="$out"
+		return
+	fi
+	_RET="dos"
+	if [ ${SFDISK_VERSION} -lt ${SFDISK_2_26} ] &&
+		out=$(sfdisk --id --force "$disk" 1); then
+		if [ "$out" = "ee" ]; then
+			_RET="gpt"
+		else
+			_RET="dos"
+		fi
+		return
+	elif out=$(LANG=C sfdisk --list "$disk"); then
+		out=$(echo "$out" | sed -e '/Disklabel type/!d' -e 's/.*: //')
+		case "$out" in
+			gpt|dos) _RET="$out";;
+			*) error "WARN: unknown label $out";;
+		esac
+	fi
+}
+
+get_resizer() {
+	local format="$1" user=${2:-"auto"}
+
+	case "$user" in
+		sgdisk) _RET="resize_sgdisk_$format"; return;;
+		sfdisk) _RET="resize_sfdisk_$format"; return;;
+		auto) :;;
+		*) error "unexpected input: '$user'";;
+	esac
+
+	if [ "$format" = "dos" ]; then
+		_RET="resize_sfdisk_dos"
+		return 0
+	fi
+
+	if [ "${SFDISK_VERSION}" -ge ${SFDISK_2_26} ]; then
+		_RET="resize_sfdisk_gpt"
+	elif has_cmd sgdisk; then
+		_RET="resize_sgdisk_$format"
+	else
+		error "no tools available to resize disk with '$format'"
+		return 1
+	fi
+	return 0
+}
+
 pt_update="auto"
+resizer=${GROWPART_RESIZER:-"auto"}
 while [ $# -ne 0 ]; do
 	cur=${1}
 	next=${2}
@@ -600,6 +747,7 @@ done
 [ -n "${PART}" ] || bad_Usage "must supply partition-number"
 
 has_cmd "sfdisk" || fail "sfdisk not found"
+get_sfdisk_version || fail
 
 [ -e "${DISK}" ] || fail "${DISK}: does not exist"
 
@@ -614,16 +762,13 @@ mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
 trap cleanup EXIT
 
 # get the ID of the first partition to determine if it's MBR or GPT
-id=$(sfdisk --id --force "${DISK}" 1 2>/dev/null) ||
-	fail "unable to determine partition type"
+get_table_format "$DISK" || fail
+format=$_RET
+get_resizer "$format" "$resizer" ||
+    fail "failed to get a resizer for id '$id'"
+resizer=$_RET
 
-if [ "${id}" = "ee" ] ; then
-	has_cmd "sgdisk" || fail "GPT partition found but no sgdisk"
-	debug 1 "found GPT partition table (id = ${id})"
-	gpt_resize
-else
-	debug 1 "found MBR partition table (id = ${id})"
-	mbr_resize
-fi
+debug 1 "resizing $PART on $DISK using $resizer"
+"$resizer"
 
 # vi: ts=4 noexpandtab

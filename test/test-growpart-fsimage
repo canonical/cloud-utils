@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# Just create an image in the filesystem, then grow it.
+
+set -e
+
+TEMP_D=""
+
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+cleanup() {
+	[ -z "$MP" ] || { echo "unmount $MP"; umount "$MP"; }
+	if [ -n "$LODEV" ]; then
+		clearparts "$LODEV"
+		echo "losetup --detach $LODEV";
+		losetup --detach "$LODEV";
+	fi
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+img="${TEMP_D}/disk.img"
+mp="${TEMP_D}/mp"
+
+size=1000M
+osize=500M
+rm -f $img
+
+truncate --size $osize "$img"
+
+if [ "${PT_TYPE}" = "gpt" ]; then
+	rq sgdisk --new 1:2048: "$img"
+else
+	echo "2048," | rq sfdisk --force --unit=S "$img"
+fi
+
+truncate --size "$size" "$img"
+
+echo "==== before ===="
+sfdisk --list --unit=S "$img"
+
+err="${TEMP_D}/gp.err"
+out="${TEMP_D}/gp.out"
+if ! growpart -v -v "$img" 1 2>"$err" > "$out"; then
+    cat "$err" "$out"
+    echo "failed"
+    exit 1
+fi
+echo "==== growpart-stderr ==="
+cat "$err"
+echo "==== growpart-stdout ===="
+cat "$out"
+grep -q "^CHANGED:" "$out" ||
+   { echo "did not find 'CHANGED'"; exit 1; }
+
+echo "==== after ===="
+sfdisk --list --unit=S "$img"

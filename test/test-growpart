@@ -2,7 +2,10 @@
 
 set -e
 
-PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+[ "$(id -u)" = "0" ] ||
+	{ echo "sorry, must be root"; exit 1; }
+
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt or sfdisk-gpt
 MP=""
 LODEV=""
 TEMP_D=""
@@ -30,8 +33,8 @@ cleanup() {
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 rq() {
-	"$@" > /tmp/out 2>&1 ||
-		{ echo "FAILED:" "$@"; cat /tmp/out; return 1; }
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
 }
 
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
@@ -51,7 +54,9 @@ truncate --size $osize "$img"
 if [ "${PT_TYPE}" = "gpt" ]; then
 	rq sgdisk --new 1:2048: "$img"
 else
-	echo "1," | rq sfdisk "$img"
+	label=""
+	[ "${PT_TYPE}" = "sfdisk-gpt" ] && label="--label=gpt"
+	echo "2048," | rq sfdisk $label --force --unit=S "$img"
 fi
 
 truncate --size "$size" "$img"
@@ -73,8 +78,9 @@ MP="$mp"
 
 echo "==== before ===="
 grep "${lodev##*/}" /proc/partitions
+sfdisk --list --unit=S "$lodev"
 
-growpart -v "$lodev" 1
+growpart -v -v "$lodev" 1
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
@@ -83,3 +89,5 @@ resize2fs "${lodevpart}"
 
 echo == df ==
 df -h "$mp"
+
+# vi: ts=4 noexpandtab

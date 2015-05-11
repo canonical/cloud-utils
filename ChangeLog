@@ -29,6 +29,7 @@
  - ubuntu-ec2-run: know about more instance types
  - mount-image-callback: add '--partition' flag to mount other than first
  - ec2metadata, ubuntu-ec2-run, write-mime-multipart: move to python3
+ - growpart: support sfdisk >= 2.26, and support gpt partitions with sfdisk
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and

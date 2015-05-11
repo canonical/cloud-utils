@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# just quickly format a disk with a partition table
+# in gpt or dos, and give the first partition ~ 1/2 the size
+
+fmt="$1"
+disk="$2"
+set -e
+
+fail() { echo "$@" 1>&2; exit 1; }
+
+if [ ! -e "$disk" ]; then
+	truncate --size 1G "$disk"
+fi
+
+if [ -b "$disk" ]; then
+	if [ "${_FORCE_PARTITION:-0}" != "0" ]; then
+		echo "must set _FORCE_PARTITION=1 to work with block device";
+		exit 1;
+	fi
+	blocks=$(awk '$4 == name { print $3 }' "name=${disk#/dev/}" /proc/partitions)
+	[ -n "$blocks" ] || fail "did not find $disk in /proc/partitions"
+	size=$(($blocks*1024))
+else
+	size=$(stat --printf="%s" "$disk")
+fi
+
+wipefs --force --all "$disk"
+
+pt1sectors="$(($size/1024))" # roughly half
+sfdisk_in="2048,$pt1sectors"
+if [ "$fmt" = "gpt" ]; then
+	if command -v sgdisk; then
+		sgdisk --new "1:2048:$pt1sectors" "$disk"
+	else
+		echo "$sfdisk_in" | sfdisk --force --unit=S --label=gpt "$disk"
+	fi
+else
+	echo "$sfdisk_in" | sfdisk --force --unit=S "$disk"
+fi
+
+# vi: ts=4 noexpandtab
