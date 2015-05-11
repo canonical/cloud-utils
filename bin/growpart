@@ -144,7 +144,7 @@ sfdisk_restore_legacy() {
 sfdisk_restore() {
 	# files are named: sfdisk-<device>-<offset>.bak
 	local f="" offset="" fails=0
-	for f in ${MBR_BACKUP}*.bak;
+	for f in "${MBR_BACKUP}"*.bak;
 		[ -f "$f" ] || continue
 		offset=${f##*-}
 		offset=${offset%.bak}
