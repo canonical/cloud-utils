@@ -45,7 +45,7 @@ sfdisk --list --unit=S "$img"
 
 err="${TEMP_D}/gp.err"
 out="${TEMP_D}/gp.out"
-if ! growpart -v -v "$img" 2>"$err" > "$out"; then
+if ! growpart -v -v "$img" 1 2>"$err" > "$out"; then
     cat "$err" "$out"
     echo "failed"
     exit 1
