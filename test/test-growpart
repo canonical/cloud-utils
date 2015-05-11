@@ -51,7 +51,7 @@ truncate --size $osize "$img"
 if [ "${PT_TYPE}" = "gpt" ]; then
 	rq sgdisk --new 1:2048: "$img"
 else
-	label="--label=dos"
+	label=""
 	[ "${PT_TYPE}" = "sfdisk-gpt" ] && label="--label=gpt"
 	echo "2048," | rq sfdisk $label --force --unit=S "$img"
 fi
