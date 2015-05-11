@@ -7,7 +7,9 @@ fmt="$1"
 disk="$2"
 set -e
 
-if [ ! -f "$disk" ]; then
+fail() { echo "$@" 1>&2; exit 1; }
+
+if [ ! -e "$disk" ]; then
 	truncate --size 1G "$disk"
 fi
 
@@ -16,7 +18,8 @@ if [ -b "$disk" ]; then
 		echo "must set _FORCE_PARTITION=1 to work with block device";
 		exit 1;
 	fi
-	blocks=$(awk '$4 == name { print $3 }' "name=${disk#/dev/}")
+	blocks=$(awk '$4 == name { print $3 }' "name=${disk#/dev/}" /proc/partitions)
+	[ -n "$blocks" ] || fail "did not find $disk in /proc/partitions"
 	size=$(($blocks*1024))
 else
 	size=$(stat --printf="%s" "$disk")
