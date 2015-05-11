@@ -759,7 +759,7 @@ PT_UPDATE=$_RET
 debug 1 "update-partition set to $PT_UPDATE"
 
 mktemp_d && TEMP_D="${_RET}" || fail "failed to make temp dir"
-trap cleanup EXIT
+trap cleanup 0 # EXIT - some shells may not like 'EXIT' but are ok with 0
 
 # get the ID of the first partition to determine if it's MBR or GPT
 get_table_format "$DISK" || fail
