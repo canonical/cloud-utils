@@ -212,7 +212,7 @@ mbr_resize() {
 			fail "failed: sfdisk --show-pt-geometry $DISK"
 		sector_num=$((${_cyl}*${_heads}*${_secper}))
 		# show-size is in units of 1024 bytes (same as /proc/partitions)
-		t=$((sfdisk --show-size "${DISK}")) ||
+		t=$(sfdisk --show-size "${DISK}") ||
 			fail "failed: sfdisk --show-size $DISK"
 		disk_size=$((t*1024))
 		t=$(($disk_size/$sector_num))
