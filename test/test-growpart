@@ -30,8 +30,8 @@ cleanup() {
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 rq() {
-	"$@" > /tmp/out 2>&1 ||
-		{ echo "FAILED:" "$@"; cat /tmp/out; return 1; }
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
 }
 
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
