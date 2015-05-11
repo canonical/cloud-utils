@@ -87,3 +87,5 @@ resize2fs "${lodevpart}"
 
 echo == df ==
 df -h "$mp"
+
+# vi: ts=4 noexpandtab
