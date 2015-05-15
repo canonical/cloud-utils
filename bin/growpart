@@ -291,11 +291,15 @@ resize_sfdisk() {
 		# partitions that go past that.  without it, it does the right thing.
 		sed -i '/^last-lba:/d' "$dump_out" ||
 			fail "failed to remove last-lba from output"
+	fi
 
-		if [ "${max_end}" -gt "$((${sector_num}-34))" ]; then
-			debug 1 "allowing for 34 sectors for gpt secondary header"
-			max_end=$((${sector_num}-34))
-		fi
+	local gpt_second_size="33"
+	if [ "${max_end}" -gt "$((${sector_num}-${gpt_second_size}))" ]; then
+		# if mbr allow subsequent conversion to gpt without shrinking the
+		# partition.  safety net at cost of 33 sectors, seems reasonable.
+		# if gpt, we can't write there anyway.
+		debug 1 "padding ${gpt_second_size} sectors for gpt secondary header"
+		max_end=$((${sector_num}-${gpt_second_size}))
 	fi
 
 	debug 1 "max_end=${max_end} tot=${sector_num} pt_end=${pt_end}" \
