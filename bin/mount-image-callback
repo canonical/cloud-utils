@@ -124,7 +124,7 @@ mount_callback_umount() {
 	img=$(readlink -f "$img_in") ||
 		{ error "failed to get full path to $img_in"; return 1; }
 
-	[ "$(id -u)" = "0" ] || 
+	[ "$(id -u)" = "0" ] ||
 		{ error "sorry, must be root"; return 1; }
 
 	TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||

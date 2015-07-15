@@ -46,7 +46,7 @@ def get_type(fname, deftype):
                 break
     else:
         rtype = 'application/octet-stream'
-            
+
     return(rtype)
 
 

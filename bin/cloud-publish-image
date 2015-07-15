@@ -247,7 +247,7 @@ while [ $# -ne 0 ]; do
 		   --rename) rename=${next}; shift;;
 		   --root-device-name) rdname=${next}; shift;;
 		   --save-downloaded) save_dl=1;;
-		-t|--type) 
+		-t|--type)
 			img_type=${next};
 			search_args "${img_type}" "${IMAGE_TYPES[@]}" ||
 				bad_Usage "image type (${next}) not in ${IMAGE_TYPES[*]}"
@@ -442,10 +442,10 @@ if [ "${EC2PRE%ec2-}" != "${EC2PRE}" ]; then
 		[ -n "${!env_name}" ] ||
 			fail "when using ec2- tools, you must set env: ${req}"
 	done
-	ex_bundle_args=( --cert "${EC2_CERT}" 
-	                 --privatekey "${EC2_PRIVATE_KEY}" 
+	ex_bundle_args=( --cert "${EC2_CERT}"
+	                 --privatekey "${EC2_PRIVATE_KEY}"
 	                 --user "${EC2_USER_ID}" )
-	ex_upload_args=( --access-key "${EC2_ACCESS_KEY}" 
+	ex_upload_args=( --access-key "${EC2_ACCESS_KEY}"
 	                 --secret-key "${EC2_SECRET_KEY}" )
 
 fi
@@ -461,7 +461,7 @@ if [ -n "${_RET}" ]; then
 	debug 1 "using existing ${img_id} for ${bucket}/${manifest}"
 else
 	if [ $image2raw -eq 1 -a "$img_type" = "image" ]; then
-		# this is really here because of LP: #836759 
+		# this is really here because of LP: #836759
 		# but could be useful elsewhere
 		qemu-img info "$image" > "${TMPD}/disk-info.out" ||
 			fail "failed to qemu-img info $image"

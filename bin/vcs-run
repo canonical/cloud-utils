@@ -26,9 +26,9 @@ Usage: ${0##*/} [ options ] repo-url [command [arguments]]
    Example:
     * run 'stack.sh' in git://github.com/openstack-dev/devstack.git
       vcs-run --deps git://github.com/openstack-dev/devstack.git stack.sh
-    * build cloud-utils 
+    * build cloud-utils
       vcs-run --deps lp:cloud-utils -- ./tools/build-deb -us -uc
-      
+
 EOF
 }
 
