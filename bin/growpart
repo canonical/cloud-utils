@@ -655,7 +655,7 @@ get_table_format() {
 	fi
 	_RET="dos"
 	if [ ${SFDISK_VERSION} -lt ${SFDISK_2_26} ] &&
-		out=$(sfdisk --id --force "$disk" 1); then
+		out=$(sfdisk --id --force "$disk" 1 2>/dev/null); then
 		if [ "$out" = "ee" ]; then
 			_RET="gpt"
 		else
