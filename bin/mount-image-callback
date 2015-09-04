@@ -30,6 +30,8 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
     -d | --dev                 bind mount /dev
          --system-mounts       bind mount /sys, /proc, /dev
          --system-resolvconf   copy host's resolvconf into /etc/resolvconf
+         --format FMT          specify the format of the image.
+                               default is to automatically determine
 EOF
 }
 
@@ -80,13 +82,20 @@ debug() {
 	error "${@}"
 }
 
+get_image_format() {
+	local img="$1" out=""
+	out=$(qemu-img info "$img") &&
+		out=$(echo "$out" | awk '$0 ~ /^file format:/ { print $3 }') &&
+		_RET="$out"
+}
+
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=1
-	local cd_mountpoint=false
+	local cd_mountpoint=false fmt=""
 
 	short_opts="CdhPpsv"
-	long_opts="cd-mountpoint,dev,help,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	long_opts="cd-mountpoint,dev,help,format:,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
@@ -97,6 +106,7 @@ mount_callback_umount() {
 		case "$cur" in
 			-C|--cd-mountpoint) cd_mountpoint=true;;
 			-d|--dev) bmounts="${bmounts:+${bmounts} }/dev";;
+			   --format) fmt=$next;;
 			-h|--help) Usage ; exit 0;;
 			-P|--partition) ptnum=$next;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
@@ -120,6 +130,9 @@ mount_callback_umount() {
 
 	img_in="$1"
 	shift 1
+
+	[ -f "$img" ] ||
+		{ error "$img: not a file"; return 1; }
 
 	img=$(readlink -f "$img_in") ||
 		{ error "failed to get full path to $img_in"; return 1; }
@@ -179,7 +192,14 @@ mount_callback_umount() {
 			return 1;
 		}
 
-		local f nbd=""
+		if [ -z "$fmt" ]; then
+			get_image_format "$img" && fmt="$_RET" || {
+				error "failed to get image format for '$img' (try --format)"
+				return 1
+			}
+		fi
+
+		local f nbd="" pidfile="" pid=""
 		for f in /sys/block/nbd*; do
 			[ -d "$f" -a ! -f "$f/pid" ] && nbd=${f##*/} && break
 		done
@@ -189,7 +209,11 @@ mount_callback_umount() {
 		fi
 		nbd="/dev/$nbd"
 
-		if ! qemu-nbd --connect "$nbd" "$img"; then
+		pidfile="/sys/block/${nbd##*/}/pid" pid=""
+		if ! qemu-nbd "--format=$fmt" --connect "$nbd" "$img"; then
+			{ read pid < "$pidfile"; } >/dev/null 2>&1 &&
+				[ -d "/proc/$pid" ] &&
+				QEMU_DISCONNECT="$nbd"
 			error "failed to qemu-nbd connect $img to $nbd"
 			return 1
 		fi
@@ -209,7 +233,7 @@ mount_callback_umount() {
 			done
 		fi
 
-		debug 1 "connected $img_in to $nbd. now udev-settling"
+		debug 1 "connected $img_in ($fmt) to $nbd. now udev-settling"
 		udevadm settle >/dev/null 2>&1
 
 		local mdev="$nbd"
