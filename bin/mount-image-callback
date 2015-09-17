@@ -131,11 +131,11 @@ mount_callback_umount() {
 	img_in="$1"
 	shift 1
 
-	[ -f "$img" ] ||
-		{ error "$img: not a file"; return 1; }
-
 	img=$(readlink -f "$img_in") ||
 		{ error "failed to get full path to $img_in"; return 1; }
+
+	[ -f "$img" ] ||
+		{ error "$img: not a file"; return 1; }
 
 	[ "$(id -u)" = "0" ] ||
 		{ error "sorry, must be root"; return 1; }
