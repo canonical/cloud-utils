@@ -37,18 +37,18 @@ The device or disk image to operate on
 The number of the partition to resize (counting from 1)
 
 .SH DESCRIPTION
-Rewrite a the partition table in a disk or disk image so that the given partition takes up as much space as it can.  After running, the partition will end at the end of the disk, or at the beginning of the next partition.
+Rewrite a partition table in a disk or disk image so that the given partition takes up as much space as it can.  After running, the partition will end at the end of the disk, or at the beginning of the next partition.
 
 .SH EXAMPLES
 .TP
-Extend partition 1 in /dev/sda to fill empty space until end of disk or next partitiong
+Extend partition 1 in /dev/sda to fill empty space until end of disk or next partition
    growpart /dev/sda 1
 .TP
 Extend partition 2 in disk image my.image.
    growpart my.image 2
 
 .SH EXIT STATUS
-The exit status is 0 if the partition was sucessfully grown or if --dry-run was specified and it could be grown. The exit status is 1 if the partition could not be grown due to lack of available space. The exit status is 2 if an error occured.
+The exit status is 0 if the partition was successfully grown or if --dry-run was specified and it could be grown. The exit status is 1 if the partition could not be grown due to lack of available space. The exit status is 2 if an error occurred.
 
 
 .SH AUTHOR
