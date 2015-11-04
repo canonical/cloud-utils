@@ -121,7 +121,7 @@ get_image_format() {
 }
 
 mount_callback_umount() {
-	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
+	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=1
 	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
 	local img_mp="" workd=""
@@ -149,7 +149,7 @@ mount_callback_umount() {
 			   --system-resolvconf) system_resolvconf=true;;
 			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
 			   --opts) opts="${opts} $next"; shift;;
-			   --read-only) ro="ro";;
+			   --read-only) readonly="ro";;
 			--) shift; break;;
 		esac
 		shift;
@@ -157,8 +157,9 @@ mount_callback_umount() {
 
 	[ $# -ge 2 ] || { bad_Usage "must provide image and cmd"; return 1; }
 
-	[ -n "$ro" ] && $system_resolvconf && {
+	[ -n "$readonly" ] && { $system_resolvconf && ! $overlay; } && {
 		error "--read-only is incompatible with system-resolvconf";
+		error "maybe try with --overlay"
 		return 1;
 	}
 
@@ -215,7 +216,7 @@ mount_callback_umount() {
 	local hasqemu=false
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 
-	if out=$(set -f; mount -o loop${ro:+,$ro} $opts \
+	if out=$(set -f; mount -o loop${readonly:+,$readonly} $opts \
 			 "$img" "$img_mp" 2>&1); then
 		debug 1 "mounted simple filesystem image '$img_in'"
 		UMOUNTS[${UMOUNT[@]}]="$img_mp"
@@ -247,7 +248,7 @@ mount_callback_umount() {
 			}
 		fi
 
-		local f nbd="" pidfile="" pid=""
+		local f nbd="" pidfile="" pid="" roflag=""
 		for f in /sys/block/nbd*; do
 			[ -d "$f" -a ! -f "$f/pid" ] && nbd=${f##*/} && break
 		done
@@ -257,8 +258,9 @@ mount_callback_umount() {
 		fi
 		nbd="/dev/$nbd"
 
+		[ -n "$readonly" ] && roflag="--read-only"
 		pidfile="/sys/block/${nbd##*/}/pid" pid=""
-		if ! qemu-nbd "--format=$fmt" --connect "$nbd" "$img"; then
+		if ! qemu-nbd $roflag "--format=$fmt" --connect "$nbd" "$img"; then
 			{ read pid < "$pidfile"; } >/dev/null 2>&1 &&
 				[ -d "/proc/$pid" ] &&
 				QEMU_DISCONNECT="$nbd"

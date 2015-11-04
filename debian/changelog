@@ -35,6 +35,7 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * mount-image-callback: pass --format when invoking qemu-nbd (LP: #1492386)
   * mount-image-callback: add '--mountpoint' flag to mount to an existing dir
   * mount-image-callback: add '--overlay' to use overlayfs mounts
+  * mount-image-callback: use qemu-nbd --read-only for safer read only
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
