@@ -32,6 +32,7 @@
  - growpart: support sfdisk >= 2.26, and support gpt partitions with sfdisk
  - mount-image-callback: pass --format when invoking qemu-nbd (LP: #1492386)
  - mount-image-callback: add '--mountpoint' flag to mount to an existing dir
+ - mount-image-callback: add '--overlay' to use overlayfs mounts
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and

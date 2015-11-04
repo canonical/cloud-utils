@@ -2,7 +2,7 @@
 
 VERBOSITY=0
 TEMP_D=""
-UMOUNT=""
+UMOUNTS=( )
 QEMU_DISCONNECT=""
 
 error() { echo "$@" 1>&2; }
@@ -25,6 +25,7 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
     -v | --verbose             increase verbosity
          --read-only           use read-only mount.
     -m | --mountpoint MP       mount to directory MP rather than a temp dir
+         --overlay             mount via overlayfs
     -P | --partition PARTNUM   mount partition PARTNUM (default 1)
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
@@ -51,22 +52,48 @@ umount_r() {
 				umount "$mp" || exit 1
 				didumount=1
 			done
-			[ $didumount -ne 0 ] || exit 1
+			[ $didumount -eq 1 ] || exit 1
 			exit 0' umount_r "${p%/}"
 		[ $? -eq 0 ] || return
 	done
 }
 
 bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
-cleanup() {
-	if [ -n "$UMOUNT" ]; then
-		local mydir="$PWD/"
-		[ "${mydir#${UMOUNT}/}" != "${mydir}" ] && {
-			error "WARNING: leaving '$mydir' to unmount $UMOUNT";
+
+disconnect_qemu() {
+	local out="" nbd="$1"
+	out=$(qemu-nbd --disconnect "$nbd" 2>&1) &&
+		QEMU_DISCONNECT="" || {
+			error "failed to disconnect $nbd";
+			error "$out"
+			return 1;
+	}
+}
+
+do_umounts() {
+	local um="" fails=0 mydir="$PWD/"
+	for um in "$@"; do
+		um=$(readlink -f "$um") || {
+			error "WARNING: failed to get full path to '$um'";
+			fails=$(($fails+1))
+			continue;
+		}
+		[ "${mydir#${um}/}" != "${mydir}" ] && {
+			error "WARNING: leaving '$mydir' to unmount $um";
 			cd /
 		}
-		umount_r "$UMOUNT" ||
-			error "WARNING: unmounting filesystems failed!"
+		umount_r "$um" || {
+			error "WARNING: unmounting filesystem at $um failed!"
+			fails=$(($fails+1))
+		}
+	done
+	return $fails
+}
+
+cleanup() {
+	if [ "${#UMOUNTS[@]}" -ne 0 ]; then
+		debug 2 "umounts: ${UMOUNTS[*]}"
+		do_umounts "${UMOUNTS[@]}"
 	fi
 	if [ -n "$QEMU_DISCONNECT" ]; then
 		local out=""
@@ -96,10 +123,11 @@ get_image_format() {
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=1
-	local cd_mountpoint=false fmt="" mp_is_tmp=false
+	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
+	local img_mp="" workd=""
 
 	short_opts="CdhmPpsv"
-	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
@@ -114,6 +142,7 @@ mount_callback_umount() {
 			-h|--help) Usage ; exit 0;;
 			-m|--mountpoint) mp=$next;;
 			-P|--partition) ptnum=$next;;
+			-O|--overlay) overlay=true;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
 			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
 			   --system-mounts) bmounts="/dev /proc /sys";;
@@ -146,9 +175,9 @@ mount_callback_umount() {
 		{ error "sorry, must be root"; return 1; }
 
 	trap cleanup EXIT
-	if [ -z "$mp" ]; then
-		TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
+	TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
 		{ error "failed to make tempdir"; return 1; }
+	if [ -z "$mp" ]; then
 		mp="${TEMP_D}/mp"
 		mkdir "$mp" || return
 		mp_is_tmp=true
@@ -159,6 +188,12 @@ mount_callback_umount() {
 			error "failed to get full path to provided mountpoint";
 			return 1;
 		}
+	fi
+	if $overlay; then
+		img_mp="${TEMP_D}/underlay"
+		mkdir -p "$img_mp" || return
+	else
+		img_mp=$mp
 	fi
 
 	local cmd="" arg="" found=false
@@ -181,9 +216,9 @@ mount_callback_umount() {
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 
 	if out=$(set -f; mount -o loop${ro:+,$ro} $opts \
-			 "$img" "$mp" 2>&1); then
+			 "$img" "$img_mp" 2>&1); then
 		debug 1 "mounted simple filesystem image '$img_in'"
-		UMOUNT="$mp"
+		UMOUNTS[${UMOUNT[@]}]="$img_mp"
 	else
 		if ! $hasqemu; then
 			error "simple mount of '$img_in' failed."
@@ -194,7 +229,7 @@ mount_callback_umount() {
 		fi
 	fi
 
-	if [ -z "$UMOUNT" ]; then
+	if [ "${#UMOUNTS[@]}" -eq 0 ]; then
 		if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
 			debug 1 "trying to load nbd module"
 			modprobe nbd >/dev/null 2>&1
@@ -253,8 +288,8 @@ mount_callback_umount() {
 		if [ -b "${nbd}p${ptnum}" ]; then
 			mdev="${nbd}p${ptnum}"
 		fi
-		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$mp" ) &&
-			UMOUNT="$mp"; then
+		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$img_mp" ) &&
+			UMOUNTS[${#UMOUNTS[@]}]="$img_mp"; then
 			debug 1 "mounted $mdev via qemu-nbd $nbd"
 		else
 			local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
@@ -269,6 +304,21 @@ mount_callback_umount() {
 
 	fi
 
+	if $overlay; then
+		local olayopts="lowerdir=$img_mp,upperdir=$mp"
+		workdir="${TEMP_D}/workdir"
+		mkdir "$workdir"
+		# 3.18+ require 'workdir=' option.
+		case "$(uname -r)" in
+			2*|3.1[01234567]*|3.[0-9].*) :;;
+			*) olayopts="${olayopts},workdir=$workdir";;
+		esac
+		mount -t overlayfs -o "$olayopts" "$img_mp" "$mp" || {
+			error "failed mount -t overlayfs -o '$olayopts' '$img_mp' '$mp'"
+			return 1;
+		}
+		UMOUNTS[${#UMOUNTS[@]}]="$mp"
+	fi
 	local bindmp=""
 	for bindmp in $bmounts; do
 		[ -d "$mp${bindmp}" ] || mkdir "$mp${bindmp}" ||
@@ -308,20 +358,16 @@ mount_callback_umount() {
 	fi
 
 	debug 1 "cmd returned $ret. unmounting $mp"
-	umount_r "$mp" || { error "failed umount $img"; return 1; }
-	UMOUNT=""
+	do_umounts "${UMOUNTS[@]}" && UMOUNTS=( ) ||
+		{ error "failed umount $img"; return 1; }
+
 	if "$mp_is_tmp"; then
-		rmdir "$mp" || error "WARN: failed 'rmdir $mp'"
+		rmdir "$img_mp" || error "WARN: failed 'rmdir $img_mp'"
 	fi
 
+	
 	if [ -n "$QEMU_DISCONNECT" ]; then
-		local out=""
-		out=$(qemu-nbd --disconnect "$QEMU_DISCONNECT" 2>&1) &&
-			QEMU_DISCONNECT="" || {
-				error "failed to disconnect $QEMU_DISCONNECT";
-				error "$out"
-				return 1;
-		}
+		disconnect_qemu "$QEMU_DISCONNECT" && QEMU_DISCONNECT="" || return 1;
 	fi
 	return $ret
 }
