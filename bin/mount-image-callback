@@ -24,6 +24,7 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
    options:
     -v | --verbose             increase verbosity
          --read-only           use read-only mount.
+    -m | --mountpoint MP       mount to directory MP rather than a temp dir
     -P | --partition PARTNUM   mount partition PARTNUM (default 1)
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
@@ -43,11 +44,14 @@ umount_r() {
 		[ -n "$p" ] || continue
 		tac /proc/mounts | sh -c '
 			p=$1
+			didumount=0
 			while read s mp t opt a b ; do
 				[ "${mp}" = "${p}" -o "${mp#${p}/}" != "${mp}" ] ||
 					continue
 				umount "$mp" || exit 1
+				didumount=1
 			done
+			[ $didumount -ne 0 ] || exit 1
 			exit 0' umount_r "${p%/}"
 		[ $? -eq 0 ] || return
 	done
@@ -92,10 +96,10 @@ get_image_format() {
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" ro=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=1
-	local cd_mountpoint=false fmt=""
+	local cd_mountpoint=false fmt="" mp_is_tmp=false
 
-	short_opts="CdhPpsv"
-	long_opts="cd-mountpoint,dev,help,format:,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
+	short_opts="CdhmPpsv"
+	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
@@ -108,6 +112,7 @@ mount_callback_umount() {
 			-d|--dev) bmounts="${bmounts:+${bmounts} }/dev";;
 			   --format) fmt=$next;;
 			-h|--help) Usage ; exit 0;;
+			-m|--mountpoint) mp=$next;;
 			-P|--partition) ptnum=$next;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
 			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
@@ -140,13 +145,21 @@ mount_callback_umount() {
 	[ "$(id -u)" = "0" ] ||
 		{ error "sorry, must be root"; return 1; }
 
-	TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
-		{ error "failed to make tempdir"; return 1; }
 	trap cleanup EXIT
-
-	mp="${TEMP_D}/mp"
-
-	mkdir "$mp" || return
+	if [ -z "$mp" ]; then
+		TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
+		{ error "failed to make tempdir"; return 1; }
+		mp="${TEMP_D}/mp"
+		mkdir "$mp" || return
+		mp_is_tmp=true
+	else
+		[ -d "$mp" ] ||
+			{ error "mountpoint '$mp': not a directory"; return 1; }
+		mp=$(readlink -f "$mp") || {
+			error "failed to get full path to provided mountpoint";
+			return 1;
+		}
+	fi
 
 	local cmd="" arg="" found=false
 	cmd=( )
@@ -168,7 +181,7 @@ mount_callback_umount() {
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 
 	if out=$(set -f; mount -o loop${ro:+,$ro} $opts \
-	         "$img" "$mp" 2>&1); then
+			 "$img" "$mp" 2>&1); then
 		debug 1 "mounted simple filesystem image '$img_in'"
 		UMOUNT="$mp"
 	else
@@ -297,7 +310,9 @@ mount_callback_umount() {
 	debug 1 "cmd returned $ret. unmounting $mp"
 	umount_r "$mp" || { error "failed umount $img"; return 1; }
 	UMOUNT=""
-	rmdir "$mp"
+	if "$mp_is_tmp"; then
+		rmdir "$mp" || error "WARN: failed 'rmdir $mp'"
+	fi
 
 	if [ -n "$QEMU_DISCONNECT" ]; then
 		local out=""

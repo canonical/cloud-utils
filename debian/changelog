@@ -33,6 +33,7 @@ cloud-utils (0.28~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * ec2metadata, ubuntu-ec2-run, write-mime-multipart: move to python3
   * growpart: support sfdisk >= 2.26, and support gpt partitions with sfdisk
   * mount-image-callback: pass --format when invoking qemu-nbd (LP: #1492386)
+  * mount-image-callback: add '--mountpoint' flag to mount to an existing dir
 
  -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
 
