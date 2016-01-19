@@ -1,13 +1,7 @@
 usr/bin/cloud-localds
-usr/bin/cloud-publish-image
-usr/bin/cloud-publish-tarball
-usr/bin/cloud-publish-ubuntu
 usr/bin/mount-image-callback
 usr/bin/resize-part-image
 usr/bin/ubuntu-cloudimg-query
-usr/bin/ubuntu-ec2-run
 usr/bin/write-mime-multipart
-usr/share/man/*/cloud-publish-image.*
-usr/share/man/*/cloud-publish-tarball.*
 usr/share/man/*/resize-part-image.*
 usr/share/man/*/write-mime-multipart.*

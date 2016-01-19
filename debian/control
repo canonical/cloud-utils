@@ -31,7 +31,7 @@ Description: cloud guest utilities
 Package: cloud-image-utils
 Architecture: all
 Depends: ca-certificates,
-         euca2ools,
+         e2fsprogs (>=1.4),
          file,
          genisoimage,
          qemu-utils,
@@ -42,6 +42,23 @@ Breaks: cloud-utils (<< 0.27-0ubuntu3)
 Replaces: cloud-utils (<< 0.27-0ubuntu3)
 Recommends: distro-info
 Description: cloud image management utilities
- This package provides a useful set of utilities for managing cloud
- images.  It contains tools to help in publishing and modifying
- cloud images, and querying data related to cloud-images.
+ This package provides a useful set of utilities for working with cloud
+ images.  It contains tools to help in modifying cloud images, running, and
+ querying data related to cloud-images.
+
+Package: cloud-utils-euca
+Architecture: all
+Breaks: cloud-image-utils (<< 0.27-0ubuntu20), cloud-utils (<< 0.27-0ubuntu3)
+Replaces: cloud-image-utils (<< 0.27-0ubuntu20), cloud-utils (<< 0.27-0ubuntu3)
+Depends: cloud-image-utils,
+         euca2ools,
+         file,
+         qemu-utils,
+         wget,
+         ${misc:Depends},
+         ${python3:Depends}
+Description: cloud image utilities wrapping euca2ools
+ The tasks associated with image bundling are often tedious and
+ repetitive.  The cloud-utils-euca package provides a useful set of utilities
+ for managing cloud images wrapping the euca2ools commands, and a utility
+ (ubuntu-ec2-run) for launching ubuntu instances.
