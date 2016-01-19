@@ -1,0 +1,10 @@
+This is the cloud-utils ubuntu packaging branch.  it comes from:
+ bzr branch lp:ubuntu/cloud-utils
+
+Please only make ubuntu specific changes to the Ubuntu package.
+Other changes should be made to the upstream, and then cherry-picked back.
+Upstream is:
+ bzr branch lp:cloud-utils
+
+To create the debian/patches/sync-to-trunk.patch, do the following:
+   ./debian/update-sync-to-main ../trunk

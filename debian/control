@@ -2,33 +2,64 @@ Source: cloud-utils
 Section: admin
 Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: cdbs, debhelper (>= 7), python3-all
+Build-Depends: debhelper (>= 7), dh-python, python3-all
 XS-Python-Version: >= 2.6
-Standards-Version: 3.9.4
+Standards-Version: 3.9.6
 
 Package: cloud-utils
+Priority: extra
+Section: admin
+Architecture: all
+Depends: cloud-guest-utils, cloud-image-utils, ${misc:Depends}
+Description: metapackage for installation of upstream cloud-utils source
+ This meta-package will depend on all sub-packages built by the
+ upstream cloud-utils source.
+
+Package: cloud-guest-utils
+Architecture: all
+Depends: e2fsprogs (>=1.4),
+         util-linux (>= 2.17.2),
+         ${misc:Depends},
+         ${python3:Depends}
+Recommends: gdisk | util-linux (>= 2.26.3)
+Breaks: cloud-utils (<< 0.27-0ubuntu3)
+Replaces: cloud-utils (<< 0.27-0ubuntu3)
+Description: cloud guest utilities
+ This package contains programs useful inside cloud instance.
+ It contains 'growpart' for resizing a partition during boot.
+
+Package: cloud-image-utils
 Architecture: all
 Depends: ca-certificates,
          e2fsprogs (>=1.4),
-         euca2ools,
          file,
          genisoimage,
-         python3,
          qemu-utils,
-         util-linux (>= 2.17.2),
          wget,
-         ${misc:Depends}
-Recommends: distro-info, gdisk
-Suggests: mtools
+         ${misc:Depends},
+         ${python3:Depends}
+Breaks: cloud-utils (<< 0.27-0ubuntu3)
+Replaces: cloud-utils (<< 0.27-0ubuntu3)
+Recommends: distro-info
+Suggests: cloud-utils-euca
 Description: cloud image management utilities
- This package provides a useful set of utilities for managing cloud
- images.
- .
- The euca2ools package (a dependency of cloud-utils) provides an
- Amazon EC2 API compatible set of utilities for bundling kernels,
- ramdisks, and root filesystems, and uploading them to either EC2
- or UEC.
- .
+ This package provides a useful set of utilities for working with cloud
+ images.  It contains tools to help in modifying cloud images, running, and
+ querying data related to cloud-images.
+
+Package: cloud-utils-euca
+Architecture: all
+Breaks: cloud-image-utils (<< 0.27-0ubuntu20), cloud-utils (<< 0.27-0ubuntu3)
+Replaces: cloud-image-utils (<< 0.27-0ubuntu20), cloud-utils (<< 0.27-0ubuntu3)
+Depends: cloud-image-utils,
+         euca2ools,
+         file,
+         qemu-utils,
+         wget,
+         ${misc:Depends},
+         ${python3:Depends}
+Description: cloud image utilities wrapping euca2ools
  The tasks associated with image bundling are often tedious and
- repetitive.  The cloud-utils package provides several scripts
- that wrap the complicated tasks with a much simpler interface.
+ repetitive.  The cloud-utils-euca package provides a useful set of utilities
+ for managing cloud images wrapping the euca2ools commands, and a utility
+ (ubuntu-ec2-run) for launching ubuntu instances.

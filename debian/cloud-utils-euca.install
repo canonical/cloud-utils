@@ -1,0 +1,6 @@
+usr/bin/cloud-publish-image
+usr/bin/cloud-publish-tarball
+usr/bin/cloud-publish-ubuntu
+usr/bin/ubuntu-ec2-run
+usr/share/man/*/cloud-publish-image.*
+usr/share/man/*/cloud-publish-tarball.*
