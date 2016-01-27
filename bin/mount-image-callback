@@ -26,7 +26,9 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
          --read-only           use read-only mount.
     -m | --mountpoint MP       mount to directory MP rather than a temp dir
          --overlay             mount via overlayfs
-    -P | --partition PARTNUM   mount partition PARTNUM (default 1)
+    -P | --partition PARTNUM   mount partition PARTNUM (default 'auto')
+                               if 'auto', then mount part 1 if image is 
+                               partitioned otherwise mount image
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
     -d | --dev                 bind mount /dev
@@ -61,7 +63,12 @@ umount_r() {
 bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
 
 disconnect_qemu() {
-	local out="" nbd="$1"
+	[ -n "$QEMU_DISCONNECT" ] || return 0
+	local out="" nbd="$QEMU_DISCONNECT"
+	local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
+	{ read pid < "$pfile" ; } >/dev/null 2>&1
+	[ -n "$pid" -a ! -d "/proc/$pid" ] && 
+		error "qemu-nbd process seems to have died. was '$pid'"
 	out=$(qemu-nbd --disconnect "$nbd" 2>&1) &&
 		QEMU_DISCONNECT="" || {
 			error "failed to disconnect $nbd";
@@ -95,13 +102,7 @@ cleanup() {
 		debug 2 "umounts: ${UMOUNTS[*]}"
 		do_umounts "${UMOUNTS[@]}"
 	fi
-	if [ -n "$QEMU_DISCONNECT" ]; then
-		local out=""
-		out=$(qemu-nbd --disconnect "$QEMU_DISCONNECT" 2>&1) || {
-			error "warning: failed: qemu-nbd --disconnect $QEMU_DISCONNECT"
-			error "$out"
-		}
-	fi
+	disconnect_qemu
 	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] ||
 		rm --one-file-system -Rf "${TEMP_D}" ||
 		error "removal of temp dir failed!"
@@ -120,9 +121,26 @@ get_image_format() {
 		_RET="$out"
 }
 
+get_partition() {
+	# return in _RET the 'auto' partition for a image.
+	# return partition number for a partitioned image
+	# return 0 for unpartitioned
+	# return 0 if image is partitioned, 1 if not
+	local img="$1"
+	out=$(LANG=C sfdisk --list -uS "$img" 2>&1) || {
+		error "failed determining if partitioned: $out";
+		return 1;
+	}
+	if echo "$out" | grep -q 'Device.*Start.*End'; then
+		_RET=1
+	else
+		_RET=0
+	fi
+}
+
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
-	local opts="" bmounts="" system_resolvconf=false ptnum=1
+	local opts="" bmounts="" system_resolvconf=false ptnum=auto
 	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
 	local img_mp="" workd=""
 
@@ -283,13 +301,47 @@ mount_callback_umount() {
 			done
 		fi
 
-		debug 1 "connected $img_in ($fmt) to $nbd. now udev-settling"
-		udevadm settle >/dev/null 2>&1
+		local nptnum=""
+		debug 1 "connected $img_in ($fmt) to $nbd. waiting for device."
+		i=0
+		while i=$(($i+1)):; do
+			get_partition "$nbd" && nptnum="$_RET" && break
+			[ $i -eq 40 ] && {
+				error "gave up on $nbd"
+				return 1
+			}
+			[ $(($i%10)) -eq 0 ] &&
+				debug 1 "waiting for $nbd to be ready."
+			sleep .1
+		done
 
-		local mdev="$nbd"
-		if [ -b "${nbd}p${ptnum}" ]; then
-			mdev="${nbd}p${ptnum}"
+		udevadm settle >/dev/null 2>&1
+		if [ "${ptnum}" = "auto" ]; then
+			if [ "$nptnum" = "0" ]; then
+				debug 1 "unpartitioned disk."
+			else
+				debug 1 "partitioned disk."
+			fi
+			ptnum=$nptnum
 		fi
+		if [ "$ptnum" -ne 0 ]; then
+			mdev="${nbd}p${ptnum}"
+		else
+			mdev="${nbd}"
+		fi
+		i=0
+		while :; do
+			[ -b "$mdev" ] && break
+			i=$(($i+1))
+			[ $i -eq 100 ] && {
+				error "gave up on waiting for $mdev"
+				return 1
+			}
+			[ $(($i%10)) -eq 0 ] &&
+				debug 1 "waiting for $mdev part=$ptnum to be ready."
+			sleep .1
+		done
+
 		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$img_mp" ) &&
 			UMOUNTS[${#UMOUNTS[@]}]="$img_mp"; then
 			debug 1 "mounted $mdev via qemu-nbd $nbd"
@@ -299,7 +351,6 @@ mount_callback_umount() {
 			[ -n "$pid" -a ! -d "/proc/$pid" ] ||
 				error "qemu-nbd process seems to have died. was '$pid'"
 
-			qemu-nbd --disconnect "$nbd" && QEMU_DISCONNECT=""
 			error "failed to mount $mdev"
 			return 1
 		fi
@@ -369,7 +420,7 @@ mount_callback_umount() {
 
 	
 	if [ -n "$QEMU_DISCONNECT" ]; then
-		disconnect_qemu "$QEMU_DISCONNECT" && QEMU_DISCONNECT="" || return 1;
+		disconnect_qemu || return 1;
 	fi
 	return $ret
 }

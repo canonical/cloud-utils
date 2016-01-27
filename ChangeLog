@@ -34,6 +34,7 @@
  - mount-image-callback: add '--mountpoint' flag to mount to an existing dir
  - mount-image-callback: add '--overlay' to use overlayfs mounts
  - mount-image-callback: use qemu-nbd --read-only for safer read only
+ - mount-image-callback: improved waiting for devices. part=auto now default.
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
