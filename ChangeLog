@@ -35,6 +35,7 @@
  - mount-image-callback: add '--overlay' to use overlayfs mounts
  - mount-image-callback: use qemu-nbd --read-only for safer read only
  - mount-image-callback: improved waiting for devices. part=auto now default.
+ - ubuntu-cloudimg-query: support arch input of 'powerpc' and 's390x'
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
