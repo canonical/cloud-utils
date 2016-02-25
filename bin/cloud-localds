@@ -17,16 +17,17 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
    Create a disk for cloud-init to utilize nocloud
 
    options:
-     -h | --help            show usage
-     -d | --disk-format D   disk format to output. default: raw
-     -H | --hostname    H   set hostname in metadata to H
-     -f | --filesystem  F   filesystem format (vfat or iso), default: iso9660
+     -h | --help             show usage
+     -d | --disk-format D    disk format to output. default: raw
+     -H | --hostname    H    set hostname in metadata to H
+     -f | --filesystem  F    filesystem format (vfat or iso), default: iso9660
 
-     -i | --interfaces  F   write network interfaces file into metadata
-     -m | --dsmode      M   add 'dsmode' ('local' or 'net') to the metadata
-                            default in cloud-init is 'net', meaning network is
-                            required.
-     -v | --verbose         increase verbosity
+     -i | --interfaces  F    write network interfaces file into metadata
+     -N | --network-config F write network config file to local datasource
+     -m | --dsmode      M    add 'dsmode' ('local' or 'net') to the metadata
+                             default in cloud-init is 'net', meaning network is
+                             required.
+     -v | --verbose          increase verbosity
 
    Note, --dsmode, --hostname, and --interfaces are incompatible
    with metadata.
@@ -56,8 +57,9 @@ debug() {
 	error "${@}"
 }
 
-short_opts="hH:i:d:f:m:o:v"
-long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,output:,verbose"
+short_opts="hH:i:d:f:m:N:o:v"
+long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,"
+long_opts="${long_opts}network-config:,output:,verbose"
 getopt_out=$(getopt --name "${0##*/}" \
 	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
@@ -72,18 +74,20 @@ diskformat=$DEF_DISK_FORMAT
 interfaces=_unset
 dsmode=""
 hostname=""
+ncname="network-config"
 
 
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
 		-h|--help) Usage ; exit 0;;
-		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
 		-d|--disk-format) diskformat=$next; shift;;
 		-f|--filesystem) filesystem=$next; shift;;
-		-m|--dsmode) dsmode=$next; shift;;
-		-i|--interfaces) interfaces=$next; shift;;
 		-H|--hostname) hostname=$next; shift;;
+		-i|--interfaces) interfaces=$next; shift;;
+		-N|--network-config) netcfg=$next; shift;;
+		-m|--dsmode) dsmode=$next; shift;;
+		-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
 		--) shift; break;;
 	esac
 	shift;
@@ -111,6 +115,7 @@ TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX") ||
 	fail "failed to make tempdir"
 trap cleanup EXIT
 
+files=( "${TEMP_D}/user-data" "${TEMP_D}/meta-data" )
 if [ -n "$metadata" ]; then
 	cp "$metadata" "$TEMP_D/meta-data" || fail "$metadata: failed to copy"
 else
@@ -131,6 +136,12 @@ else
 	printf "{\n%s\n}\n" "$mdata" > "${TEMP_D}/meta-data"
 fi
 
+if [ -n "$netcfg" ]; then
+	cp "$netcfg" "${TEMP_D}/$ncname" ||
+		fail "failed to copy network config"
+	files[${#files[@]}]="$TEMP_D/$ncname"
+fi
+
 if [ "$userdata" = "-" ]; then
 	cat > "$TEMP_D/user-data" || fail "failed to read from stdin"
 else
@@ -144,13 +155,12 @@ truncate --size 100K "$img" || fail "failed truncate image"
 case "$filesystem" in
 	iso9660|iso)
 		genisoimage  -output "$img" -volid cidata \
-			-joliet -rock "$TEMP_D/user-data" "$TEMP_D/meta-data" \
-			> "$TEMP_D/err" 2>&1 ||
+			-joliet -rock "${files[@]}" > "$TEMP_D/err" 2>&1 ||
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
 		;;
 	vfat)
 		mkfs.vfat -n cidata "$img" || fail "failed mkfs.vfat"
-		mcopy -oi "$img" "$TEMP_D/user-data" "$TEMP_D/meta-data" :: ||
+		mcopy -oi "$img" "${files[@]}" :: ||
 			fail "failed to copy user-data, meta-data to img"
 		;;
 	*) fail "unknown filesystem $filesystem";;
