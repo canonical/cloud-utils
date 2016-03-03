@@ -19,6 +19,7 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
    options:
      -h | --help             show usage
      -d | --disk-format D    disk format to output. default: raw
+                             can be anything supported by qemu-img or 'tar'
      -H | --hostname    H    set hostname in metadata to H
      -f | --filesystem  F    filesystem format (vfat or iso), default: iso9660
 
@@ -69,7 +70,7 @@ getopt_out=$(getopt --name "${0##*/}" \
 output=""
 userdata=""
 metadata=""
-filesystem=$DEF_FILESYSTEM
+filesystem=""
 diskformat=$DEF_DISK_FORMAT
 interfaces=_unset
 dsmode=""
@@ -108,6 +109,19 @@ if [ -n "$metadata" ]; then
 			"--interfaces, --hostname, --dsmode"
 fi
 
+case "$diskformat" in
+	tar|tar-seed)
+		if [ "${filesystem:-tar}" != "tar" ]; then
+			fail "diskformat=tar is incompatible with filesystem"
+		fi
+		filesystem="$diskformat"
+		;;
+esac
+
+if [ -z "$filesystem" ]; then
+	filesystem="$DEF_FILESYSTEM"
+fi
+
 [ "$interfaces" = "_unset" -o -r "$interfaces" ] ||
 	fail "$interfaces: not a readable file"
 
@@ -142,6 +156,11 @@ if [ -n "$netcfg" ]; then
 	files[${#files[@]}]="$TEMP_D/$ncname"
 fi
 
+files_rel=( )
+for f in "${files[@]}"; do
+	files_rel[${#files_rel[@]}]="${f#${TEMP_D}/}"
+done
+
 if [ "$userdata" = "-" ]; then
 	cat > "$TEMP_D/user-data" || fail "failed to read from stdin"
 else
@@ -152,7 +171,27 @@ fi
 img="$TEMP_D/seed.img"
 truncate --size 100K "$img" || fail "failed truncate image"
 
+tar_opts=( --owner=root --group=root )
+
 case "$filesystem" in
+	tar)
+		tar "${tar_opts[@]}" -C "${TEMP_D}" -cf "$img" "${files_rel[@]}" ||
+			fail "failed to create tarball of ${files_rel[*]}"
+		;;
+	tar-seed)
+		path="var/lib/cloud/seed/nocloud-net"
+		if [ "$dsmode" = "local" ]; then
+			path="var/lib/cloud/seed/nocloud"
+		else
+			path="var/lib/cloud/seed/nocloud-net"
+		fi
+		mkdir -p "${TEMP_D}/${path}" ||
+			fail "failed making path for seed files"
+		mv "${files[@]}" "${TEMP_D}/$path" ||
+			fail "failed moving files"
+		tar "${tar_opts[@]}" -C "${TEMP_D}" -cf "$img" "${path}" ||
+			fail "failed to create tarball with $path"
+		;;
 	iso9660|iso)
 		genisoimage  -output "$img" -volid cidata \
 			-joliet -rock "${files[@]}" > "$TEMP_D/err" 2>&1 ||
@@ -167,12 +206,12 @@ case "$filesystem" in
 esac
 
 [ "$output" = "-" ] && output="$TEMP_D/final"
-if [ "$diskformat" != "raw" ]; then
-	qemu-img convert -f raw -O "$diskformat" "$img" "$output" ||
-		fail "failed to convert to disk format $diskformat"
-else
+if [ "${diskformat#tar}" != "$diskformat" -o "$diskformat" = "raw" ]; then
 	cp "$img" "$output" ||
 		fail "failed to copy image to $output"
+else
+	qemu-img convert -f raw -O "$diskformat" "$img" "$output" ||
+		fail "failed to convert to disk format $diskformat"
 fi
 
 [ "$output" != "$TEMP_D/final" ] || { cat "$output" && output="-"; } ||
