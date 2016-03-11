@@ -19,7 +19,8 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
    options:
      -h | --help             show usage
      -d | --disk-format D    disk format to output. default: raw
-                             can be anything supported by qemu-img or 'tar'
+                             can be anything supported by qemu-img or
+                             tar, tar-seed-local, tar-seed-net
      -H | --hostname    H    set hostname in metadata to H
      -f | --filesystem  F    filesystem format (vfat or iso), default: iso9660
 
@@ -110,12 +111,14 @@ if [ -n "$metadata" ]; then
 fi
 
 case "$diskformat" in
-	tar|tar-seed)
+	tar|tar-seed-local|tar-seed-net)
 		if [ "${filesystem:-tar}" != "tar" ]; then
 			fail "diskformat=tar is incompatible with filesystem"
 		fi
 		filesystem="$diskformat"
 		;;
+	tar*)
+		fail "supported 'tar' formats are tar, tar-seed-local, tar-seed-net"
 esac
 
 if [ -z "$filesystem" ]; then
@@ -178,9 +181,9 @@ case "$filesystem" in
 		tar "${tar_opts[@]}" -C "${TEMP_D}" -cf "$img" "${files_rel[@]}" ||
 			fail "failed to create tarball of ${files_rel[*]}"
 		;;
-	tar-seed)
+	tar-seed-local|tar-seed-net)
 		path="var/lib/cloud/seed/nocloud-net"
-		if [ "$dsmode" = "local" ]; then
+		if [ "$filesystem" = "tar-seed-local" ]; then
 			path="var/lib/cloud/seed/nocloud"
 		else
 			path="var/lib/cloud/seed/nocloud-net"
