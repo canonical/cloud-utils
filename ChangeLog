@@ -36,6 +36,9 @@
  - mount-image-callback: use qemu-nbd --read-only for safer read only
  - mount-image-callback: improved waiting for devices. part=auto now default.
  - ubuntu-cloudimg-query: support arch input of 'powerpc' and 's390x'
+ - cloud-localds: support writing vendor-data and network config
+ - cloud-localds: support --disk-format=tar, tar-seed-local and tar-seed-nonet
+   to more easily use when populating a fs rather than a external disk.
 
 0.27
  - cloud-publish-image: add '--hook-img' flag to cloud-publish-image and
