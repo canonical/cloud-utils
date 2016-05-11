@@ -6,7 +6,7 @@ NAME="ubuntu-cloudimg-query"
 DOT_D="$HOME/.$NAME"
 CACHE_D="$HOME/.cache/$NAME"
 KNOWN_RELEASES="hardy karmic lucid maverick natty oneiric precise quantal
-	raring trusty utopic vivid";
+	raring trusty utopic vivid wily xenial yakkety";
 cachelife=86400
 
 error() { echo "$@" 1>&2; }
@@ -136,7 +136,7 @@ format='%{ami}\n'
 burl="${UBUNTU_CLOUDIMG_QUERY_BASEURL:-https://cloud-images.ubuntu.com/query}"
 store="ebs"
 region_default="${EC2_REGION:-us-east-1}"
-release="precise"
+release="xenial"
 arch="amd64"
 stream="released"
 bname="server"
