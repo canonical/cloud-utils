@@ -1,3 +1,6 @@
+0.29
+ - open 0.29
+
 0.28
  - ubuntu-cloudimg-query: change default release to 'xenial'
  - growpart: fix some issues in error path reporting
