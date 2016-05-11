@@ -60,6 +60,10 @@ debug() {
 	error "${@}"
 }
 
+has_cmd() {
+	command -v "$1" >/dev/null 2>&1
+}
+
 short_opts="hH:i:d:f:m:N:o:V:v"
 long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,"
 long_opts="${long_opts}network-config:,output:,vendor-data:,verbose"
@@ -127,6 +131,32 @@ esac
 if [ -z "$filesystem" ]; then
 	filesystem="$DEF_FILESYSTEM"
 fi
+if [ "$filesystem" = "iso" ]; then
+	filesystem="iso9660"
+fi
+
+case "$filesystem" in
+	tar*)
+		has_cmd tar ||
+			fail "missing 'tar'. Required for --filesystem=$filesystem";;
+	vfat)
+		has_cmd mkfs.vfat ||
+			fail "missing 'mkfs.vfat'. Required for --filesystem=vfat."
+		has_cmd mcopy ||
+			fail "missing 'mcopy'. Required for --filesystem=vfat."
+		;;
+	iso9660)
+		has_cmd genisoimage ||
+			fail "missing 'genisoimage'.  Required for --filesystem=iso9660."
+		;;
+	*) fail "unknown filesystem $filesystem";;
+esac
+
+case "$diskformat" in
+	tar*|raw) :;;
+	*) has_cmd "qemu-img" ||
+		fail "missing 'qemu-img'.  Required for --disk-format=$diskformat."
+esac
 
 [ "$interfaces" = "_unset" -o -r "$interfaces" ] ||
 	fail "$interfaces: not a readable file"
@@ -201,7 +231,7 @@ case "$filesystem" in
 		tar "${tar_opts[@]}" -C "${TEMP_D}" -cf "$img" "${path}" ||
 			fail "failed to create tarball with $path"
 		;;
-	iso9660|iso)
+	iso9660)
 		genisoimage -output "$img" -volid cidata \
 			-joliet -rock "${files[@]}" > "$TEMP_D/err" 2>&1 ||
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
@@ -213,7 +243,6 @@ case "$filesystem" in
 		mcopy -oi "$img" "${files[@]}" :: ||
 			fail "failed to copy user-data, meta-data to img"
 		;;
-	*) fail "unknown filesystem $filesystem";;
 esac
 
 [ "$output" = "-" ] && output="$TEMP_D/final"

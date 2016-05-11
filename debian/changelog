@@ -1,5 +1,7 @@
 cloud-utils (0.29~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
   * cloud-localds: fix creation of vfat filesystems (LP: #1431537)
+  * cloud-localds: better errors on missing vfat tools and
+    Suggest mtools (LP: #1431533).
 
 cloud-utils (0.28-1~trunk1) UNRELEASED; urgency=low
 

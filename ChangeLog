@@ -1,6 +1,8 @@
 0.29
  - cloud-localds: fix creation of vfat filesystems (LP: #1431537)
    [Kamal Mostafa]
+ - cloud-localds: better errors on missing vfat tools and
+   Suggest mtools (LP: #1431533).
 
 0.28
  - ubuntu-cloudimg-query: change default release to 'xenial'

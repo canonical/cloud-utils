@@ -58,6 +58,7 @@ Depends: cloud-image-utils,
          wget,
          ${misc:Depends},
          ${python3:Depends}
+Suggests: mtools
 Description: cloud image utilities wrapping euca2ools
  The tasks associated with image bundling are often tedious and
  repetitive.  The cloud-utils-euca package provides a useful set of utilities
