@@ -183,11 +183,6 @@ fi
 img="$TEMP_D/seed-data"
 tar_opts=( --owner=root --group=root )
 
-case "$filesytem" in
-	iso9660|iso|vfat)
-		truncate --size 100K "$img" || fail "failed truncate image";;
-esac
-
 case "$filesystem" in
 	tar)
 		tar "${tar_opts[@]}" -C "${TEMP_D}" -cf "$img" "${files_rel[@]}" ||
@@ -212,8 +207,9 @@ case "$filesystem" in
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
 		;;
 	vfat)
-		truncate --size 100K "$img" || fail "failed truncate image"
-		mkfs.vfat -n cidata "$img" || fail "failed mkfs.vfat"
+		truncate --size 128K "$img" || fail "failed truncate image"
+		out=$(mkfs.vfat -n cidata "$img" 2>&1) ||
+			{ error "failed: mkfs.vfat -n cidata $img"; error "$out"; }
 		mcopy -oi "$img" "${files[@]}" :: ||
 			fail "failed to copy user-data, meta-data to img"
 		;;
