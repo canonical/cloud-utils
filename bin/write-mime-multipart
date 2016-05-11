@@ -25,11 +25,13 @@ starts_with_mappings = {
     '#cloud-boothook': 'text/cloud-boothook'
 }
 
+
 def try_decode(data):
     try:
         return (True, data.decode())
     except UnicodeDecodeError:
         return (False, data)
+
 
 def get_type(fname, deftype):
     rtype = deftype
@@ -39,7 +41,8 @@ def get_type(fname, deftype):
 
     if can_be_decoded:
         # slist is sorted longest first
-        slist = sorted(list(starts_with_mappings.keys()), key=lambda e: 0 - len(e))
+        slist = sorted(list(starts_with_mappings.keys()),
+                       key=lambda e: 0 - len(e))
         for sstr in slist:
             if line.startswith(sstr):
                 rtype = starts_with_mappings[sstr]
@@ -52,22 +55,18 @@ def get_type(fname, deftype):
 
 def main():
     outer = MIMEMultipart()
-    #outer['Subject'] = 'Contents of directory %s' % os.path.abspath(directory)
-    #outer['To'] = COMMASPACE.join(opts.recipients)
-    #outer['From'] = opts.sender
-    #outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
-
     parser = OptionParser()
 
     parser.add_option("-o", "--output", dest="output",
-        help="write output to FILE [default %default]", metavar="FILE",
-        default="-")
+                      help="write output to FILE [default %default]",
+                      metavar="FILE", default="-")
     parser.add_option("-z", "--gzip", dest="compress", action="store_true",
-        help="compress output", default=False)
+                      help="compress output", default=False)
     parser.add_option("-d", "--default", dest="deftype",
-        help="default mime type [default %default]", default="text/plain")
+                      help="default mime type [default %default]",
+                      default="text/plain")
     parser.add_option("--delim", dest="delim",
-        help="delimiter [default %default]", default=":")
+                      help="delimiter [default %default]", default=":")
 
     (options, args) = parser.parse_args()
 
@@ -98,7 +97,7 @@ def main():
 
         # Set the filename parameter
         msg.add_header('Content-Disposition', 'attachment',
-            filename=os.path.basename(path))
+                       filename=os.path.basename(path))
 
         outer.attach(msg)
 

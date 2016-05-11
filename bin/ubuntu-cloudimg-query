@@ -81,7 +81,7 @@ isrel() {
 			[ -n "$o" ] && _RET="$o" && return 0
 	done
 	dlcache "$url" "$out" "$cache" "$age" &&
-		o=$(awk '-F\t' '$1 ~ r { print $1; exit(0); }' "r=^$cand" "$out")  &&
+		o=$(awk '-F\t' '$1 ~ r { print $1; exit(0); }' "r=^$cand" "$out") &&
 		[ -n "$o" ] && _RET="$o" && return 0
 	return 1
 }
@@ -152,7 +152,7 @@ itypes_ebs_only="t1.micro m3.xlarge m3.2xlarge"
 while [ $# -ne 0 ]; do
 	cur=${1}; next=${2};
 	case "$cur" in
-           --arch) arch="$next"; shift;;
+		   --arch) arch="$next"; shift;;
 		-h|--help) Usage ; exit 0;;
 		-f|--format) format=${2}; shift;;
 		-o|--output) output=${2}; shift;;

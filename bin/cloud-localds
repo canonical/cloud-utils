@@ -207,7 +207,7 @@ case "$filesystem" in
 			fail "failed to create tarball with $path"
 		;;
 	iso9660|iso)
-		genisoimage  -output "$img" -volid cidata \
+		genisoimage -output "$img" -volid cidata \
 			-joliet -rock "${files[@]}" > "$TEMP_D/err" 2>&1 ||
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
 		;;

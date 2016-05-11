@@ -18,6 +18,22 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+import time
+import getopt
+import socket
+import os
+try:
+    from urllib import request as urllib_request
+    from urllib import error as urllib_error
+    from urllib import parse as urllib_parse
+except ImportError as e:
+    # python2
+    import urllib2 as urllib_request
+    import urllib2 as urllib_error
+    import urlparse as urllib_parse
+
+
 instdata_host = "169.254.169.254"
 instdata_ver = "2009-04-04"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
@@ -64,21 +80,6 @@ Options:
 
 """ % instdata_url
 
-import sys
-import time
-import getopt
-import socket
-import os
-try:
-    from urllib import request as urllib_request
-    from urllib import error as urllib_error
-    from urllib import parse as urllib_parse
-except ImportError as e:
-    # python2
-    import urllib2 as urllib_request
-    import urllib2 as urllib_error
-    import urlparse as urllib_parse
-
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'ancestor-ami-ids', 'availability-zone', 'block-device-mapping',
@@ -89,11 +90,14 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'user-data']
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
+
+
 def print_binary(data):
     if not isinstance(data, bytes):
         data = data.encode()
     binstdout.write(data)
     binstdout.flush()
+
 
 class Error(Exception):
     pass
