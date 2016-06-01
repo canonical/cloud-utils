@@ -624,7 +624,7 @@ pt_update() {
 	fi
 	# partx only works on block devices (do not run on file)
 	[ -b "$dev" ] || return 0
-	partx --update "$part" "$dev"
+	partx --update --nr "$part" "$dev"
 }
 
 has_cmd() {

@@ -3,6 +3,8 @@
    [Kamal Mostafa]
  - cloud-localds: better errors on missing vfat tools and
    Suggest mtools (LP: #1431533).
+ - growpart: fix use of partx for newer util-linux versions (LP: #1587971)
+   [Lars Kellogg-Stedman]
 
 0.28
  - ubuntu-cloudimg-query: change default release to 'xenial'
