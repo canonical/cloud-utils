@@ -41,7 +41,7 @@ Depends: ca-certificates,
 Breaks: cloud-utils (<< 0.27-0ubuntu3)
 Replaces: cloud-utils (<< 0.27-0ubuntu3)
 Recommends: distro-info
-Suggests: cloud-utils-euca
+Suggests: cloud-utils-euca, mtools
 Description: cloud image management utilities
  This package provides a useful set of utilities for working with cloud
  images.  It contains tools to help in modifying cloud images, running, and
@@ -58,7 +58,6 @@ Depends: cloud-image-utils,
          wget,
          ${misc:Depends},
          ${python3:Depends}
-Suggests: mtools
 Description: cloud image utilities wrapping euca2ools
  The tasks associated with image bundling are often tedious and
  repetitive.  The cloud-utils-euca package provides a useful set of utilities
