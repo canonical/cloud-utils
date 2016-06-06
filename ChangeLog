@@ -1,3 +1,6 @@
+0.30
+ - open 0.30
+
 0.29
  - cloud-localds: fix creation of vfat filesystems (LP: #1431537)
    [Kamal Mostafa]
