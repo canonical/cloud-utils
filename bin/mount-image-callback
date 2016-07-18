@@ -144,7 +144,7 @@ mount_callback_umount() {
 	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
 	local img_mp="" workd=""
 
-	short_opts="CdhmPpsv"
+	short_opts="Cdhm:P:psSv"
 	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
 	getopt_out=$(getopt --name "${0##*/}" \
 		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
@@ -160,7 +160,7 @@ mount_callback_umount() {
 			-h|--help) Usage ; exit 0;;
 			-m|--mountpoint) mp=$next;;
 			-P|--partition) ptnum=$next;;
-			-O|--overlay) overlay=true;;
+			   --overlay) overlay=true;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
 			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
 			   --system-mounts) bmounts="/dev /proc /sys";;
