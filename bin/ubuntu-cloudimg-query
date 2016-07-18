@@ -134,7 +134,7 @@ getopt_out=$(getopt --name "${0##*/}" \
 output="-"
 format='%{ami}\n'
 burl="${UBUNTU_CLOUDIMG_QUERY_BASEURL:-https://cloud-images.ubuntu.com/query}"
-store="ebs"
+store=""
 region_default="${EC2_REGION:-us-east-1}"
 release="xenial"
 arch="amd64"
@@ -176,7 +176,7 @@ for i in "$@"; do
 			arch=${i};
 			[ "${i}" = "x86_64" ] && arch="amd64";;
 		*-*-[0-9]) region=${i};;
-		ebs) store="$i";;
+		ebs|ebs-ssd|ebs-io1) store="$i";;
 		instance|instance-store) store="instance-store";;
 		hvm) ptype="hvm";;
 		para|paravirtual) ptype="paravirtual";;
@@ -228,6 +228,15 @@ if [ -z "${region}" ]; then
 	else
 		region="${region_default}"
 	fi
+fi
+
+if [ -z "$store" ]; then
+	# legacy 'ebs' backed root devices were dropped in xenial,
+	# so 'ebs-ssd' is the default for newer releases.
+	case "$release" in
+		lucid|precise|trusty|wily) store="ebs";;
+		*) store="ebs-ssd";;
+	esac
 fi
 
 ec2_curf="${TEMP_D}/${release}.${bname}.${stream}.current.txt"
