@@ -1,0 +1,5 @@
+Tests: growpart-loop
+Restrictions: needs-root isolation-machine allow-stderr
+
+Tests: growpart-fsimage
+Restrictions: allow-stderr

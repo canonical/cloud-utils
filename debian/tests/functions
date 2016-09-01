@@ -1,0 +1,27 @@
+#!/bin/sh
+unset PT_TYPE GROWPART_RESIZER
+
+error() { echo "$@" 1>&2; }
+fail() { [ $# -eq 0 ] || error "$@"; }
+
+runtests() {
+    local mytest="$1" pt_type resizer
+    for pt_type in gpt dos; do
+        for resizer in auto sfdisk gdisk; do
+            case "$pt_type:$resizer" in
+                # not supported
+                dos:gdisk) continue;;
+            esac
+            echo "-- PT_TYPE=$pt_type GROWPART_RESIZER=$resizer --" 
+            env "PT_TYPE=$pt_type" "GROWPART_RESIZER=$resizer" "$mytest"
+            ret=$?
+            [ $ret -eq 0 ] || {
+                error "FAIL: $mytest failed. pt_type=$pt_type resizer=$resizer"
+                return $ret
+            }
+            echo; echo;
+        done
+    done
+}
+
+# vi: ts=4 expandtab
