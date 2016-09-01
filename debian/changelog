@@ -1,5 +1,7 @@
 cloud-utils (0.30~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
+
   * growpart: improved error messages on failure.
+  * mount-image-callback: add -S short flag for --system-mounts
 
  -- Scott Moser <smoser@ubuntu.com>  Mon, 06 Jun 2016 14:49:30 -0400
 

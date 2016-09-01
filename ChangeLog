@@ -1,6 +1,7 @@
 0.30
  - open 0.30
  - growpart: improved error messages on failure.
+ - mount-image-callback: add -S short flag for --system-mounts
 
 0.29
  - cloud-localds: fix creation of vfat filesystems (LP: #1431537)
