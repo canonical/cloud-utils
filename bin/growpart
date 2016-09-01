@@ -63,9 +63,9 @@ cleanup() {
 	if [ -n "${RESTORE_FUNC}" ]; then
 		error "***** WARNING: Resize failed, attempting to revert ******"
 		if ${RESTORE_FUNC} ; then
-			error "***** Appears to have gone OK ****"
+			error "***** Restore appears to have gone OK ****"
 		else
-			error "***** FAILED! ******"
+			error "***** Restore FAILED! ******"
 			if [ -n "${RESTORE_HUMAN}" -a -f "${RESTORE_HUMAN}" ]; then
 				error "**** original table looked like: ****"
 				cat "${RESTORE_HUMAN}" 1>&2
