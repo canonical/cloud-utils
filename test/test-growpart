@@ -51,13 +51,8 @@ mkdir $mp
 
 truncate --size $osize "$img"
 
-if [ "${PT_TYPE}" = "gpt" ]; then
-	rq sgdisk --new 1:2048: "$img"
-else
-	label=""
-	[ "${PT_TYPE}" = "sfdisk-gpt" ] && label="--label=gpt"
-	echo "2048," | rq sfdisk $label --force --unit=S "$img"
-fi
+label_flag="--label=${PT_TYPE:-dos}"
+echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
 
 truncate --size "$size" "$img"
 
