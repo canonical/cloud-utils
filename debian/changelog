@@ -1,5 +1,8 @@
 cloud-utils (0.30~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
 
+  * ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
+    as traditional ebs are no longer available. (LP: #1593451)
+  * mount-image-callback: fix shortopt parsing (LP: #1604011)
   * growpart: improved error messages on failure.
   * mount-image-callback: add -S short flag for --system-mounts
   * growpart: ignore sfdisk failure in 2.28.1 when due to reread
