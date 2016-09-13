@@ -14,6 +14,10 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
    mount a file to a temporary mount point and then
    invoke the provided cmd with args
 
+   supported 'file' are:
+      lxd:name  : the rootfs for lxd container 'name'
+      file      : any disk format supported by qemu-nbd
+
    the temporary mountpoint will be put in an a environment variable
    named MOUNTPOINT.
 
@@ -184,11 +188,21 @@ mount_callback_umount() {
 	img_in="$1"
 	shift 1
 
-	img=$(readlink -f "$img_in") ||
-		{ error "failed to get full path to $img_in"; return 1; }
-
-	[ -f "$img" ] ||
-		{ error "$img: not a file"; return 1; }
+	case "$img_in" in
+		lxd:*)
+			img="/var/lib/lxd/containers/${img_in#lxd:}/rootfs"
+			[ -d "$img" ] || {
+				error "${img_in}: no rootfs in $img. Not a container?"
+				return 1;
+			}
+			;;
+		*)
+			img=$(readlink -f "$img_in") ||
+				{ error "failed to get full path to $img_in"; return 1; }
+			[ -f "$img" ] ||
+				{ error "$img: not a file"; return 1; }
+			;;
+	esac
 
 	[ "$(id -u)" = "0" ] ||
 		{ error "sorry, must be root"; return 1; }
@@ -231,13 +245,27 @@ mount_callback_umount() {
 		error "MOUNTPOINT=$mp"
 	fi
 
-	local hasqemu=false
+	local hasqemu=false mounted=false
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 
-	if out=$(set -f; mount -o loop${readonly:+,$readonly} $opts \
+	if [ -d "$img" ]; then
+		debug 1 "using directory at $img for $img_in ($mp_is_tmp)"
+		if ${mp_is_tmp}; then
+			rmdir "$mp"
+			ln -s "$img" "$mp"
+			mp_is_tmp=false
+		else
+			debug 1 "mounting $img to $mp"
+			mount --bind "$img" "$mp" ||
+				{ error "failed to mount --bind '$img' '$mp'"; return 1; }
+			UMOUNTS[${#UMOUNTS[@]}]="$mp"
+		fi
+		mounted=true
+	elif out=$(set -f; mount -o loop${readonly:+,$readonly} $opts \
 			 "$img" "$img_mp" 2>&1); then
 		debug 1 "mounted simple filesystem image '$img_in'"
 		UMOUNTS[${UMOUNT[@]}]="$img_mp"
+		mounted=true
 	else
 		if ! $hasqemu; then
 			error "simple mount of '$img_in' failed."
@@ -248,7 +276,7 @@ mount_callback_umount() {
 		fi
 	fi
 
-	if [ "${#UMOUNTS[@]}" -eq 0 ]; then
+	if ! $mounted; then
 		if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
 			debug 1 "trying to load nbd module"
 			modprobe nbd >/dev/null 2>&1
