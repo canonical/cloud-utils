@@ -155,10 +155,10 @@ add_helpers() {
 #!/bin/sh
 [ $# -eq 0 ] && set -- ${SHELL:-/bin/bash}
 if [ -z "$MIC_SUBUID" -a -z "$MIC_SUBGID" ]; then
-    exec "$@"
+	exec "$@"
 fi
 exec lxc-usernsexec ${MIC_SUBUID:+-m u:0:${MIC_SUBUID}} \
-    ${MIC_SUBGID:+-m g:0:${MIC_SUBGID}} -- "$@"
+	${MIC_SUBGID:+-m g:0:${MIC_SUBGID}} -- "$@"
 EOF
 	add_bin "$d/mchroot" <<"EOF" || return 1
 #!/bin/sh
