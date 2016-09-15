@@ -231,6 +231,10 @@ mount_callback_umount() {
 
 	case "$img_in" in
 		lxd:*)
+			command -v lxc-usernsexec >/dev/null 2>&1 || {
+				error "lxd support needs lxc-usernsexec"; 
+				return 1;
+			}
 			img="/var/lib/lxd/containers/${img_in#lxd:}/rootfs"
 			[ -d "$img" ] || {
 				error "${img_in}: no rootfs in $img. Not a container?"
