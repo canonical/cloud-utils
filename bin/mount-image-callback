@@ -142,6 +142,46 @@ get_partition() {
 	fi
 }
 
+add_bin() {
+	cat > "$1" || { error "failed to write to $1"; return 1; }
+	chmod 755 "$1" || { error "failed to set perms on $1"; return 1; }
+}
+
+add_helpers() {
+	local d="$1"
+	local umap="$1" gmap="$2"
+	[ -d "$1" ] || mkdir -p "$1"
+	add_bin "$d/uns-switch" <<"EOF" || return 1
+#!/bin/sh
+[ $# -eq 0 ] && set -- ${SHELL:-/bin/bash}
+if [ -z "$MIC_SUBUID" -a -z "$MIC_SUBGID" ]; then
+    exec "$@"
+fi
+exec lxc-usernsexec ${MIC_SUBUID:+-m u:0:${MIC_SUBUID}} \
+    ${MIC_SUBGID:+-m g:0:${MIC_SUBGID}} -- "$@"
+EOF
+	add_bin "$d/mchroot" <<"EOF" || return 1
+#!/bin/sh
+exec uns-switch chroot "$MOUNTPOINT" "$@"
+EOF
+	return
+}
+
+get_subid() {
+	local id="$1" file="$2"
+	awk -F: '$1 == id { printf("%s:%s\n", $2, $3); exit(0); }' \
+		id="$id" "$file"
+}
+
+set_subids() {
+	local id="$1" out="" muid="" mgid=""
+	[ -z "$id" ] && return 0
+	muid=$(get_subid "$id" /etc/subuid) &&
+		mgid=$(get_subid "$id" /etc/subgid) &&
+		[ -n "$muid" -a -n "$mgid" ] &&
+		export MIC_SUBGID="$muid" MIC_SUBUID="$mgid" && return
+}
+
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=auto
@@ -185,6 +225,7 @@ mount_callback_umount() {
 		return 1;
 	}
 
+	local uns_switch=false
 	img_in="$1"
 	shift 1
 
@@ -195,6 +236,11 @@ mount_callback_umount() {
 				error "${img_in}: no rootfs in $img. Not a container?"
 				return 1;
 			}
+			set_subids lxd || {
+				error "failed reading subids for lxd";
+				return 1;
+			}
+			uns_switch=true
 			;;
 		*)
 			img=$(readlink -f "$img_in") ||
@@ -229,21 +275,11 @@ mount_callback_umount() {
 		img_mp=$mp
 	fi
 
-	local cmd="" arg="" found=false
-	cmd=( )
-	for arg in "$@"; do
-		if [ "${arg}" = "_MOUNTPOINT_" ]; then
-			debug 1 "replaced string _MOUNTPOINT_ in arguments arg ${#cmd[@]}"
-			arg=$mp
-		fi
-		cmd[${#cmd[@]}]="$arg"
-	done
-
-	if [ "${cmd[0]##*/}" = "bash" -o "${cmd[0]##*/}" = "sh" ] &&
-	   [ ${#cmd[@]} -eq 0 ]; then
-		debug 1 "invoking shell ${cmd[0]}"
-		error "MOUNTPOINT=$mp"
-	fi
+	add_helpers "$TEMP_D/bin" "$SUBUID" "$SUBGID" || {
+		error "failed to add helpers to $TEMP_D";
+		return 1;
+	}
+	PATH="$TEMP_D/bin:$PATH"
 
 	local hasqemu=false mounted=false
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
@@ -251,9 +287,8 @@ mount_callback_umount() {
 	if [ -d "$img" ]; then
 		debug 1 "using directory at $img for $img_in ($mp_is_tmp)"
 		if ${mp_is_tmp}; then
-			rmdir "$mp"
-			ln -s "$img" "$mp"
 			mp_is_tmp=false
+			mp=${img}
 		else
 			debug 1 "mounting $img to $mp"
 			mount --bind "$img" "$mp" ||
@@ -275,6 +310,29 @@ mount_callback_umount() {
 			return 1
 		fi
 	fi
+
+	local cmd="" arg="" found=false
+	cmd=( )
+	for arg in "$@"; do
+		if [ "${arg}" = "_MOUNTPOINT_" ]; then
+			debug 1 "replaced string _MOUNTPOINT_ in arguments arg ${#cmd[@]}"
+			arg=$mp
+		fi
+		cmd[${#cmd[@]}]="$arg"
+	done
+	if [ "${cmd[0]##*/}" = "bash" -o "${cmd[0]##*/}" = "sh" ] &&
+	   [ ${#cmd[@]} -eq 0 ]; then
+		debug 1 "invoking shell ${cmd[0]}"
+		error "MOUNTPOINT=$mp"
+	fi
+
+	if $uns_switch && [ "$1" = "chroot" ]; then
+		debug 1 "added helper uns-switch for chroot"
+		cmd=( uns-switch "${cmd[@]}" )
+	elif $uns_switch; then
+		debug 1 "uns-switch helper can be used for changing user map"
+	fi
+
 
 	if ! $mounted; then
 		if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
