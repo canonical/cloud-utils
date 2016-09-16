@@ -82,8 +82,10 @@ disconnect_qemu() {
 }
 
 do_umounts() {
-	local um="" fails=0 mydir="$PWD/"
-	for um in "$@"; do
+	local um="" fails=0 mydir="$PWD/" mounts="" i=0
+	mounts=( "$@" )
+	for((i=${#mounts[@]}-1;i>=0;i--)); do
+		um=${mounts[$i]}
 		um=$(readlink -f "$um") || {
 			error "WARNING: failed to get full path to '$um'";
 			fails=$(($fails+1))
@@ -185,7 +187,7 @@ set_subids() {
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=auto
-	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
+	local cd_mountpoint=false fmt="" overlay=false
 	local img_mp="" workd=""
 
 	short_opts="Cdhm:P:psSv"
@@ -263,7 +265,6 @@ mount_callback_umount() {
 	if [ -z "$mp" ]; then
 		mp="${TEMP_D}/mp"
 		mkdir "$mp" || return
-		mp_is_tmp=true
 	else
 		[ -d "$mp" ] ||
 			{ error "mountpoint '$mp': not a directory"; return 1; }
@@ -289,13 +290,11 @@ mount_callback_umount() {
 	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 
 	if [ -d "$img" ]; then
-		debug 1 "using directory at $img for $img_in ($mp_is_tmp)"
-		if ${mp_is_tmp}; then
-			mp_is_tmp=false
-			mp=${img}
-		else
+		debug 1 "using directory at $img for $img_in"
+		mp=$img
+		if $overlay; then
 			debug 1 "mounting $img to $mp"
-			mount --bind "$img" "$mp" ||
+			mount --bind "$img" "$img_mp" ||
 				{ error "failed to mount --bind '$img' '$mp'"; return 1; }
 			UMOUNTS[${#UMOUNTS[@]}]="$mp"
 		fi
@@ -466,8 +465,10 @@ mount_callback_umount() {
 	for bindmp in $bmounts; do
 		[ -d "$mp${bindmp}" ] || mkdir "$mp${bindmp}" ||
 			{ error "failed mkdir $bindmp in mount"; return 1; }
-		mount --bind "$bindmp" "$mp/${bindmp}" ||
+		mount --bind "$bindmp" "$mp${bindmp}" ||
 			{ error "failed bind mount '$bindmp'"; return 1; }
+		UMOUNTS[${#UMOUNTS[@]}]="$mp${bindmp}"
+		debug 1 "mounted $bindmp to $mp${bindmp}"
 	done
 
 	if ${system_resolvconf}; then
@@ -504,11 +505,6 @@ mount_callback_umount() {
 	do_umounts "${UMOUNTS[@]}" && UMOUNTS=( ) ||
 		{ error "failed umount $img"; return 1; }
 
-	if "$mp_is_tmp"; then
-		rmdir "$img_mp" || error "WARN: failed 'rmdir $img_mp'"
-	fi
-
-	
 	if [ -n "$QEMU_DISCONNECT" ]; then
 		disconnect_qemu || return 1;
 	fi
