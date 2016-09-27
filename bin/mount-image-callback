@@ -138,11 +138,30 @@ get_partition() {
 	fi
 }
 
+has_fs_support() {
+	local fstype="$1" tab='	'
+	grep -q "${tab}${fstype}$" /proc/filesystems
+}
+
+find_overlay_fstype() {
+	local fstype
+	set -- overlay overlayfs
+	for fstype in "$@"; do
+		has_fs_support "$m" && _RET="$fstype" && return 0
+	done
+	for modname in "$@"; do
+		if modprobe --quiet --use-blacklist "$modname"; then
+			has_fs_support "$modname" && _RET="$modname" && return 0
+		fi
+	done
+	return 1
+}
+
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=auto
 	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
-	local img_mp="" workd=""
+	local img_mp="" workd="" overlay_fstype=""
 
 	short_opts="Cdhm:P:psSv"
 	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
@@ -342,7 +361,7 @@ mount_callback_umount() {
 			sleep .1
 		done
 
-		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$img_mp" ) &&
+		if ( set -f; mount ${readonly:+-o ${readonly}} $opts "$mdev" "$img_mp" ) &&
 			UMOUNTS[${#UMOUNTS[@]}]="$img_mp"; then
 			debug 1 "mounted $mdev via qemu-nbd $nbd"
 		else
@@ -358,6 +377,13 @@ mount_callback_umount() {
 	fi
 
 	if $overlay; then
+		find_overlay_fstype || {
+			error "Unable to find a filesystem type for overlay."
+			error "You need support for overlayfs or overlay in your kernel."
+			return 1
+		}
+		overlay_fstype="$_RET"
+			
 		local olayopts="lowerdir=$img_mp,upperdir=$mp"
 		workdir="${TEMP_D}/workdir"
 		mkdir "$workdir"
@@ -366,8 +392,8 @@ mount_callback_umount() {
 			2*|3.1[01234567]*|3.[0-9].*) :;;
 			*) olayopts="${olayopts},workdir=$workdir";;
 		esac
-		mount -t overlayfs -o "$olayopts" "$img_mp" "$mp" || {
-			error "failed mount -t overlayfs -o '$olayopts' '$img_mp' '$mp'"
+		mount -t "${overlay_fstype}" -o "$olayopts" "$img_mp" "$mp" || {
+			error "failed mount -t ${overlay_fstype} -o '$olayopts' '$img_mp' '$mp'"
 			return 1;
 		}
 		UMOUNTS[${#UMOUNTS[@]}]="$mp"
