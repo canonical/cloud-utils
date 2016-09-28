@@ -1,0 +1,157 @@
+#!/bin/bash
+
+set -e
+
+[ "$(id -u)" = "0" ] ||
+	{ echo "sorry, must be root"; exit 1; }
+
+PT_TYPE="${PT_TYPE:-gpt}" # dos or gpt
+
+cleanup() {
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { error "FAILED:" "$@"; cat "$out"; return 1; }
+}
+fail() { echo "$@" 1>&2; exit 1; }
+error() { echo "$@" 1>&2; }
+msg() { error "$@"; }
+
+do_pt_test() {
+	local img="$1" pt="$2" data="$3" info="$4" out=""
+	msg "testing partition $pt in $img"
+	mount-image-callback --cd "--part=$pt" "$img" -- \
+		sh -c "echo '$data' > data.txt" ||
+		{ error "failed writing to partition $pt in $img"; return 1; }
+	local expected=$(printf "%s\n%s\n" "$info" "$data")
+	out=$(mount-image-callback --read-only --cd "--part=$pt" "$img" -- \
+		sh -c "cat info.txt data.txt") ||
+		{ error "failed mounting part1 for verification"; return 1; }
+
+	[ "$expected" = "$out" ] || {
+		error "expected $pt to have:"
+		error "$expected"
+		error "found:"
+		error "$out"
+	}
+}
+
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+pt1="${TEMP_D}/pt1.img"
+pt2="${TEMP_D}/pt2.img"
+prept="${TEMP_D}/header.img"
+postpt="${TEMP_D}/foot.img"
+img="${TEMP_D}/disk.img"
+MB=$((1024*1024))
+SSIZE=512
+pt1_size=$((100*$MB))
+pt2_size=$((200*$MB))
+prept_size=$MB
+postpt_size=$MB
+
+pt1_d="${TEMP_D}/pt1"
+pt2_d="${TEMP_D}/pt2"
+mkdir -p "$pt1_d" "$pt2_d"
+echo "partition 1" > "$pt1_d/info.txt"
+echo "file 1" > "$pt1_d/file1.txt"
+echo "partition 2" > "$pt2_d/info.txt"
+
+## Stage 1
+## Create 2 un-partitioned images, put a filesystem on them.
+## And then mount them write a file, and then mount and
+## read the file to verify its there.
+truncate "--size=$pt1_size" "$pt1"
+truncate "--size=$pt2_size" "$pt2"
+rq mkfs.ext4 -F "${pt1}"
+rq mkfs.ext4 -F "${pt2}"
+
+## Stage 1.5: Verify
+msg "testing partition 1 image"
+mount-image-callback "$pt1" -- cp -r "$pt1_d/"* _MOUNTPOINT_ ||
+	fail "copying file to pt1 mount failed"
+
+out=$(mount-image-callback --read-only "$pt1" --cd -- cat info.txt) &&
+	[ "$out" = "partition 1" ] ||
+	fail "failed verification of pt1 contents"
+
+out=$(mount-image-callback --read-only --cd "$pt1" -- cat file1.txt)
+[ "$out" = "file 1" ] ||
+	fail "found unexpected contents in file1.txt on pt1: $out"
+
+msg "testing partition 2 image"
+mount-image-callback "$pt2" -- cp -r "$pt2_d/"* _MOUNTPOINT_ ||
+	fail "copying file to pt2 mount failed"
+
+out=$(mount-image-callback --read-only "$pt2" --cd -- cat info.txt) &&
+	[ "$out" = "partition 2" ] ||
+	fail "failed verification of pt2 contents"
+
+## Stage 1.6: Mount with overlay
+copy_out="${TEMP_D}/copy-out"
+mkdir -p "$TEMP_D/copy-out"
+mount-image-callback --overlay --cd "$pt1" -- \
+	sh -ec 't="$1";
+	        echo hi > new-file.txt; echo xxx > file1.txt;
+	        cp -r * "$t"' -- "$copy_out"
+read found < "$copy_out/file1.txt"
+[ "$found" = "xxx" ] ||
+	fail "unexpected contents in file1.txt from overlay: $found."
+
+[ -f "$copy_out/new-file.txt" ] ||
+	fail "new file created during overlay does not exist in copy out"
+read found <"$copy_out/new-file.txt"
+[ "$found" = "hi" ] ||
+	fail "unexpected contents in new-file.txt from overlay: $found."
+
+## verify the overlay mount changes did not change partition
+out=$(mount-image-callback --cd "$pt1" -- cat file1.txt)
+[ "$out" = "file 1" ] ||
+	fail "found unexpected contents in pt1:file1.txt after overlay: $out"
+
+## Stage 2
+## Create a full disk image with those 2 partition images inside
+## Then add a GPT partition table that points at the 2 partitions.
+truncate "--size=$prept_size" "$prept"
+truncate "--size=$postpt_size" "$postpt"
+
+msg "writing hunks to disk image $img"
+for hunk in "$prept" "$pt1" "$pt2" "$postpt"; do
+	rq dd bs=1M conv=notrunc oflag=append "if=$hunk" "of=$img" ||
+		fail "failed adding $hunk to disk image"
+done
+
+#
+sfdisk_in="$TEMP_D/ptable_in"
+curstart=0
+(
+echo unit: sectors
+for pair in "-:${prept_size}" "1:${pt1_size}" "2:${pt2_size}" "-:${postpt_size}"; do
+	op=${pair%%:*}
+	size="${pair#*:}"
+	if [ "$op" != "-" ]; then
+		echo "${curstart} $((size/$SSIZE)) L"
+	fi
+	curstart=$(($curstart+($size/$SSIZE)))
+done
+) > "$sfdisk_in"
+
+msg "partitioning disk image $img"
+rq sfdisk "$img" <"$sfdisk_in"
+
+
+## Stage 2.5
+## Verify we can mount each partition with '--part=N'
+## write data, then remount and read expected data.
+do_pt_test "$img" 1 "foo1" "partition 1" ||
+	fail "failed testing partition 1 on $img"
+
+do_pt_test "$img" 2 "foo2" "partition 2" ||
+	fail "failed testing partition 2 on $img"
+
+error "Finished tests."
+
+# vi: ts=4 noexpandtab
