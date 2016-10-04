@@ -1,6 +1,7 @@
 cloud-utils (0.30~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
 
   * debian/copyright: fix lintian file-without-copyright-information.
+  * debian/control: update standards version
   * ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
     as traditional ebs are no longer available. (LP: #1593451)
   * mount-image-callback: fix shortopt parsing (LP: #1604011)
