@@ -4,6 +4,8 @@ VERBOSITY=0
 TEMP_D=""
 UMOUNTS=( )
 QEMU_DISCONNECT=""
+CR=$'\n'
+TAB=$'\t'
 
 error() { echo "$@" 1>&2; }
 
@@ -184,11 +186,44 @@ set_subids() {
 		export MIC_SUBGID="$muid" MIC_SUBUID="$mgid" && return
 }
 
+mount_overlay() {
+	local lower="$1" upper="$2" workdir="$3"
+	local olayopts="lowerdir=$lower,upperdir=$upper"
+	# 3.18+ require 'workdir=' option.
+	case "$(uname -r)" in
+		2*|3.1[01234567]*|3.[0-9].*) :;;
+		*) olayopts="${olayopts},workdir=$workdir"
+			mkdir -p "$workdir" ||
+				{ _ERR="Failed to create workdir '$workdir'"; return 1; }
+			;;
+	esac
+
+	local cmd="" fstype="" ret="" out="" fsfile="/proc/filesystems"
+	_ERR=""
+	for fstype in overlay overlayfs; do
+		cmd=( mount -t "$fstype" -o "$olayopts" "$lower" "$upper" )
+		debug 2 "attempting '$fstype' mount with: ${cmd[*]}"
+		out=$("${cmd[@]}" 2>&1)
+		ret=$?
+		if [ $ret -eq 0 ]; then
+			debug 1 "mounted '$fstype' via $fstype: ${cmd[*]}"
+			return 0
+		fi
+		_ERR="${_ERR}Failed [$ret]: ${cmd[*]}:${CR}"
+		_ERR="${_ERR}$out${CR}"
+		if [ -r "$fsfile" ] && grep -q "${TAB}${fstype}$" "$fsfile"; then
+			# this failed and we have support in kernel. do not try further.
+			return $ret
+		fi
+	done
+	return $ret
+}
+
 mount_callback_umount() {
 	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
 	local opts="" bmounts="" system_resolvconf=false ptnum=auto
 	local cd_mountpoint=false fmt="" overlay=false
-	local img_mp="" workd=""
+	local img_mp=""
 
 	short_opts="Cdhm:P:psSv"
 	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
@@ -391,7 +426,7 @@ mount_callback_umount() {
 		fi
 
 		local nptnum=""
-		debug 1 "connected $img_in ($fmt) to $nbd. waiting for device."
+		debug 1 "connected ${readonly:+${readonly} }$img_in ($fmt) to $nbd. waiting for device."
 		i=0
 		while i=$(($i+1)):; do
 			get_partition "$nbd" && nptnum="$_RET" && break
@@ -431,7 +466,7 @@ mount_callback_umount() {
 			sleep .1
 		done
 
-		if ( set -f; mount ${ro:+-o ${ro}} $opts "$mdev" "$img_mp" ) &&
+		if ( set -f; mount ${readonly:+-o ${readonly}} $opts "$mdev" "$img_mp" ) &&
 			UMOUNTS[${#UMOUNTS[@]}]="$img_mp"; then
 			debug 1 "mounted $mdev via qemu-nbd $nbd"
 		else
@@ -447,20 +482,14 @@ mount_callback_umount() {
 	fi
 
 	if $overlay; then
-		local olayopts="lowerdir=$img_mp,upperdir=$mp"
-		workdir="${TEMP_D}/workdir"
-		mkdir "$workdir"
-		# 3.18+ require 'workdir=' option.
-		case "$(uname -r)" in
-			2*|3.1[01234567]*|3.[0-9].*) :;;
-			*) olayopts="${olayopts},workdir=$workdir";;
-		esac
-		mount -t overlayfs -o "$olayopts" "$img_mp" "$mp" || {
-			error "failed mount -t overlayfs -o '$olayopts' '$img_mp' '$mp'"
-			return 1;
+		mount_overlay "$img_mp" "$mp" "${TEMP_D}/workdir" || {
+			[ -n "${_ERR}" ] && error "${_ERR}"
+			error "Unable to mount overlay filesystem.  Maybe no kernel support?"
+			return 1
 		}
 		UMOUNTS[${#UMOUNTS[@]}]="$mp"
 	fi
+
 	local bindmp=""
 	for bindmp in $bmounts; do
 		[ -d "$mp${bindmp}" ] || mkdir "$mp${bindmp}" ||
