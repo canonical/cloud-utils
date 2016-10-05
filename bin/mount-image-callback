@@ -364,7 +364,6 @@ mount_callback_umount() {
 	if [ -z "$mp" ]; then
 		mp="${TEMP_D}/mp"
 		mkdir "$mp" || return
-		mp_is_tmp=true
 	else
 		[ -d "$mp" ] ||
 			{ error "mountpoint '$mp': not a directory"; return 1; }
