@@ -19,18 +19,21 @@ error() { echo "$@" 1>&2; }
 msg() { error "$@"; }
 
 do_pt_test() {
-	local img="$1" pt="$2" data="$3" info="$4" out=""
-	msg "testing partition $pt in $img"
+	local img="$1" pt="$2" data="$3" info="$4" premsg="$5" out=""
+	msg "${premsg}testing partition $pt in $img"
 	mount-image-callback --cd "--part=$pt" "$img" -- \
-		sh -c "echo '$data' > data.txt" ||
-		{ error "failed writing to partition $pt in $img"; return 1; }
+		sh -c "echo '$data' > data.txt" || {
+			error "${premsg}failed writing to partition $pt in $img";
+			return 1;
+		}
 	local expected=$(printf "%s\n%s\n" "$info" "$data")
 	out=$(mount-image-callback --read-only --cd "--part=$pt" "$img" -- \
-		sh -c "cat info.txt data.txt") ||
-		{ error "failed mounting part1 for verification"; return 1; }
-
+		sh -c "cat info.txt data.txt") || {
+			error "${premsg}failed mounting part $pt for verification";
+			return 1;
+		}
 	[ "$expected" = "$out" ] || {
-		error "expected $pt to have:"
+		error "${premsg}expected $pt to have:"
 		error "$expected"
 		error "found:"
 		error "$out"
@@ -45,7 +48,8 @@ pt1="${TEMP_D}/pt1.img"
 pt2="${TEMP_D}/pt2.img"
 prept="${TEMP_D}/header.img"
 postpt="${TEMP_D}/foot.img"
-img="${TEMP_D}/disk.img"
+img_mbr="${TEMP_D}/disk-mbr.img"
+img_gpt="${TEMP_D}/disk-gpt.img"
 MB=$((1024*1024))
 SSIZE=512
 pt1_size=$((100*$MB))
@@ -114,15 +118,16 @@ out=$(mount-image-callback --cd "$pt1" -- cat file1.txt)
 
 ## Stage 2
 ## Create a full disk image with those 2 partition images inside
-## Then add a GPT partition table that points at the 2 partitions.
+## and a partition table that points to them.  Do one for MBR and GPT.
 truncate "--size=$prept_size" "$prept"
 truncate "--size=$postpt_size" "$postpt"
 
-msg "writing hunks to disk image $img"
+msg "writing hunks to disk image ${img_mbr}"
 for hunk in "$prept" "$pt1" "$pt2" "$postpt"; do
-	rq dd bs=1M conv=notrunc oflag=append "if=$hunk" "of=$img" ||
+	rq dd bs=1M conv=notrunc oflag=append "if=$hunk" "of=${img_mbr}" ||
 		fail "failed adding $hunk to disk image"
 done
+cp "${img_mbr}" "$img_gpt"
 
 #
 sfdisk_in="$TEMP_D/ptable_in"
@@ -139,18 +144,24 @@ for pair in "-:${prept_size}" "1:${pt1_size}" "2:${pt2_size}" "-:${postpt_size}"
 done
 ) > "$sfdisk_in"
 
-msg "partitioning disk image $img"
-rq sfdisk "$img" <"$sfdisk_in"
+msg "partitioning MBR disk image ${img_mbr}"
+(echo "label: dos"; cat "$sfdisk_in"; ) | rq sfdisk "${img_mbr}"
 
+msg "partitioning GPT disk image ${img_gpt}"
+(echo "label: gpt"; cat "$sfdisk_in"; ) | rq sfdisk "${img_gpt}"
 
 ## Stage 2.5
 ## Verify we can mount each partition with '--part=N'
 ## write data, then remount and read expected data.
-do_pt_test "$img" 1 "foo1" "partition 1" ||
-	fail "failed testing partition 1 on $img"
+for toks in "MBR:${img_mbr}" "GPT:${img_gpt}"; do
+	img=${toks#*:}
+    prefix=${toks%%:*}
+	do_pt_test "$img" 1 "foo1" "partition 1" "$prefix: " ||
+		fail "${prefix}failed testing partition 1 on $img"
 
-do_pt_test "$img" 2 "foo2" "partition 2" ||
-	fail "failed testing partition 2 on $img"
+	do_pt_test "$img" 2 "foo2" "partition 2" "$prefix: " ||
+		fail "${prefix}failed testing partition 2 on $img"
+done
 
 error "Finished tests."
 
