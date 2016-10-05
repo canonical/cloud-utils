@@ -67,6 +67,7 @@ bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
 disconnect_qemu() {
 	[ -n "$QEMU_DISCONNECT" ] || return 0
 	local out="" nbd="$QEMU_DISCONNECT"
+	debug 1 "disconnecting $nbd"
 	local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
 	{ read pid < "$pfile" ; } >/dev/null 2>&1
 	[ -n "$pid" -a ! -d "/proc/$pid" ] && 
@@ -125,9 +126,8 @@ get_image_format() {
 
 get_partition() {
 	# return in _RET the 'auto' partition for a image.
-	# return partition number for a partitioned image
-	# return 0 for unpartitioned
-	# return 0 if image is partitioned, 1 if not
+	# _RET=partition number for a partitioned image
+	# _RET=0 for unpartitioned
 	local img="$1"
 	out=$(LANG=C sfdisk --list -uS "$img" 2>&1) || {
 		error "failed determining if partitioned: $out";
@@ -173,11 +173,141 @@ mount_overlay() {
 	return $ret
 }
 
+assert_nbd_support() {
+	if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
+		debug 1 "trying to load nbd module"
+		modprobe nbd >/dev/null 2>&1
+		udevadm settle >/dev/null 2>&1
+	fi
+	[ -e /sys/block/nbd0 ] || {
+		error "Cannot use nbd: no nbd kernel support."
+		return 1;
+	}
+}
+
+find_unused_nbd() {
+	# return a path to an unused nbd device (/dev/nbd?)
+	local f roflag=""
+	for f in /sys/block/nbd*; do
+		[ -d "$f" -a ! -f "$f/pid" ] &&
+			{ _RET="/dev/${f##*/}"; return 0; }
+	done
+	error "failed to find an nbd device"
+	return 1;
+}
+
+connect_nbd() {
+	local img="$1" fmt="$2" ptnum="${3:-auto}" rwmode="${3:-ro}"
+	local nbd="" pidfile="" pid="" cmd="" ret="" roflag="" nptnum="" i=""
+	if [ "$rwmode" = "ro" ]; then
+		roflag="--read-only"
+	fi
+	# yes, there is a race condition here.
+	find_unused_nbd || return
+	nbd="$_RET"
+	cmd=( qemu-nbd $roflag "--format=$fmt" --connect "$nbd" "$img" )
+	"${cmd[@]}" && QEMU_DISCONNECT="$nbd"
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		error "Failed [$ret]: $*"
+		return $ret
+	fi
+	pidfile="/sys/block/${nbd#/dev/}/pid"
+	if [ ! -f "$pidfile" ]; then
+		debug 1 "waiting on pidfile for $nbd in $pidfile"
+		i=0
+		while [ ! -f "$pidfile" ] && i=$(($i+1)); do
+			if [ $i -eq 200 ]; then
+				error "giving up on pidfile $pidfile for $nbd"
+				disconnect_qemu
+				return 1
+			fi
+			sleep .1
+			debug 2 "."
+		done
+	fi
+	read pid < "$pidfile" && debug 2 "pid for $nbd is $pidfile" || {
+		error "reading pid from $pidfile for $nbd failed!";
+		disconnect_qemu
+		return 1
+	}
+
+	debug 1 "connected $img_in ($fmt) ${rwmode} to $nbd. waiting for device."
+	i=0
+	while i=$(($i+1)):; do
+		get_partition "$nbd" && nptnum="$_RET" && break
+		[ $i -eq 40 ] && {
+			error "gave up on $nbd"
+			disconnect_qemu
+			return 1
+		}
+		[ $(($i%10)) -eq 0 ] &&
+			debug 1 "waiting for $nbd to be ready."
+		sleep .1
+	done
+
+	if [ "${ptnum}" = "auto" ]; then
+		if [ "$nptnum" = "0" ]; then
+			debug 1 "unpartitioned disk."
+		else
+			debug 1 "partitioned disk."
+		fi
+		ptnum=$nptnum
+	else
+		if [ "$nptnum" = "0" -a "$ptnum" != "0" ]; then
+			error "img $img does not appear partitioned but ptnum=$ptnum provided."
+			return 1
+		fi
+	fi
+	if [ "$ptnum" -ne 0 ]; then
+		mdev="${nbd}p${ptnum}"
+	else
+		mdev="${nbd}"
+	fi
+
+	i=0
+	while :; do
+		[ -b "$mdev" ] && break
+		i=$(($i+1))
+		[ $i -eq 100 ] && {
+			error "gave up on waiting for $mdev"
+			disconnect_qemu
+			return 1
+		}
+		[ $(($i%10)) -eq 0 ] &&
+			debug 1 "waiting for $mdev part=$ptnum to be ready."
+		sleep .1
+	done
+
+	_RET_NBD="$nbd"
+	_RET_PT="$ptnum"
+	_RET_DEV="$mdev"
+}
+
+mount_nbd() {
+	local img="$1" mp="$2" fmt="$3" ptnum="$4" rwmode="${5:-rw}" opts="$6"
+	if [ -z "$fmt" ]; then
+		get_image_format "$img" && fmt="$_RET" || {
+			error "failed to get image format for '$img' (try --format)"
+			return 1
+		}
+	fi
+	assert_nbd_support || return
+	connect_nbd "$img" "$fmt" "$ptnum" "$rwmode" || return
+	local ptnum="$_RET_PT" mdev="$_RET_DEV" nbd="$_RET_NBD"
+	if ( set -f; mount -o "$romode" $opts "$mdev" "$img_mp" ); then
+		debug 1 "mounted $mdev via qemu-nbd $nbd"
+	else
+		error "failed to mount $mdev"
+		return 1
+	fi
+}
+
 mount_callback_umount() {
-	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=""
+	local img_in="$1" dev="" out="" mp="" ret="" img="" readonly=false
 	local opts="" bmounts="" system_resolvconf=false ptnum=auto
-	local cd_mountpoint=false fmt="" mp_is_tmp=false overlay=false
-	local img_mp="" workd="" overlay_fstype=""
+	local cd_mountpoint=false fmt="" overlay=false rwmode="rw"
+	local img_mp=""
 
 	short_opts="Cdhm:P:psSv"
 	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
@@ -202,7 +332,7 @@ mount_callback_umount() {
 			   --system-resolvconf) system_resolvconf=true;;
 			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
 			   --opts) opts="${opts} $next"; shift;;
-			   --read-only) readonly="ro";;
+			   --read-only) readonly=true; rwmode="ro";;
 			--) shift; break;;
 		esac
 		shift;
@@ -210,7 +340,7 @@ mount_callback_umount() {
 
 	[ $# -ge 2 ] || { bad_Usage "must provide image and cmd"; return 1; }
 
-	[ -n "$readonly" ] && { $system_resolvconf && ! $overlay; } && {
+	$readonly && { $system_resolvconf && ! $overlay; } && {
 		error "--read-only is incompatible with system-resolvconf";
 		error "maybe try with --overlay"
 		return 1;
@@ -266,130 +396,25 @@ mount_callback_umount() {
 		error "MOUNTPOINT=$mp"
 	fi
 
-	local hasqemu=false
-	command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
-
-	if out=$(set -f; mount -o loop${readonly:+,$readonly} $opts \
-			 "$img" "$img_mp" 2>&1); then
-		debug 1 "mounted simple filesystem image '$img_in'"
+	out=""
+	if [ "$ptnum" = "auto" -o "$ptnum" = "0" ] &&
+		out=$(set -f; mount -o "loop,$rwmode" $opts "$img" "$img_mp" 2>&1); then
+		debug 1 "mounted simple filesystem image $rwmode in '$img_in'"
 		UMOUNTS[${UMOUNT[@]}]="$img_mp"
 	else
+		local hasqemu=false
+		command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
 		if ! $hasqemu; then
 			error "simple mount of '$img_in' failed."
-			error "if this not a raw image, or it is partitioned"
+			error "if this is not a simple unpartitioned raw image, then"
 			error "you must have qemu-nbd (apt-get install qemu-utils)"
-			error "mount failed with: $out"
-			return 1
-		fi
-	fi
-
-	if [ "${#UMOUNTS[@]}" -eq 0 ]; then
-		if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
-			debug 1 "trying to load nbd module"
-			modprobe nbd >/dev/null 2>&1
-			udevadm settle >/dev/null 2>&1
-		fi
-		[ -e /sys/block/nbd0 ] || {
-			error "no nbd kernel support, but simple mount failed"
-			return 1;
-		}
-
-		if [ -z "$fmt" ]; then
-			get_image_format "$img" && fmt="$_RET" || {
-				error "failed to get image format for '$img' (try --format)"
-				return 1
-			}
-		fi
-
-		local f nbd="" pidfile="" pid="" roflag=""
-		for f in /sys/block/nbd*; do
-			[ -d "$f" -a ! -f "$f/pid" ] && nbd=${f##*/} && break
-		done
-		if [ -z "$nbd" ]; then
-			error "failed to find an nbd device"
-			return 1;
-		fi
-		nbd="/dev/$nbd"
-
-		[ -n "$readonly" ] && roflag="--read-only"
-		pidfile="/sys/block/${nbd##*/}/pid" pid=""
-		if ! qemu-nbd $roflag "--format=$fmt" --connect "$nbd" "$img"; then
-			{ read pid < "$pidfile"; } >/dev/null 2>&1 &&
-				[ -d "/proc/$pid" ] &&
-				QEMU_DISCONNECT="$nbd"
-			error "failed to qemu-nbd connect $img to $nbd"
-			return 1
-		fi
-		QEMU_DISCONNECT="$nbd"
-
-		local pfile="/sys/block/${nbd#/dev/}/pid"
-		if [ ! -f "$pfile" ]; then
-			debug 1 "waiting on pidfile for $nbd in $pfile"
-			local i=0
-			while [ ! -f "$pfile" ] && i=$(($i+1)); do
-				if [ $i -eq 200 ]; then
-					error "giving up on pidfile $pfile for $nbd"
-					return 1
-				fi
-				sleep .1
-				debug 2 "."
-			done
-		fi
-
-		local nptnum=""
-		debug 1 "connected ${readonly:+${readonly} }$img_in ($fmt) to $nbd. waiting for device."
-		i=0
-		while i=$(($i+1)):; do
-			get_partition "$nbd" && nptnum="$_RET" && break
-			[ $i -eq 40 ] && {
-				error "gave up on $nbd"
-				return 1
-			}
-			[ $(($i%10)) -eq 0 ] &&
-				debug 1 "waiting for $nbd to be ready."
-			sleep .1
-		done
-
-		udevadm settle >/dev/null 2>&1
-		if [ "${ptnum}" = "auto" ]; then
-			if [ "$nptnum" = "0" ]; then
-				debug 1 "unpartitioned disk."
-			else
-				debug 1 "partitioned disk."
+			if [ -n "$out" ]; then
+				error "mount failed with: $out"
 			fi
-			ptnum=$nptnum
-		fi
-		if [ "$ptnum" -ne 0 ]; then
-			mdev="${nbd}p${ptnum}"
-		else
-			mdev="${nbd}"
-		fi
-		i=0
-		while :; do
-			[ -b "$mdev" ] && break
-			i=$(($i+1))
-			[ $i -eq 100 ] && {
-				error "gave up on waiting for $mdev"
-				return 1
-			}
-			[ $(($i%10)) -eq 0 ] &&
-				debug 1 "waiting for $mdev part=$ptnum to be ready."
-			sleep .1
-		done
-
-		if ( set -f; mount ${readonly:+-o ${readonly}} $opts "$mdev" "$img_mp" ) &&
-			UMOUNTS[${#UMOUNTS[@]}]="$img_mp"; then
-			debug 1 "mounted $mdev via qemu-nbd $nbd"
-		else
-			local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
-			{ read pid < "$pfile" ; } >/dev/null 2>&1
-			[ -n "$pid" -a ! -d "/proc/$pid" ] ||
-				error "qemu-nbd process seems to have died. was '$pid'"
-
-			error "failed to mount $mdev"
 			return 1
 		fi
-
+		mount_nbd "$img" "$img_mp" "$fmt" "$ptnum" "$opts" || return
+		UMOUNTS[${#UMOUNTS[@]}]="$img_mp"
 	fi
 
 	if $overlay; then
@@ -422,6 +447,21 @@ mount_callback_umount() {
 			{ error "failed copy /etc/resolv.conf"; return 1; }
 	fi
 
+	local cmd="" arg="" found=false
+	cmd=( )
+	for arg in "$@"; do
+		if [ "${arg}" = "_MOUNTPOINT_" ]; then
+			debug 1 "replaced string _MOUNTPOINT_ in arguments arg ${#cmd[@]}"
+			arg=$mp
+		fi
+		cmd[${#cmd[@]}]="$arg"
+	done
+	if [ "${cmd[0]##*/}" = "bash" -o "${cmd[0]##*/}" = "sh" ] &&
+	   [ ${#cmd[@]} -eq 0 ]; then
+		debug 1 "invoking shell ${cmd[0]}"
+		error "MOUNTPOINT=$mp"
+	fi
+
 	local startwd="$PWD"
 	debug 1 "invoking: MOUNTPOINT=$mp" "${cmd[@]}"
 
@@ -443,11 +483,6 @@ mount_callback_umount() {
 	do_umounts "${UMOUNTS[@]}" && UMOUNTS=( ) ||
 		{ error "failed umount $img"; return 1; }
 
-	if "$mp_is_tmp"; then
-		rmdir "$img_mp" || error "WARN: failed 'rmdir $img_mp'"
-	fi
-
-	
 	if [ -n "$QEMU_DISCONNECT" ]; then
 		disconnect_qemu || return 1;
 	fi
