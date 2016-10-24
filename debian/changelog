@@ -11,6 +11,8 @@ cloud-utils (0.30~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
     failing (LP: #1619285)
   * mount-image-callback: support 'overlay' filesystem type rather
     than ubuntu specific 'overlayfs' (LP: #1493188)
+  * mount-image-callback: support 'chroot' to lxd containers and
+    correctly apply user namespace change.
 
  -- Scott Moser <smoser@ubuntu.com>  Mon, 06 Jun 2016 14:49:30 -0400
 

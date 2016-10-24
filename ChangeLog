@@ -8,6 +8,8 @@
    (LP: #1619285)
  - mount-image-callback: support 'overlay' filesystem type rather
    than ubuntu specific 'overlayfs' (LP: #1493188)
+ - mount-image-callback: support 'chroot' to lxd containers and
+   correctly apply user namespace change.
 
 0.29
  - cloud-localds: fix creation of vfat filesystems (LP: #1431537)
