@@ -62,6 +62,7 @@ pt2_d="${TEMP_D}/pt2"
 mkdir -p "$pt1_d" "$pt2_d"
 echo "partition 1" > "$pt1_d/info.txt"
 echo "file 1" > "$pt1_d/file1.txt"
+mkdir "$pt1_d/dev" "$pt1_d/sys" "$pt1_d/proc" "$pt1_d/mnt"
 echo "partition 2" > "$pt2_d/info.txt"
 
 ## Stage 1
@@ -116,6 +117,37 @@ out=$(mount-image-callback --cd "$pt1" -- cat file1.txt)
 [ "$out" = "file 1" ] ||
 	fail "found unexpected contents in pt1:file1.txt after overlay: $out"
 
+## Stage 1.7: Test --system-mounts
+msg "testing --system-mounts on pt1"
+mount-image-callback --read-only --system-mounts --cd -- "$pt1" sh -c '
+	fails=0
+	logfail() { fails=$(($fails+1)); echo "$@" 1>&2; }
+	[ -e proc/1 ] || logfail "proc/1 did not exist: proc not mounted"
+	[ -d sys/class ] || logfail "sys/class did not exist: sys not mounted"
+	[ -e dev/null ] || logfail "dev/null did not exist: dev not mounted"' ||
+	fail "testing system-mounts failed."
+
+## Stage 1.8: Test unmounts of unexpected mounted dirs.
+msg "testing unexpected mount get unmounted."
+mount-image-callback --read-only --cd -- "$pt1" sh -ec '
+	fail() { echo "$@" 1>&2; }
+	mount -t tmpfs none -o size=10240 mnt/ || fail "failed tmpfs mount"
+	echo "hi mom" > mnt/file-on-tmpfs ||
+		fail "failed write to file-on-tmpfs"
+	mkdir mnt/mnt2 || faili "failed mkdir mnt/mnt2"
+	mount -t tmpfs none -o size=4096 mnt/mnt2 || fail "failed 2nd tmpfs mount"
+	echo "hi again" > mnt/mnt2/second-file-on-tmpfs' ||
+		fail "testing unexpected mounts failed."
+
+# verify the file is not there.
+mount-image-callback --read-only --cd -- "$pt1" sh -c '
+	fail() { echo "$@" 1>&2; exit 1; }
+	[ ! -e mnt/file-on-tmpfs ] || fail mnt/file-on-tmpfs existed
+	[ ! -e mnt/mnt2 ] || fail mnt/mnt2 existed
+	[ ! -e mnt/mnt2/second-file-on-tmpfs ] || fail second file existed
+	exit 0' ||
+		fail "file mnt/file-on-tmpfs existed."
+
 ## Stage 2
 ## Create a full disk image with those 2 partition images inside
 ## and a partition table that points to them.  Do one for MBR and GPT.
@@ -155,7 +187,7 @@ msg "partitioning GPT disk image ${img_gpt}"
 ## write data, then remount and read expected data.
 for toks in "MBR:${img_mbr}" "GPT:${img_gpt}"; do
 	img=${toks#*:}
-    prefix=${toks%%:*}
+	prefix=${toks%%:*}
 	do_pt_test "$img" 1 "foo1" "partition 1" "$prefix: " ||
 		fail "${prefix}failed testing partition 1 on $img"
 
