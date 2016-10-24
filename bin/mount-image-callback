@@ -27,6 +27,10 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
    they will be replaced with the mount point. Example:
       ${0##*/} my.img chroot _MOUNTPOINT_ /bin/sh
 
+   Additionally, the helper program 'mchroot' will be added to the path
+   and can be used effectively as 'chroot _MOUNTPOINT_':
+      ${0##*/} my.img mchroot
+
    options:
     -v | --verbose             increase verbosity
          --read-only           use read-only mount.
