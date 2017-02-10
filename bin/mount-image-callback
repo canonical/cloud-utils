@@ -345,7 +345,7 @@ mount_nbd() {
 	assert_nbd_support || return
 	connect_nbd "$img" "$fmt" "$ptnum" "$rwmode" || return
 	local ptnum="$_RET_PT" mdev="$_RET_DEV" nbd="$_RET_NBD"
-	if ( set -f; mount -o "$romode" $opts "$mdev" "$img_mp" ); then
+	if ( set -f; mount -o "$rwmode" $opts "$mdev" "$img_mp" ); then
 		debug 1 "mounted $mdev via qemu-nbd $nbd"
 	else
 		error "failed to mount $mdev"
@@ -479,7 +479,7 @@ mount_callback_umount() {
 			fi
 			return 1
 		fi
-		mount_nbd "$img" "$img_mp" "$fmt" "$ptnum" "$opts" || return
+		mount_nbd "$img" "$img_mp" "$fmt" "$ptnum" "$rwmode" "$opts" || return
 		UMOUNTS[${#UMOUNTS[@]}]="$img_mp"
 	fi
 
