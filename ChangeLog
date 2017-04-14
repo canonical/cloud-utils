@@ -1,3 +1,6 @@
+0.31
+ - mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
+
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
     as traditional ebs are no longer available. (LP: #1593451)
