@@ -375,7 +375,7 @@ mount_callback_umount() {
 	shift 1
 
 	if [ "${img_in#lxd:}" != "${img_in}" -a ! -f "${img_in}" ]; then
-		error "lxd: is no longer supported."
+		error "${img_in}: lxd is no longer supported."
 		return 1;
 	fi
 
