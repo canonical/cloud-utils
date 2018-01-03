@@ -276,7 +276,7 @@ connect_nbd() {
 			debug 2 "."
 		done
 	fi
-	read pid < "$pidfile" && debug 2 "pid for $nbd is $pidfile" || {
+	read pid < "$pidfile" && debug 2 "pid for $nbd is $pid" || {
 		error "reading pid from $pidfile for $nbd failed!";
 		disconnect_qemu
 		return 1
@@ -346,7 +346,7 @@ mount_nbd() {
 	connect_nbd "$img" "$fmt" "$ptnum" "$rwmode" || return
 	local ptnum="$_RET_PT" mdev="$_RET_DEV" nbd="$_RET_NBD"
 	if ( set -f; mount -o "$rwmode" $opts "$mdev" "$img_mp" ); then
-		debug 1 "mounted $mdev via qemu-nbd $nbd"
+		debug 1 "mounted $mdev via qemu-nbd $nbd at $img_mp"
 	else
 		error "failed to mount $mdev"
 		return 1
@@ -465,7 +465,7 @@ mount_callback_umount() {
 		fi
 	elif [ "$ptnum" = "auto" -o "$ptnum" = "0" ] &&
 		out=$(set -f; mount -o "loop,$rwmode" $opts "$img" "$img_mp" 2>&1); then
-		debug 1 "mounted simple filesystem image $rwmode in '$img_in'"
+		debug 1 "mounted simple fs image $rwmode in '$img_in' at $img_mp"
 		UMOUNTS[${UMOUNT[@]}]="$img_mp"
 	else
 		local hasqemu=false
