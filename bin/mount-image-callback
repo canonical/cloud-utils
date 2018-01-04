@@ -17,7 +17,6 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
    invoke the provided cmd with args
 
    supported 'file' are:
-      lxd:name  : the rootfs for lxd container 'name'
       file      : any disk format supported by qemu-nbd
 
    the temporary mountpoint will be put in an a environment variable
@@ -159,35 +158,11 @@ add_helpers() {
 	local d="$1"
 	local umap="$1" gmap="$2"
 	[ -d "$1" ] || mkdir -p "$1"
-	add_bin "$d/uns-switch" <<"EOF" || return 1
-#!/bin/sh
-[ $# -eq 0 ] && set -- ${SHELL:-/bin/bash}
-if [ -z "$MIC_SUBUID" -a -z "$MIC_SUBGID" ]; then
-	exec "$@"
-fi
-exec lxc-usernsexec ${MIC_SUBUID:+-m u:0:${MIC_SUBUID}} \
-	${MIC_SUBGID:+-m g:0:${MIC_SUBGID}} -- "$@"
-EOF
 	add_bin "$d/mchroot" <<"EOF" || return 1
 #!/bin/sh
-exec uns-switch chroot "$MOUNTPOINT" "$@"
+exec chroot "$MOUNTPOINT" "$@"
 EOF
 	return
-}
-
-get_subid() {
-	local id="$1" file="$2"
-	awk -F: '$1 == id { printf("%s:%s\n", $2, $3); exit(0); }' \
-		id="$id" "$file"
-}
-
-set_subids() {
-	local id="$1" out="" muid="" mgid=""
-	[ -z "$id" ] && return 0
-	muid=$(get_subid "$id" /etc/subuid) &&
-		mgid=$(get_subid "$id" /etc/subgid) &&
-		[ -n "$muid" -a -n "$mgid" ] &&
-		export MIC_SUBGID="$muid" MIC_SUBUID="$mgid" && return
 }
 
 mount_overlay() {
@@ -404,38 +379,18 @@ mount_callback_umount() {
 		return 1;
 	}
 
-	local uns_switch=false
 	img_in="$1"
 	shift 1
 
-	case "$img_in" in
-		lxd:*)
-			if [ "$ptnum" != "auto" ]; then
-				error "--ptnum incompatible with directory"
-				return 1;
-			fi
-			command -v lxc-usernsexec >/dev/null 2>&1 || {
-				error "lxd support needs lxc-usernsexec"; 
-				return 1;
-			}
-			img="/var/lib/lxd/containers/${img_in#lxd:}/rootfs"
-			[ -d "$img" ] || {
-				error "${img_in}: no rootfs in $img. Not a container?"
-				return 1;
-			}
-			set_subids lxd || {
-				error "failed reading subids for lxd";
-				return 1;
-			}
-			uns_switch=true
-			;;
-		*)
-			img=$(readlink -f "$img_in") ||
-				{ error "failed to get full path to $img_in"; return 1; }
-			[ -f "$img" ] ||
-				{ error "$img: not a file"; return 1; }
-			;;
-	esac
+	if [ "${img_in#lxd:}" != "${img_in}" -a ! -f "${img_in}" ]; then
+		error "${img_in}: lxd is no longer supported."
+		return 1;
+	fi
+
+	img=$(readlink -f "$img_in") ||
+		{ error "failed to get full path to $img_in"; return 1; }
+	[ -f "$img" ] ||
+		{ error "$img: not a file"; return 1; }
 
 	[ "$(id -u)" = "0" ] ||
 		{ error "sorry, must be root"; return 1; }
@@ -462,16 +417,7 @@ mount_callback_umount() {
 	fi
 
 	out=""
-	if [ -d "$img" ]; then
-		debug 1 "using directory at $img for $img_in"
-		mp=$img
-		if $overlay; then
-			debug 1 "mounting $img to $mp"
-			mount --bind "$img" "$img_mp" ||
-				{ error "failed to mount --bind '$img' '$mp'"; return 1; }
-			UMOUNTS[${#UMOUNTS[@]}]="$mp"
-		fi
-	elif [ "$ptnum" = "auto" -o "$ptnum" = "0" ] &&
+	if [ "$ptnum" = "auto" -o "$ptnum" = "0" ] &&
 		out=$(set -f; mount -o "loop,$rwmode" $opts "$img" "$img_mp" 2>&1); then
 		debug 1 "mounted simple fs image $rwmode in '$img_in' at $img_mp"
 		UMOUNTS[${UMOUNT[@]}]="$img_mp"
@@ -536,13 +482,6 @@ mount_callback_umount() {
 	   [ ${#cmd[@]} -eq 0 ]; then
 		debug 1 "invoking shell ${cmd[0]}"
 		error "MOUNTPOINT=$mp"
-	fi
-
-	if $uns_switch && [ "$1" = "chroot" ]; then
-		debug 1 "added helper uns-switch for chroot"
-		cmd=( uns-switch "${cmd[@]}" )
-	elif $uns_switch; then
-		debug 1 "uns-switch helper can be used for changing user map"
 	fi
 
 	add_helpers "$TEMP_D/bin" "$SUBUID" "$SUBGID" || {
