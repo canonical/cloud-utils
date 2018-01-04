@@ -1,5 +1,7 @@
 0.31
  - mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
+ - mount-image-callback: run blockdev and udevadm settle on nbd devices.
+  (LP: #1741096, 1741300)
 
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
