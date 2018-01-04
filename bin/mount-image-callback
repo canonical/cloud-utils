@@ -283,6 +283,14 @@ connect_nbd() {
 	}
 
 	debug 1 "connected $img_in ($fmt) ${rwmode} to $nbd. waiting for device."
+
+	local out=""
+	# This can fail due to udev events, but we ignore that.  We need to ensure
+	# it happens for where it doesnt happen automatically (LP: #1741300)
+	out=$(blockdev --rereadpt "$nbd" 2>&1) ||
+		debug 1 "blockdev rereadpt $nbd failed"
+	udevadm settle
+
 	i=0
 	while i=$(($i+1)):; do
 		get_partition "$nbd" && nptnum="$_RET" && break
