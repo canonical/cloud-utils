@@ -767,6 +767,15 @@ get_sfdisk_version || fail
 
 [ -e "${DISK}" ] || fail "${DISK}: does not exist"
 
+# If $DISK is a symlink, resolve it.
+# This avoids problems due to varying partition device name formats
+# (e.g. "1" for /dev/sda vs "-part1" for /dev/disk/by-id/name)
+if [ -L "${DISK}" ] ; then
+	real_disk=$(readlink -f "${DISK}") || fail "unable to resolve ${DISK}"
+	debug 1 "${DISK} resolved to ${real_disk}"
+	DISK=${real_disk}
+fi
+
 [ "${PART#*[!0-9]}" = "${PART}" ] || fail "partition-number must be a number"
 
 verify_ptupdate "$pt_update" || fail
