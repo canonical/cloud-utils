@@ -5,7 +5,10 @@ set -e
 [ "$(id -u)" = "0" ] ||
 	{ echo "sorry, must be root"; exit 1; }
 
-PT_TYPE="${PT_TYPE:-dos}" # dos or gpt or sfdisk-gpt
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+size=${DISK_SIZE_NEW:-1000M}
+osize=${DISK_SIZE_ORIG:-500M}
+
 MP=""
 LODEV=""
 TEMP_D=""
@@ -43,15 +46,15 @@ trap cleanup EXIT
 img="${TEMP_D}/disk.img"
 mp="${TEMP_D}/mp"
 
-size=1000M
-osize=500M
+echo "Partitioning $PT_TYPE orig_size=$osize grow_size=$size."
+echo "growpart is $(which growpart)"
 rm -f $img
 [ ! -e $mp ] || rmdir $mp || { echo "failed rmdir $mp"; exit 1; }
 mkdir $mp
 
 truncate --size $osize "$img"
 
-label_flag="--label=${PT_TYPE:-dos}"
+label_flag="--label=${PT_TYPE}"
 echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
 
 truncate --size "$size" "$img"
