@@ -293,14 +293,14 @@ resize_sfdisk() {
 		sed -i '/^last-lba:/d' "$dump_out" ||
 			fail "failed to remove last-lba from output"
 	fi
-	if [ "$format" = "mbr" ]; then
+	if [ "$format" = "dos" ]; then
 		mbr_max_sectors=$((mbr_max_512*$((sector_size/512))))
 		if [ "$max_end" -gt "$mbr_max_sectors" ]; then
 			max_end=$mbr_max_sectors
 		fi
 		[ $(($disk_size/512)) -gt $mbr_max_512 ] &&
-			debug 1 "WARN: disk is larger than 2TB." \
-				"additional space will go unused."
+			debug 0 "WARNING: MBR/dos partitioned disk is larger than 2TB." \
+				"Additional space will go unused."
 	fi
 
 	local gpt_second_size="33"
