@@ -32,7 +32,10 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
 
    options:
     -v | --verbose             increase verbosity
+    -h | --help                print this message.
+
          --read-only           use read-only mount.
+    -C | --cd-mountpoint       change dir to mountpoint before executing cmd.
     -m | --mountpoint MP       mount to directory MP rather than a temp dir
          --overlay             mount via overlayfs
     -P | --partition PARTNUM   mount partition PARTNUM (default 'auto')
@@ -41,6 +44,7 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
     -d | --dev                 bind mount /dev
+
          --system-mounts       bind mount /sys, /proc, /dev
          --system-resolvconf   copy host's resolvconf into /etc/resolvconf
          --format FMT          specify the format of the image.
