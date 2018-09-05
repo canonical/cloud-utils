@@ -4,6 +4,8 @@
    (LP: #1741096, 1741300)
  - mount-image-callback: Drop support for mounting lxd containers.
    (LP: #1715994)
+ - growpart: fix bug that stopped GPT disks from being grown past 2TB.
+   (LP: #1762748)
 
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
