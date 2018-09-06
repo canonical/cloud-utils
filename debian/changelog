@@ -1,8 +1,17 @@
 cloud-utils (0.31~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
 
-  * mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
   * debian/tests/control: mention dependencies on gdisk and fdisk.
   * debian/tests: run test for mount-image-callback.
+  * mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
+  * mount-image-callback: run blockdev and udevadm settle on nbd devices.
+    (LP: #1741096, 1741300)
+  * mount-image-callback: Drop support for mounting lxd containers.
+    (LP: #1715994)
+  * growpart: fix bug that stopped GPT disks from being grown past 2TB.
+    (LP: #1762748)
+  * mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
+  * growpart: fix bug when resizing a middle partition with sgdisk
+    (LP: #1706751) [Fred De Backer]
 
  -- Scott Moser <smoser@ubuntu.com>  Fri, 10 Feb 2017 13:36:41 -0600
 
