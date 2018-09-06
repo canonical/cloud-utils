@@ -1,5 +1,0 @@
-#!/bin/sh
-
-./test/test-mic || exit
-
-# vi: ts=4 expandtab

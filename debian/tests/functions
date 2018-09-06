@@ -6,6 +6,7 @@ fail() { [ $# -eq 0 ] || error "$@"; }
 
 runtests() {
     local mytest="$1" pt_type resizer
+    make_executable "$1"
     for pt_type in gpt dos; do
         for resizer in auto sfdisk gdisk; do
             case "$pt_type:$resizer" in
@@ -22,6 +23,20 @@ runtests() {
             echo; echo;
         done
     done
+}
+
+make_executable() {
+    # in case the thing to be executed is not executable
+    # as it might be created by a patch application.
+    if [ -f "$1" -a ! -x "$1" ]; then
+        chmod +x "$1" || return
+    fi
+    return 0
+}
+
+execute() {
+    make_executable "$1"
+    "$@"
 }
 
 # vi: ts=4 expandtab
