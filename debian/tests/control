@@ -1,10 +1,11 @@
 Tests: growpart-loop
 Restrictions: needs-root isolation-machine allow-stderr
-Depends: gdisk, fdisk
+Depends: cloud-guest-utils, fdisk, gdisk
 
 Tests: growpart-fsimage, growpart-fsimage-middle
 Restrictions: allow-stderr
-Depends: gdisk, fdisk
+Depends: cloud-guest-utils, fdisk, gdisk
 
 Tests: mic
 Restrictions: needs-root isolation-machine allow-stderr
+Depends: cloud-image-utils
