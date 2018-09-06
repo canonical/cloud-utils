@@ -142,7 +142,7 @@ mount-image-callback --read-only --cd -- "$pt1" sh -ec '
 	mount -t tmpfs none -o size=10240 mnt/ || fail "failed tmpfs mount"
 	echo "hi mom" > mnt/file-on-tmpfs ||
 		fail "failed write to file-on-tmpfs"
-	mkdir mnt/mnt2 || faili "failed mkdir mnt/mnt2"
+	mkdir mnt/mnt2 || fail "failed mkdir mnt/mnt2"
 	mount -t tmpfs none -o size=4096 mnt/mnt2 || fail "failed 2nd tmpfs mount"
 	echo "hi again" > mnt/mnt2/second-file-on-tmpfs' ||
 		fail "testing unexpected mounts failed."
