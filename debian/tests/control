@@ -1,5 +1,7 @@
 Tests: growpart-loop
 Restrictions: needs-root isolation-machine allow-stderr
+Depends: gdisk, fdisk
 
 Tests: growpart-fsimage
 Restrictions: allow-stderr
+Depends: gdisk, fdisk
