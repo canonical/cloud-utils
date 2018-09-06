@@ -7,6 +7,8 @@
  - growpart: fix bug that stopped GPT disks from being grown past 2TB.
    (LP: #1762748)
  - mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
+ - growpart: fix bug when resizing a middle partition with sgdisk
+   (LP: #1706751) [Fred De Backer]
 
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
