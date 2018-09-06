@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# Create a disk image where a partition other than the last is grown.
+# brought up under bug 1706751, where we had an off-by-one error
+# when resizing with sgdisk.
+
+set -e
+
+TEMP_D=""
+
+rq() {
+	local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+fail() { echo "FAILED:" "$@" 1>&2; exit 1; }
+
+setup_img() {
+	local img_fp="$1" img=""
+	img=$(basename "$img_fp")
+	sfdisk "${img_fp}" <<EOF
+label: gpt
+label-id: 67CCB7DB-DEE7-4A7F-8F67-4DAC2B2F09A9
+device: ${img}
+unit: sectors
+first-lba: 34
+last-lba: 4194270
+
+${img}1 : start=        2048, size=      204800, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=5ADB0402-936C-4AF3-8E56-74C161BCF925, name="misc fs"
+${img}2 : start=      206848, size=      524288, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, uuid=72174002-4428-427C-9DED-92479F1CDB4A, name="my swap"
+${img}3 : start=      731136, size=      819200, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=EE4FB792-DA02-4E1E-90DA-961D3A603225, name="root filesystem"
+${img}4 : start=          34, size=        2014, type=21686148-6449-6E6F-744E-656564454649, uuid=AC2AF951-6AD2-4B14-818F-BF457A4386AD, name="BIOS boot partition"
+${img}5 : start=     4061184, size=      133087, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=FC3742E9-53E2-410C-8036-8B64DD9F2ED6, name="config drive"
+EOF
+}
+
+cleanup() {
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+expected="CHANGED: partition=3 start=731136 old: size=819200 end=1550336"
+expected="${expected} new: size=3330048 end=4061184"
+CR='
+'
+for resizer in sfdisk sgdisk; do
+	img="${TEMP_D}/disk-$resizer.img"
+	echo "====== Testing with resizer=$resizer ====="
+	rq truncate "--size=2G" "$img"
+	( cd ${TEMP_D} && rq setup_img "${img##*/}" ) || fail "setup image $img"
+	echo "==== before ===="
+	( cd "${TEMP_D}" && sfdisk --dump "${img##*/}" )
+	err="${TEMP_D}/gp.err"
+	out="${TEMP_D}/gp.out"
+	if ! GROWPART_RESIZER=$resizer \
+			growpart -v -v "$img" 3 2>"$err" > "$out"; then
+		cat "$err" "$out"
+		fail "[resizer=$resizer] growpart failed"
+	fi
+	echo "==== after ===="
+	( cd "${TEMP_D}" && sfdisk --dump "${img##*/}" )
+	echo
+    echo "==== after sgdisk ==="
+	( cd "${TEMP_D}" && sgdisk --print "${img##*/}" )
+	echo "==== growpart-stderr ==="
+	cat "$err"
+	echo "==== growpart-stdout ===="
+	cat "$out"
+	[ "$(cat $out)" = "$expected" ] || {
+        fail "[resizer=$resizer] output ^^^ did not match expected vvv:${CR}$expected"
+	}
+done
+
+# vi: ts=4 noexpandtab

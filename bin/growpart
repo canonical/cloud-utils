@@ -327,7 +327,9 @@ resize_sfdisk() {
 		>"${new_out}" ||
 		fail "failed to change size in output"
 
-	change_info="partition=${PART} start=${pt_start} old: size=${pt_size} end=${pt_end} new: size=${new_size},end=${max_end}"
+	change_info="partition=${PART} start=${pt_start}"
+	change_info="${change_info} old: size=${pt_size} end=${pt_end}"
+	change_info="${change_info} new: size=${new_size} end=${max_end}"
 	if [ ${DRY_RUN} -ne 0 ]; then
 		echo "CHANGE: ${change_info}"
 		{
@@ -436,6 +438,8 @@ resize_sgdisk() {
 	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") &&
 		[ -n "${pt_end}" ] ||
 		fail "${dev}: failed to get end sector"
+	# sgdisk start and end are inclusive.  start 2048 length 10 ends at 2057.
+	pt_end=$((pt_end+1))
 	pt_size="$((${pt_end} - ${pt_start}))"
 
 	# Get the last usable sector
@@ -475,9 +479,9 @@ resize_sgdisk() {
 
 	# Calculate the new size of the partition
 	new_size=$((${pt_max} - ${pt_start}))
-	old="old: size=${pt_size},end=${pt_end}"
-	new="new: size=${new_size},end=${pt_max}"
-	change_info="${dev}: start=${pt_start} ${old} ${new}"
+	change_info="partition=${PART} start=${pt_start}"
+	change_info="${change_info} old: size=${pt_size} end=${pt_end}"
+	change_info="${change_info} new: size=${new_size} end=${pt_max}"
 	
 	# Backup the current partition table, we're about to modify it
 	rq sgd_backup $wouldrun sgdisk "--backup=${GPT_BACKUP}" "${DISK}" ||
@@ -492,7 +496,7 @@ resize_sgdisk() {
 	#  - set the partition GUID
 	#  - set the partition name
 	rq sgdisk_mod $wouldrun sgdisk --move-second-header "--delete=${PART}" \
-		"--new=${PART}:${pt_start}:${pt_max}" \
+		"--new=${PART}:${pt_start}:$((pt_max-1))" \
 		"--typecode=${PART}:${code}" \
 		"--partition-guid=${PART}:${guid}" \
 		"--change-name=${PART}:${name}" "${DISK}" &&
