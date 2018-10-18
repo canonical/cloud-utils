@@ -424,7 +424,7 @@ mount_callback_umount() {
 	if [ "$ptnum" = "auto" -o "$ptnum" = "0" ] &&
 		out=$(set -f; mount -o "loop,$rwmode" $opts "$img" "$img_mp" 2>&1); then
 		debug 1 "mounted simple fs image $rwmode in '$img_in' at $img_mp"
-		UMOUNTS[${UMOUNT[@]}]="$img_mp"
+		UMOUNTS[${#UMOUNTS[@]}]="$img_mp"
 	else
 		local hasqemu=false
 		command -v "qemu-nbd" >/dev/null 2>&1 && hasqemu=true
