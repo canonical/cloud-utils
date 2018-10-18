@@ -271,7 +271,7 @@ connect_nbd() {
 	udevadm settle
 
 	i=0
-	while i=$(($i+1)):; do
+	while i=$(($i+1)); do
 		get_partition "$nbd" && nptnum="$_RET" && break
 		[ $i -eq 40 ] && {
 			error "gave up on $nbd"
