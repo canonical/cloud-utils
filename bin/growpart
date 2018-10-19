@@ -770,7 +770,9 @@ get_sfdisk_version || fail
 # If $DISK is a symlink, resolve it.
 # This avoids problems due to varying partition device name formats
 # (e.g. "1" for /dev/sda vs "-part1" for /dev/disk/by-id/name)
-if [ -L "${DISK}" ] ; then
+if [ -L "${DISK}" ]; then
+	has_cmd readlink ||
+		fail "${DISK} is a symlink, but 'readlink' command not available."
 	real_disk=$(readlink -f "${DISK}") || fail "unable to resolve ${DISK}"
 	debug 1 "${DISK} resolved to ${real_disk}"
 	DISK=${real_disk}
