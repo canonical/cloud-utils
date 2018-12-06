@@ -323,7 +323,7 @@ resize_sfdisk() {
 	# now, change the size for this partition in ${dump_out} to be the
 	# new size
 	new_size=$((${max_end}-${pt_start}))
-	sed "\|^\s*${dpart} |s/${pt_size},/${new_size},/" "${dump_out}" \
+	sed "\|^\s*${dpart} |s/\(.*\)${pt_size},/\1${new_size},/" "${dump_out}" \
 		>"${new_out}" ||
 		fail "failed to change size in output"
 
