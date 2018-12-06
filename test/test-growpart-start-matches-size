@@ -10,66 +10,86 @@ set -e
 TEMP_D=""
 
 rq() {
-	local out="${TEMP_D}/out"
-	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+    local out="${TEMP_D}/out"
+    "$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
 }
 fail() { echo "FAILED:" "$@" 1>&2; exit 1; }
 
-setup_img() {
-	local img_fp="$1" img=""
-	img=$(basename "$img_fp")
-	sfdisk "${img_fp}" <<EOF
+setup_image() {
+    sfdisk disk.img <<EOF
 label: gpt
 label-id: db24000c-6ef3-4a17-b71c-1064baa29514
-device: ${img}
+device: disk.img
 unit: sectors
 first-lba: 2048
 last-lba: 4194270
 
-${img}1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5bc16165-bfc0-4e13-94eb-b898dc0bca41
-${img}2 : start=     1026048, size=     1026048, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=a0e1636e-b759-4e7a-bd14-6f3d6c04745d
+disk.img1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5bc16165-bfc0-4e13-94eb-b898dc0bca41
+disk.img2 : start=     1026048, size=     1026048, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=a0e1636e-b759-4e7a-bd14-6f3d6c04745d
 EOF
 }
 
 cleanup() {
-	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+    rm -rf "${TEMP_D}"
 }
+
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
 trap cleanup EXIT
 
-expected_sfdisk="CHANGED: partition=2 start=1026048 old: size=1026048 end=2052096 new: size=3168223 end=4194271"
-expected_sgdisk="CHANGED: partition=2 start=1026048 old: size=1026048 end=2052096 new: size=3166208 end=4192256"
+# the sfdisk and sgdisk resizers result in slightly different output, because
+# of course they do.
+
+expected_sfdisk='label: gpt
+label-id: DB24000C-6EF3-4A17-B71C-1064BAA29514
+device: disk.img
+unit: sectors
+first-lba: 2048
+last-lba: 4194270
+
+disk.img1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5BC16165-BFC0-4E13-94EB-B898DC0BCA41
+disk.img2 : start=     1026048, size=     3168223, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=A0E1636E-B759-4E7A-BD14-6F3D6C04745D'
+
+expected_sgdisk='label: gpt
+label-id: DB24000C-6EF3-4A17-B71C-1064BAA29514
+device: disk.img
+unit: sectors
+first-lba: 2048
+last-lba: 4192256
+
+disk.img1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5BC16165-BFC0-4E13-94EB-B898DC0BCA41
+disk.img2 : start=     1026048, size=     3166208, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=A0E1636E-B759-4E7A-BD14-6F3D6C04745D'
+
+
 CR='
 '
-for resizer in sfdisk sgdisk; do
-    expected_var_name="expected_$resizer"
-	expected="${!expected_var_name}"
 
-	img="${TEMP_D}/disk-$resizer.img"
+test_resize () {
+    local resizer=$1
+    local expected=$2
 	echo "====== Testing with resizer=$resizer ====="
-	rq truncate "--size=2G" "$img"
-	( cd ${TEMP_D} && rq setup_img "${img##*/}" ) || fail "setup image $img"
-	echo "==== before ===="
-	( cd "${TEMP_D}" && sfdisk --dump "${img##*/}" )
-	err="${TEMP_D}/gp.err"
-	out="${TEMP_D}/gp.out"
-	if ! GROWPART_RESIZER=$resizer \
-			growpart -v -v "$img" 2 2>"$err" > "$out"; then
-		cat "$err" "$out"
-		fail "[resizer=$resizer] growpart failed"
-	fi
-	echo "==== after ===="
-	( cd "${TEMP_D}" && sfdisk --dump "${img##*/}" )
-	echo
-    echo "==== after sgdisk ==="
-	( cd "${TEMP_D}" && sgdisk --print "${img##*/}" )
-	echo "==== growpart-stderr ==="
-	cat "$err"
-	echo "==== growpart-stdout ===="
-	cat "$out"
-	[ "$(cat $out)" = "$expected" ] || {
-        fail "[resizer=$resizer] output ^^^ did not match expected vvv:${CR}$expected"
-	}
-done
 
-# vi: ts=4 noexpandtab
+    (
+        cd ${TEMP_D}
+        echo "$expected" > partitions.expected
+
+        rq truncate "--size=2G" disk.img
+        rq setup_image || fail "setup image $img"
+
+        sfdisk --dump disk.img > partitions.before
+
+        if ! GROWPART_RESIZER=$resizer \
+                growpart -v -v disk.img 2 2>"stderr" > "stdout"; then
+            cat "stderr" "stdout"
+            fail "[resizer=$resizer] growpart failed"
+        fi
+        
+        sfdisk --dump disk.img > partitions.after
+        if ! diff -U0 partitions.expected partitions.after; then
+            fail "[resizer=$resizer] partition table is incorrect"
+        fi 
+    )
+}
+
+set -e
+test_resize sfdisk "$expected_sfdisk"
+test_resize sgdisk "$expected_sgdisk"
