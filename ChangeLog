@@ -9,6 +9,10 @@
  - mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
  - growpart: fix bug when resizing a middle partition with sgdisk
    (LP: #1706751) [Fred De Backer]
+ - growpart: Resolve symbolic links before operating.
+   [Kevin Locke] (LP: #1744406)
+ - growpart: fix bug occurring if start sector and size were the same.
+   [Lars Kellogg-Stedman] (LP: #1807171)
 
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
