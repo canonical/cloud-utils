@@ -15,6 +15,29 @@ rq() {
 }
 fail() { echo "FAILED:" "$@" 1>&2; exit 1; }
 
+read_pt_info() {
+    # read_pt_info(dump, <file><ptnum>, keyname)
+    # parse sfdisk --dump output returning the value for keyname.
+    # expecting to parse a single line like:
+    #  disk.img2 : start=     1026048, size=     1026048,
+    #     type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709,
+    #     uuid=a0e1636e-b759-4e7a-bd14-6f3d6c04745d
+    local file="$1" fpart="$2" key="$3"
+    local cmd="" out=""
+    cmd=( 
+        sed 
+        # delete any other line.
+        -e "/^$fpart[ ]*:/!d"
+        # add trailing , to make it easier.
+        #-e "/$/,/" # add a trailing , to make it easier
+        # match key=<spaces><value>,
+        -e "s/.* $key[ ]*=[ ]*\([^, ]*\).*/\1/"
+    )
+    out=$("${cmd[@]}" "$file") ||
+        { fail "failed command: ${cmd[*]}"; return 1; }
+    _RET="$out"
+}
+
 setup_image() {
     sfdisk disk.img <<EOF
 label: gpt
@@ -33,40 +56,9 @@ cleanup() {
     rm -rf "${TEMP_D}"
 }
 
-TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
-trap cleanup EXIT
-
-# the sfdisk and sgdisk resizers result in slightly different output, because
-# of course they do.
-
-expected_sfdisk='label: gpt
-label-id: DB24000C-6EF3-4A17-B71C-1064BAA29514
-device: disk.img
-unit: sectors
-first-lba: 2048
-last-lba: 4194270
-
-disk.img1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5BC16165-BFC0-4E13-94EB-B898DC0BCA41
-disk.img2 : start=     1026048, size=     3168223, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=A0E1636E-B759-4E7A-BD14-6F3D6C04745D'
-
-expected_sgdisk='label: gpt
-label-id: DB24000C-6EF3-4A17-B71C-1064BAA29514
-device: disk.img
-unit: sectors
-first-lba: 2048
-last-lba: 4192256
-
-disk.img1 : start=        2048, size=     1024000, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=5BC16165-BFC0-4E13-94EB-B898DC0BCA41
-disk.img2 : start=     1026048, size=     3166208, type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709, uuid=A0E1636E-B759-4E7A-BD14-6F3D6C04745D'
-
-
-CR='
-'
-
 test_resize () {
-    local resizer=$1
-    local expected=$2
-	echo "====== Testing with resizer=$resizer ====="
+    local resizer="$1" expected_start="$2" expected_size="$3"
+    echo "====== Testing with resizer=$resizer ====="
 
     (
         cd ${TEMP_D}
@@ -84,12 +76,22 @@ test_resize () {
         fi
         
         sfdisk --dump disk.img > partitions.after
-        if ! diff -U0 partitions.expected partitions.after; then
-            fail "[resizer=$resizer] partition table is incorrect"
-        fi 
+        read_pt_info partitions.after disk.img2 start
+        start=$_RET
+        read_pt_info partitions.after disk.img2 size
+        size=$_RET
+        [ "$expected_start" = "$start" ] &&
+            [ "$expected_size" = "$size" ] || {
+            fail "$resizer failed. expected start/size != found start/size" \
+                "($expected_start/$expected_size != $start/$size)"
+        }
     )
 }
 
-set -e
-test_resize sfdisk "$expected_sfdisk"
-test_resize sgdisk "$expected_sgdisk"
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+# the sfdisk and sgdisk resizers result in slightly different output,
+# because of course they do.
+test_resize sfdisk 1026048 3168223
+test_resize sgdisk 1026048 3166208
