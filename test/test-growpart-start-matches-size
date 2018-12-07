@@ -28,8 +28,6 @@ read_pt_info() {
         sed 
         # delete any other line.
         -e "/^$fpart[ ]*:/!d"
-        # add trailing , to make it easier.
-        #-e "/$/,/" # add a trailing , to make it easier
         # match key=<spaces><value>,
         -e "s/.* $key[ ]*=[ ]*\([^, ]*\).*/\1/"
     )
