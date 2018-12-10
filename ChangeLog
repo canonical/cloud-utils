@@ -13,6 +13,10 @@
    [Kevin Locke] (LP: #1744406)
  - growpart: fix bug occurring if start sector and size were the same.
    [Lars Kellogg-Stedman] (LP: #1807171)
+ - debian/control: drop Suggests on lxc1
+ - debian/tests/control: add test growpart-start-matches-size.
+ - White space cleanup.  Remove trailing space and tabs.
+ - Move to git.
 
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
