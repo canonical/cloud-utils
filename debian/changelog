@@ -1,4 +1,4 @@
-cloud-utils (0.31-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-0ubuntu1) disco; urgency=medium
 
   * debian/tests/control: add test growpart-start-matches-size.
   * New upstream release.
