@@ -39,7 +39,7 @@ Usage: ${0##*/} [ options ] file cmd [ args ]
     -m | --mountpoint MP       mount to directory MP rather than a temp dir
          --overlay             mount via overlayfs
     -P | --partition PARTNUM   mount partition PARTNUM (default 'auto')
-                               if 'auto', then mount part 1 if image is 
+                               if 'auto', then mount part 1 if image is
                                partitioned otherwise mount image
     -p | --proc                bind mount /proc
     -s | --sys                 bind mount /sys
@@ -81,7 +81,7 @@ disconnect_qemu() {
 	debug 1 "disconnecting $nbd"
 	local pid="" pfile="/sys/block/${nbd#/dev/}/pid"
 	{ read pid < "$pfile" ; } >/dev/null 2>&1
-	[ -n "$pid" -a ! -d "/proc/$pid" ] && 
+	[ -n "$pid" -a ! -d "/proc/$pid" ] &&
 		error "qemu-nbd process seems to have died. was '$pid'"
 	out=$(qemu-nbd --disconnect "$nbd" 2>&1) &&
 		QEMU_DISCONNECT="" || {

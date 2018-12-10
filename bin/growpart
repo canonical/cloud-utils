@@ -280,7 +280,7 @@ resize_sfdisk() {
 		pt_end=$((${pt_size}+${pt_start})) ||
 		fail "failed to get start and end for ${dpart} in ${DISK}"
 
-	# find the minimal starting location that is >= pt_end 
+	# find the minimal starting location that is >= pt_end
 	max_end=$(awk '$3 == "start" { if($4 >= pt_end && $4 < min)
 		{ min = $4 } } END { printf("%s\n",min); }' \
 		min=${sector_num} pt_end=${pt_end} "${dump_mod}") &&
@@ -399,7 +399,7 @@ resize_sgdisk() {
 
 	local pt_start pt_end pt_size last pt_max code guid name new_size
 	local old new change_info sector_size
-	
+
 	# Dump the original partition information and details to disk. This is
 	# used in case something goes wrong and human interaction is required
 	# to revert any changes.
@@ -447,7 +447,7 @@ resize_sgdisk() {
 		"${pt_pretend}") && [ -n "${last}" ] ||
 		fail "${dev}: failed to get last usable sector"
 
-	# Find the minimal start sector that is >= pt_end 
+	# Find the minimal start sector that is >= pt_end
 	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
 		{ print min }' min="${last}" pt_end="${pt_end}" \
 		"${pt_data}") && [ -n "${pt_max}" ] ||
@@ -482,7 +482,7 @@ resize_sgdisk() {
 	change_info="partition=${PART} start=${pt_start}"
 	change_info="${change_info} old: size=${pt_size} end=${pt_end}"
 	change_info="${change_info} new: size=${new_size} end=${pt_max}"
-	
+
 	# Backup the current partition table, we're about to modify it
 	rq sgd_backup $wouldrun sgdisk "--backup=${GPT_BACKUP}" "${DISK}" ||
 		fail "${dev}: failed to backup the partition table"

@@ -24,8 +24,8 @@ read_pt_info() {
     #     uuid=a0e1636e-b759-4e7a-bd14-6f3d6c04745d
     local file="$1" fpart="$2" key="$3"
     local cmd="" out=""
-    cmd=( 
-        sed 
+    cmd=(
+        sed
         # delete any other line.
         -e "/^$fpart[ ]*:/!d"
         # match key=<spaces><value>,
@@ -72,7 +72,7 @@ test_resize () {
             cat "stderr" "stdout"
             fail "[resizer=$resizer] growpart failed"
         fi
-        
+
         sfdisk --dump disk.img > partitions.after
         read_pt_info partitions.after disk.img2 start
         start=$_RET
