@@ -1,8 +1,10 @@
 #!/bin/sh
 
+set -e
+
 sourcename="cloud-utils"
+RELEASE=${RELEASE:-UNRELEASED}
 TEMP_D=""
-UNCOMMITTED=${UNCOMMITTED:-0}
 
 fail() { echo "$@" 1>&2; exit 1; }
 cleanup() {
@@ -19,7 +21,7 @@ Usage: ${0##*/}
     * ${0##*/} -us -uc
 
    Its not significantly different than what you'd get by modifying
-   the debian/changelog to have the current revno, and then running
+   the debian/changelog to have the current HEAD, and then running
      debuild --no-tgz-check
 EOF
 exit
@@ -27,55 +29,56 @@ fi
 
 bname=${0##*/}
 
+[ -n "$DEBEMAIL" ] || DEBEMAIL=$(git config user.email)
+[ -n "$DEBFULLNAME" ] || DEBFULLNAME=$(git config user.name)
+
+if [ -z "$DEBEMAIL" -o -z "$DEBFULLNAME" ]; then
+    echo "Must have DEBEMAIL and DEBFULLNAME in environment"
+    echo "or set git user.email and user.name."
+fi
+
 start_d=$PWD
 top_d=$(cd "$(dirname "${0}")"/.. && pwd)
 
-export_uncommitted=""
-echo $UNCOMMITTED
-if [ "${UNCOMMITTED:-0}" != "0" ]; then
-   export_uncommitted="--uncommitted"
-fi
+# git describe will output something either like '0.1.0' (a tag)
+# or TAG-N-gHASH where N is number of commits since TAG
+uver=$(git describe --abbrev=8) ||
+   fail "failed to get upstream version with 'git describe'"
+clogver_debian=${CLOGVER_DEBIAN:-0ubuntu1}
 
-# grab the first line in the changelog
-# hopefully this pulls the version info there
-# resulting in something like: 0.1.0~bzrREVNO-1~trunk1
-clogver_o=$(sed -n '1s,.*(\([^)]*\)).*,\1,p' debian/changelog)
-
-revno=$(bzr revno) || fail "failed to get revno"
-clogver_upstream=${clogver_o%%-*}
-clogver_debian=${clogver_o#*-}
-
-uver=$(echo "${clogver_upstream}" | sed "s,REVNO,$revno,")
 clogver_new="${uver}-${clogver_debian}"
 
 TEMP_D=$(mktemp -d "${TMPDIR:-/tmp}/${bname}.XXXXXX")
 
 trap cleanup EXIT
 
-echo "building upstream version $uver, debian ver=${clogver_debian}"
+echo "building upstream version ${uver}, debian ver=${clogver_debian}"
 
 dir="${sourcename}-$uver"
 tarball="${sourcename}_$uver.orig.tar.gz"
 
-echo bzr export --format=tgz --root="$dir" --revision="${revno}" \
-   ${export_uncommitted} "${TEMP_D}/$tarball"
-bzr export --format=tgz --root="$dir" --revision="${revno}" \
-   ${export_uncommitted} "${TEMP_D}/$tarball" ||
-   fail "failed to bzr export tarball $tarball"
+myd=$(dirname "$0")
+"$myd/export-tarball" "--output=${TEMP_D}/$tarball" HEAD
 echo "created ${tarball}"
 
-cd ${TEMP_D}
+cd "${TEMP_D}"
 tar xzf "$tarball" || fail "failed extract tarball"
-cd "$dir" || fail "fialed cd $dir"
+cd "$dir" || fail "failed cd $dir"
 
-sed -i "1s,${clogver_o},${clogver_new}," debian/changelog ||
-   fail "failed to change replace REVNO in debian/changelog"
+cat > debian/changelog <<EOF
+$sourcename ($uver-${clogver_debian}) $RELEASE; urgency=low
+
+  * Upstream Build
+
+ -- $DEBFULLNAME <$DEBEMAIL>  $(date -R)
+EOF
+
 debuild "$@" || fail "debuild failed"
 
 cd "$TEMP_D"
 for f in *; do
    [ -f "$f" ] || continue
-   cp "$f" "$start_d/" || fail "failed copy $f"
+   cp "$f" "$start_d" || fail "failed copy $f"
    echo "wrote $f"
 done
 exit

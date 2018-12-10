@@ -1,0 +1,71 @@
+#!/bin/sh
+set -e
+
+TEMP_D=""
+sourcename="cloud-utils"
+
+cleanup() {
+    [ -z "$TEMP_D" ] || rm -Rf "${TEMP_D}"
+}
+trap cleanup EXIT
+
+Usage() {
+    cat <<EOF
+Usage: ${0##*/} [commitish]
+    create a tarball of commitish(default HEAD)
+
+    options:
+      -h | --help		print usage
+      -o | --output FILE	write to file
+           --orig-tarball	Write file ${sourcename}_<version>.orig.tar.gz
+           --long		Use git describe --long for versioning
+EOF
+}
+
+short_opts="ho:v"
+long_opts="help,output:,orig-tarball,long"
+getopt_out=$(getopt --name "${0##*/}" \
+    --options "${short_opts}" --long "${long_opts}" -- "$@") &&
+    eval set -- "${getopt_out}" || { Usage 1>&2; exit 1; }
+
+long_opt=""
+orig_opt=""
+while [ $# -ne 0 ]; do
+    cur=$1; next=$2
+    case "$cur" in
+        -h|--help) Usage; exit 0;;
+        -o|--output) output=$next; shift;;
+           --long) long_opt="--long";;
+           --orig-tarball) orig_opt=".orig";;
+        --) shift; break;;
+    esac
+    shift;
+done
+
+rev=${1:-HEAD}
+version=$(git describe --abbrev=8 "--match=[0-9]*" ${long_opt} $rev)
+
+archive_base="${sourcename}-$version"
+if [ -z "$output" ]; then
+    if [ ! -z "$orig_opt" ]; then
+        archive_base="${sourcename}_$version"
+    fi
+    output="$archive_base$orig_opt.tar.gz"
+fi
+
+# when building an archiving from HEAD, ensure that there aren't any
+# uncomitted changes in the working directory (because these would not
+# end up in the archive).
+if [ "$rev" = HEAD ] && ! git diff-index --quiet HEAD --; then
+    cat 1>&2 <<EOF
+WARNING: There are uncommitted changes in your working directory.
+         These changes will not be included in the archive.
+EOF
+fi
+
+TEMP_D=$(mktemp -d)
+tar=${output##*/}
+tar="$TEMP_D/${tar%.gz}"
+git archive --format=tar --prefix="$archive_base/" "$rev" > "$tar"
+gzip -9 -c "$tar" > "$output"
+echo "$output"
