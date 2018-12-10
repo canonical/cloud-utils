@@ -13,7 +13,7 @@ runtests() {
                 # not supported
                 dos:gdisk) continue;;
             esac
-            echo "-- PT_TYPE=$pt_type GROWPART_RESIZER=$resizer --" 
+            echo "-- PT_TYPE=$pt_type GROWPART_RESIZER=$resizer --"
             env "PT_TYPE=$pt_type" "GROWPART_RESIZER=$resizer" "$mytest"
             ret=$?
             [ $ret -eq 0 ] || {

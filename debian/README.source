@@ -1,19 +1,16 @@
-This is the cloud-utils ubuntu packaging branch.  It is managed in
-git through the usd importer tree.
-This can be seen in web view at:
-  https://git.launchpad.net/~usd-import-team/ubuntu/+source/cloud-utils
+This is the cloud-utils ubuntu packaging branch.  It comes from:
+ git clone https://git.launchpad.net/cloud-utils
 
-To grab source:
-  git clone https://git.launchpad.net/~usd-import-team/ubuntu/+source/cloud-utils
+The upstream (master) branch does not include debian/changelog but it
+can built with ./tools/build-deb.
 
-or
- usd clone cloud-utils
+cloud-utils maintains debian packaging for ubuntu in a 'ubuntu/devel'.
+It uses a tool called 'new-upstream-snapshot' [1] (also used by cloud-init)
+to create new upstream snapshots for release to ubuntu.
 
-For more information see
-  https://wiki.ubuntu.com/UbuntuDevelopment/Merging/GitWorkflow
+The ubuntu/devel branch has been initialized with the 'git ubuntu'
+packaging branch at import/0.30-0ubuntu10.  But it is only used for
+history.  From that point forward the branch will be merged from upstream.
 
-Upstream is:
- bzr branch lp:cloud-utils
-
-To create the debian/patches/sync-to-trunk.patch, do the following:
-   ./debian/update-sync-to-main ../trunk
+--
+[1] https://github.com/CanonicalLtd/uss-tableflip/blob/master/scripts/new-upstream-snapshot

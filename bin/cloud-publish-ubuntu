@@ -115,7 +115,7 @@ while [ $# -ne 0 ]; do
 		-n|--dry-run) dry_run=1;;
 		-q|--quiet) VERBOSITY=0; vflags=""; shift;;
 		   --stream) stream="$next"; shift;;
-		-v|--verbose) 
+		-v|--verbose)
 			vflags="${vflags}v"
 			VERBOSITY=$((${VERBOSITY}+1));;
 		--) shift; break;;

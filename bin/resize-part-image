@@ -107,7 +107,7 @@ if [ ! "${old}" -ef "${new}" ]; then
 						fail "failed to get full path for ${new}"
 					tmpd=$(mktemp -d "${newd}/.${0##*/}.XXXXXX") &&
 						( cd "${tmpd}" && tar -S --wildcards -xzf - "*.img" &&
-						  mv *.img "../${new}" ) < "${old}" || { 
+						  mv *.img "../${new}" ) < "${old}" || {
 						  rm -Rf "${tmpd}";
 						  fail "failed to extract image from ${old}"
 						}

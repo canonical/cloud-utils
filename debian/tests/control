@@ -2,7 +2,7 @@ Tests: growpart-loop
 Restrictions: needs-root isolation-machine allow-stderr
 Depends: cloud-guest-utils, fdisk, gdisk
 
-Tests: growpart-fsimage, growpart-fsimage-middle
+Tests: growpart-fsimage, growpart-fsimage-middle, growpart-start-matches-size
 Restrictions: allow-stderr
 Depends: cloud-guest-utils, fdisk, gdisk
 

@@ -191,7 +191,7 @@ vcsget_url() {
 		error "failed wget -O '$target/$cmdname' '$src'"
 		return $RET_FAIL
 	}
-	
+
 	_RET="$target"
 	return 0
 }

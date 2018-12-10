@@ -12,7 +12,7 @@ cleanup() {
 }
 rq() {
    local out="${TEMP_D}/out"
-	"$@" > "$out" 2>&1 || { error "FAILED:" "$@"; cat "$out"; return 1; }
+	"$@" > "$out" 2>&1 || { error "FAILED [$?]:" "$@"; cat "$out"; return 1; }
 }
 fail() { echo "$@" 1>&2; exit 1; }
 error() { echo "$@" 1>&2; }
@@ -26,17 +26,25 @@ do_pt_test() {
 			error "${premsg}failed writing to partition $pt in $img";
 			return 1;
 		}
-	local expected=$(printf "%s\n%s\n" "$info" "$data")
+	local ret="" expected=$(printf "%s\n%s\n" "$info" "$data")
 	out=$(mount-image-callback --read-only --cd "--part=$pt" "$img" -- \
-		sh -c "cat info.txt data.txt") || {
-			error "${premsg}failed mounting part $pt for verification";
-			return 1;
-		}
+		sh -c '
+		    r=0; for f in "$@"; do
+		    cat $f || { echo "$f: cat failed rc=$?"; r=99; }; done;
+		    exit $r' sh-extract info.txt data.txt)
+	ret=$?
+	if [ $ret -ne 0 -a $ret -ne 99 ]; then
+		error "${premsg}failed mounting part $pt for verification";
+		error "out=${out}"
+		return 1;
+	fi
 	[ "$expected" = "$out" ] || {
-		error "${premsg}expected $pt to have:"
+		error "${premsg}"
+		error "== expected on $pt =="
 		error "$expected"
-		error "found:"
+		error "== found on $pt =="
 		error "$out"
+		return 1
 	}
 }
 
@@ -134,7 +142,7 @@ mount-image-callback --read-only --cd -- "$pt1" sh -ec '
 	mount -t tmpfs none -o size=10240 mnt/ || fail "failed tmpfs mount"
 	echo "hi mom" > mnt/file-on-tmpfs ||
 		fail "failed write to file-on-tmpfs"
-	mkdir mnt/mnt2 || faili "failed mkdir mnt/mnt2"
+	mkdir mnt/mnt2 || fail "failed mkdir mnt/mnt2"
 	mount -t tmpfs none -o size=4096 mnt/mnt2 || fail "failed 2nd tmpfs mount"
 	echo "hi again" > mnt/mnt2/second-file-on-tmpfs' ||
 		fail "testing unexpected mounts failed."
@@ -189,10 +197,10 @@ for toks in "MBR:${img_mbr}" "GPT:${img_gpt}"; do
 	img=${toks#*:}
 	prefix=${toks%%:*}
 	do_pt_test "$img" 1 "foo1" "partition 1" "$prefix: " ||
-		fail "${prefix}failed testing partition 1 on $img"
+		fail "${prefix}: failed testing partition 1 on $img"
 
 	do_pt_test "$img" 2 "foo2" "partition 2" "$prefix: " ||
-		fail "${prefix}failed testing partition 2 on $img"
+		fail "${prefix}: failed testing partition 2 on $img"
 done
 
 error "Finished tests."

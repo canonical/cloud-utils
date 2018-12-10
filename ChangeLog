@@ -1,3 +1,19 @@
+0.31
+ - mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
+ - mount-image-callback: run blockdev and udevadm settle on nbd devices.
+   (LP: #1741096, 1741300)
+ - mount-image-callback: Drop support for mounting lxd containers.
+   (LP: #1715994)
+ - growpart: fix bug that stopped GPT disks from being grown past 2TB.
+   (LP: #1762748)
+ - mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
+ - growpart: fix bug when resizing a middle partition with sgdisk
+   (LP: #1706751) [Fred De Backer]
+ - growpart: Resolve symbolic links before operating.
+   [Kevin Locke] (LP: #1744406)
+ - growpart: fix bug occurring if start sector and size were the same.
+   [Lars Kellogg-Stedman] (LP: #1807171)
+
 0.30
  - ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
     as traditional ebs are no longer available. (LP: #1593451)
