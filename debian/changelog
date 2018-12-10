@@ -1,11 +1,11 @@
-cloud-utils (0.30-48-ga31b5bc1-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-0ubuntu1) UNRELEASED; urgency=medium
 
   * debian/tests/control: add test growpart-start-matches-size.
-  * New upstream snapshot.
+  * New upstream release.
     - White space cleanup.  Remove trailing space and tabs.
     - Move to git.
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 10 Dec 2018 15:33:41 -0500
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 10 Dec 2018 15:59:23 -0500
 
 cloud-utils (0.30-0ubuntu10) disco; urgency=medium
 
