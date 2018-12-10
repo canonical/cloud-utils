@@ -1,8 +1,17 @@
-This is the cloud-utils ubuntu packaging branch.  it comes from:
- bzr branch lp:ubuntu/cloud-utils
+This is the cloud-utils ubuntu packaging branch.  It is managed in
+git through the usd importer tree.
+This can be seen in web view at:
+  https://git.launchpad.net/~usd-import-team/ubuntu/+source/cloud-utils
 
-Please only make ubuntu specific changes to the Ubuntu package.
-Other changes should be made to the upstream, and then cherry-picked back.
+To grab source:
+  git clone https://git.launchpad.net/~usd-import-team/ubuntu/+source/cloud-utils
+
+or
+ usd clone cloud-utils
+
+For more information see
+  https://wiki.ubuntu.com/UbuntuDevelopment/Merging/GitWorkflow
+
 Upstream is:
  bzr branch lp:cloud-utils
 

@@ -4,7 +4,7 @@ fail() { [ $# -eq 0 ] || echo "$@" 1>&2; exit 1; }
 
 Usage() {
    cat <<EOF
-Usage: debian/${0##*/} trunk-branch [ upstream-ver ]
+Usage: debian/${0##*/} trunk-BZR-branch [ upstream-ver ]
 
   revno is the revision in *this* branch that correlates
   with the last upstream release.
@@ -62,13 +62,15 @@ quilt import "${tmpd}/${pname}" ||
 
 quilt push "${pname}" || fail "failed to push to ${pname}"
 
-for f in $(quilt files); do
-   if [ -e "$f" ]; then
-      bzr add "$f" ||
-         fail "failed to add $f"
-   fi
-done
-
+if [ -e .bzr ]; then
+   for f in $(quilt files); do
+       # bzr used to store patches applied. We do not want that for git.
+       bzr add "$f" || fail "failed to bzr add $f"
+   done
+else
+   git add debian/patches/$pname debian/patches/series
+   quilt pop
+fi
 
 echo "refreshed ${pname}"
 echo "you may need to quilt push -a now if you had other changes"

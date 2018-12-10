@@ -1,131 +1,765 @@
-cloud-utils (0.31~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
+cloud-utils (0.30-0ubuntu10) disco; urgency=medium
 
-  * debian/tests/control: mention dependencies on gdisk and fdisk.
-  * debian/tests: run test for mount-image-callback.
-  * mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
-  * mount-image-callback: run blockdev and udevadm settle on nbd devices.
-    (LP: #1741096, 1741300)
-  * mount-image-callback: Drop support for mounting lxd containers.
-    (LP: #1715994)
-  * growpart: fix bug that stopped GPT disks from being grown past 2TB.
-    (LP: #1762748)
-  * mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
-  * growpart: fix bug when resizing a middle partition with sgdisk
-    (LP: #1706751) [Fred De Backer]
-  * growpart: Resolve symbolic links before operating.
-    [Kevin Locke] (LP: #1744406)
-  * growpart: fix bug occurring if start sector and size were the same.
-    [Lars Kellogg-Stedman] (LP: #1807171)
+  * sync to trunk at 340:
+    - growpart: fix bug occurring if start sector and size were the same.
+      [Lars Kellogg-Stedman] (LP: #1807171)
+    - growpart: Resolve symbolic links before operating.
+      [Kevin Locke] (LP: #1744406)
+    - mount-image-callback: fix mostly harmless typo in variable name.
+    - mount-image-callback: fix typo meaning we never timed out waiting for
+      a disk.
 
- -- Scott Moser <smoser@ubuntu.com>  Fri, 10 Feb 2017 13:36:41 -0600
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 07 Dec 2018 11:45:41 -0500
 
-cloud-utils (0.30~bzrREVNO-1~trunk1) UNRELEASED; urgency=low
+cloud-utils (0.30-0ubuntu9) cosmic; urgency=medium
 
+  * debian/tests/control: fix typo in dependencies 'gdisk', not 'sgdisk'
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 06 Sep 2018 11:33:24 -0400
+
+cloud-utils (0.30-0ubuntu8) cosmic; urgency=medium
+
+  * debian/tests/control: fix spelling of dependency 'cloud-guest-utils'.
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 06 Sep 2018 09:01:13 -0400
+
+cloud-utils (0.30-0ubuntu7) cosmic; urgency=medium
+
+  * debian/tests/control: list dependencies including own package deps.
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 06 Sep 2018 08:20:36 -0400
+
+cloud-utils (0.30-0ubuntu6) cosmic; urgency=medium
+
+  * sync to trunk at 333:
+    - growpart: fix bug when resizing a middle partition with sgdisk.
+      (LP: #1706751) [Fred De Backer]
+    - test/test-mic: fix typo
+    - run test for mount-image-callback
+    - debian/tests/control: mention dependencies on gdisk and fdisk.
+    - mount-image-callback: mention --help and -C/--cd-mountpoint in Usage
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 05 Sep 2018 22:45:51 -0400
+
+cloud-utils (0.30-0ubuntu5) bionic; urgency=medium
+
+  * sync to trunk at 324:
+    - growpart: Properly ensure that MBR disks are not grown too large
+      and produce a warning about 2TB limit. (LP: #1762748)
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 13 Apr 2018 09:07:55 -0400
+
+cloud-utils (0.30-0ubuntu4) bionic; urgency=medium
+
+  * sync to trunk at 323.
+    - growpart: fix bug that stopped GPT disks from being grown past 2TB.
+      (LP: #1762748)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 12 Apr 2018 23:36:41 -0400
+
+cloud-utils (0.30-0ubuntu3) bionic; urgency=medium
+
+  * sync to trunk at 322
+    - mount-image-callback: run blockdev and udevadm settle on nbd devices.
+      (LP: #1741096, #1741300)
+    - mount-image-callback: Drop support for mounting lxd containers.
+      (LP: #1715994)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 04 Jan 2018 14:17:26 -0500
+
+cloud-utils (0.30-0ubuntu2) zesty; urgency=medium
+
+  * sync to trunk at 316
+    * mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 10 Feb 2017 15:36:35 -0500
+
+cloud-utils (0.30-0ubuntu1) zesty; urgency=medium
+
+  * New upstream release
+    * The only change versus 0.29-0ubuntu7 is in an upstream
+      tool tools/make-dist-tarball .
+  * debian/README.source: update to point at usd-import-team git branches.
+  * debian/update-sync-to-main: support packaging being in git.
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 13 Jan 2017 13:25:12 -0500
+
+cloud-utils (0.29-0ubuntu7) zesty; urgency=medium
+
+  * debian/tests: fix tests to make program in tests/ executable
+    if it is not already.
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 25 Oct 2016 10:50:41 -0400
+
+cloud-utils (0.29-0ubuntu6) zesty; urgency=medium
+
+  * sync to trunk at revno 313
+    * mount-image-callback: support 'chroot' to lxd containers
+  * debian/tests/control: run mount-image-callback test (test-mic)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 24 Oct 2016 14:30:49 -0400
+
+cloud-utils (0.29-0ubuntu5) yakkety; urgency=medium
+
+  * debian/control: update to Standards-Version 3.9.8
   * debian/copyright: fix lintian file-without-copyright-information.
-  * debian/control: update standards version
-  * ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
+  * sync to trunk at revno 306
+    * mount-image-callback: try mounting overlay rather than checking first
+      (LP: #1630274)
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 04 Oct 2016 12:36:21 -0400
+
+cloud-utils (0.29-0ubuntu4) yakkety; urgency=medium
+
+  * sync to trunk at revno 303
+    * mount-image-callback: support 'overlay' filesystem type rather
+      than ubuntu specific 'overlayfs' (LP: #1493188)
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 27 Sep 2016 21:20:58 -0400
+
+cloud-utils (0.29-0ubuntu3) yakkety; urgency=medium
+
+  * debian/control: add Suggests for mtools to cloud-image-utils.
+  * debian/tests: add dep-8 auto package test.
+  * sync to trunk at revno 302
+    * ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
+      as traditional ebs are no longer available. (LP: #1593451)
+    * mount-image-callback: fix shortopt parsing (LP: #1604011)
+    * growpart: improved error messages on failure.
+    * mount-image-callback: add -S short flag for --system-mounts
+    * growpart: ignore sfdisk failure in 2.28.1 when due to reread
+      failing (LP: #1619285)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 01 Sep 2016 16:07:51 -0400
+
+cloud-utils (0.29-0ubuntu2) yakkety; urgency=medium
+
+  * bin/ubuntu-cloudimg-query: fix xenial default to be ebs-ssd
     as traditional ebs are no longer available. (LP: #1593451)
-  * mount-image-callback: fix shortopt parsing (LP: #1604011)
-  * growpart: improved error messages on failure.
-  * mount-image-callback: add -S short flag for --system-mounts
-  * growpart: ignore sfdisk failure in 2.28.1 when due to reread
-    failing (LP: #1619285)
-  * mount-image-callback: support 'overlay' filesystem type rather
-    than ubuntu specific 'overlayfs' (LP: #1493188)
-  * mount-image-callback: support 'chroot' to lxd containers and
-    correctly apply user namespace change.
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 06 Jun 2016 14:49:30 -0400
+  [Ryan Harper]
+  * bin/mount-image-callback: fix shortopt parsing (LP: #1604011)
 
-cloud-utils (0.29-1~trunk1) UNRELEASED; urgency=low
-  * cloud-localds: fix creation of vfat filesystems (LP: #1431537)
-  * cloud-localds: better errors on missing vfat tools and
-    Suggest mtools (LP: #1431533).
-  * growpart: fix use of partx for newer util-linux versions (LP: #1587971)
-    [Lars Kellogg-Stedman]
-  * Add license file (LP: #1294338)
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 18 Jul 2016 10:48:38 -0400
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 06 Jun 2016 14:48:58 -0400
+cloud-utils (0.29-0ubuntu1) yakkety; urgency=medium
 
-cloud-utils (0.28-1~trunk1) UNRELEASED; urgency=low
+  * New upstream release.
+    * cloud-localds: fix creation of vfat filesystems. (LP: #1431537)
+      [Kamal Mostafa]
+    * cloud-localds: better errors on missing vfat tools and 
+      Suggest mtools. (LP: #1431533)
+    * growpart: fix use of partx for newer util-linux versions.
+      (LP: #1587971) [Lars Kellogg-Stedman]
+    * Add license file. (LP: #1294338)
 
-  * ubuntu-cloudimg-query: change default release to 'xenial'
-  * growpart: fix some issues in error path reporting
-  * growpart: capture output of 'partx --help' as older versions
-    do not support that flag, and send output to stderr.
-  * add 'vcs-run' utility for easily executing / bootstrapping
-    from a version control system (hg, git, bzr)
-  * cloud-localds: add man page [Thomas Bechtold]
-  * cloud-localds: only use qemu-img convert if output format is not 'raw'
-  * cloud-localds: add '--hostname' flag to specify local-hostname in
-    meta-data.
-  * cloud-publish-image: add '--architecture' when using 'register'
-  * cloud-publish-image: improvements to '-v' (debugging)
-  * cloud-publish-image: pass through --root-device-name
-  * cloud-run-instances: dropped (obsolete, not recommended)
-  * remove ubuntu-cloud-keyring (replaced in ubuntu by
-    ubuntu-cloudimage-keyring)
-  * mount-image-callback: add utility
-  * cloud-localds: make quiet by default (increase verbosity with '-v')
-  * ubuntu-cloudimg-query: do not fail on no ami id found if no ami id is
-    necessary for the output requested (ie, allow 'armhf' queries of url)
-  * growpart: fix bug when growing partitions on disks > 2TB. (LP: #1259703)
-  * growpart: run partx only on block devices (not files)
-  * ubuntu-cloudimg-query: allow 'ppc64el', 'arm64' as input. (LP: #1273769)
-  * ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
-  * ubuntu-cloudimg-query: add '--arch' to specifically state the arch.
-  * growpart: better --dry-run output for gpt disks, providing sgdisk command
-    line that would be used.
-  * ubuntu-ec2-run: know about more instance types
-  * mount-image-callback: support '--partition' flag
-  * mount-image-callback: support '--cd-mountpoint' flag
-  * ec2metadata, ubuntu-ec2-run, write-mime-multipart: move to python3
-  * growpart: support sfdisk >= 2.26, and support gpt partitions with sfdisk
-  * mount-image-callback: pass --format when invoking qemu-nbd (LP: #1492386)
-  * mount-image-callback: add '--mountpoint' flag to mount to an existing dir
-  * mount-image-callback: add '--overlay' to use overlayfs mounts
-  * mount-image-callback: use qemu-nbd --read-only for safer read only
-  * mount-image-callback: improved waiting for devices. part=auto now default.
-  * ubuntu-cloudimg-query: support arch input of 'powerpc' and 's390x'
-  * cloud-localds: support writing vendor-data and network config
-  * cloud-localds: support --disk-format=tar, tar-seed-local and tar-seed-nonet
-    to more easily use when populating a fs rather than a external disk.
-  * pep8 and whitespace cleanups
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 06 Jun 2016 13:05:42 -0400
 
- -- Scott Moser <smoser@ubuntu.com>  Thu, 28 Mar 2013 08:30:13 -0400
+cloud-utils (0.28-0ubuntu1) yakkety; urgency=medium
 
-cloud-utils (0.27~bzr221~trunk-1) raring; urgency=low
+  * New upstream release.
+    * bin/ubuntu-cloudimg-query: know about newer ubuntu release names.
+      default to xenial.
+    * bin/ubuntu-ec2-run: know about newer ubuntu release names.
 
-  * add '--hook-img' flag to cloud-publish-image and passthrough that
-    flag from cloud-publish-ubuntu and cloud-publish-tarball.
-  * ubuntu-cloudimg-query: become aware of m3.* instance-sizes
-  * write-mime-multipart: add 'include-once-url' to the supported types.
-  * growpart: add support for resizing GPT partitions by using sgdisk from
-    gptfdisk project.  [Juerg Haefliger].
-  * growpart: add support for partx 'update' which allows resizing a partition
-    that is mounted.
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 11 May 2016 10:06:37 -0400
 
- -- Scott Moser <smoser@ubuntu.com>  Wed, 27 Mar 2013 09:06:37 -0400
+cloud-utils (0.27-0ubuntu24) xenial; urgency=medium
 
-cloud-utils (0.26~bzr200~trunk-1) quantal; urgency=low
+  * cloud-localds: support --vendor-data, network-config and 'tar'
+    output.  This is in support of the work going into cloud-init
+    under LP: #1549403.
 
-  * Upstream trunk build
-  * install ubuntu cloud image keyring into /usr/share/keyrings/
-  * ubuntu-cloudimg-query, ubuntu-ec2-run:
-    - be aware of m1.medium instance type
-    - support "amd64 on all sizes"
-    - be aware of hi1.4xlarge
-    - always pass block device mapping for sdb if instance type has it
-      rather than relying on ami registration.
-  * when downloading images use wget dot:mega for less verbose
-  * growpart:
-    - use 'sfdisk --no-reread' (LP: #942788)
-    - if sfdisk fails, send output to stderr
-  * cloud-publish-tarball: fix for tarballs without a ramdisk
-  * ubuntu-cloudimg-query: allow baseurl to be read from environment var
-  * growpart: support growpart of nbd devices (/dev/nbd[0-9]) and
-    /dev/loop devices.
-  * add cloud-localds utility
-  * ubuntu-cloudimg-query: add 'serial' to tokens availble for substitution
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 14 Mar 2016 12:56:17 -0400
 
- -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:10:45 -0400
+cloud-utils (0.27-0ubuntu23) xenial; urgency=medium
+
+  * sync to trunk at revno 281
+    * mount-image-callback: default to '--partition=auto' and
+      better waiting for nbd partitions.
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 17 Feb 2016 10:28:21 -0500
+
+cloud-utils (0.27-0ubuntu22) xenial; urgency=high
+
+  * Add more architectures.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Thu, 21 Jan 2016 13:49:49 +0000
+
+cloud-utils (0.27-0ubuntu21) xenial; urgency=medium
+
+  * d/control: split out tools that are dependent on euca2ools into
+    cloud-utils-euca package.  This removes the indirect dependency
+    on python2.
+  * sync to trunk at revno 279
+    * mount-image-callback: use qemu-nbd --read-only for safer read only
+    * mount-image-callback: add '--overlay' to use overlayfs mounts
+    * mount-image-callback: add '--mountpoint' flag to mount to an existing dir
+    * spelling cleanups in man/growpart.1 (Closes: #793919)
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 19 Jan 2016 13:04:26 -0500
+
+cloud-utils (0.27-0ubuntu20) wily; urgency=medium
+
+  * sync to trunk at revno 274
+    * mount-image-callback: fix regression in check for image existance.
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 17 Sep 2015 09:06:10 -0400
+
+cloud-utils (0.27-0ubuntu19) wily; urgency=medium
+
+  * sync to trunk at revno 273
+    * mount-image-callback: specify --format to qemu-nbd (LP: #1492386)
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 04 Sep 2015 12:54:03 -0400
+
+cloud-utils (0.27-0ubuntu18) wily; urgency=medium
+
+  * d/README.source: doc fix
+  * d/control: up Recommended version of util-linux to >= 2.26.3
+  * sync to trunk at revno 269
+    * remove confusing output of older sfdisk when growing gpt disks
+    * only use sfdisk for gpt resizing if newer than 2.26.2 (LP: #1474090)
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 15 Jul 2015 11:26:45 -0400
+
+cloud-utils (0.27-0ubuntu17) wily; urgency=medium
+
+  * sync to trunk at revno 269
+  * growpart: when growing mbr partitions leave 33 sectors space for a
+    secondary gpt header so that conversion via 'sgdisk --mbrtogpt'
+    does not require shrinking the filesystem on the last partition.
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 08 Jul 2015 15:58:35 -0400
+
+cloud-utils (0.27-0ubuntu16) wily; urgency=medium
+
+  * growpart: support sfdisk versions 2.26, backwards compatibly
+    (Closes: #783826)
+  * growpart: use 'trap 0' rather than 'trap EXIT' for more compatibility
+    with some /bin/sh.
+  * add ability to use sfdisk for GPT resizing.
+  * debian/control: Recommend util-linux | gdisk since we can use either.
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 11 May 2015 16:58:25 -0400
+
+cloud-utils (0.27-0ubuntu15) vivid; urgency=medium
+
+  * write-mime-multipart: fix bad python syntax. 
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 19 Mar 2015 19:51:38 -0400
+
+cloud-utils (0.27-0ubuntu14) vivid; urgency=medium
+
+  * sync to trunk at revno 265
+    * ec2metadata, write-mime-multipart: more python3 improvements
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 18 Mar 2015 20:33:54 -0400
+
+cloud-utils (0.27-0ubuntu13) vivid; urgency=medium
+
+  * drop patch for add-utopic-vivid.patch
+  * sync to trunk at revno 264
+    * utopic and vivid releases in hardcoded litss
+    * ec2metadata, ubuntu-ec2-run, write-mime-multipart move to python3
+    *mount-image-callback: support '--cd-mountpoint'
+  * d/control, d/rules: move to python3
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 11 Mar 2015 14:34:14 -0400
+
+cloud-utils (0.27-0ubuntu12) vivid; urgency=medium
+
+  * Add utopic and vivid support to ubuntu-cloudimg-query.
+
+ -- Stéphane Graber <stgraber@ubuntu.com>  Fri, 13 Feb 2015 13:18:13 -0500
+
+cloud-utils (0.27-0ubuntu11) vivid; urgency=medium
+
+  * packages should Breaks/Replaces the pre-splitup version of cloud-utils
+    rather than Conflicts/Replaces (LP: #1418568)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 05 Feb 2015 11:36:00 -0500
+
+cloud-utils (0.27-0ubuntu10) utopic; urgency=medium
+
+  * sync to trunk at revno 261.
+    * mount-image-callback: support '--partition' for mounting
+      partitions other than the first.
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 21 Aug 2014 01:36:58 -0400
+
+cloud-utils (0.27-0ubuntu9) trusty; urgency=medium
+
+  * fix regression bug in all uses of ubuntu-ec2-run (LP: #1303786).
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 07 Apr 2014 08:52:18 -0400
+
+cloud-utils (0.27-0ubuntu8) trusty; urgency=medium
+
+  * sync to trunk at revno 259
+    * fix mount-image-callback args --dev, --sys, or --proc (LP: #1302052)
+    * ubuntu-ec2-run: know about more instance types
+    * growpart: better --dry-run output for gpt disks
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 03 Apr 2014 12:30:28 -0400
+
+cloud-utils (0.27-0ubuntu7) trusty; urgency=low
+
+  * sync to trunk at revno 256
+    * ubuntu-cloudimg-query: allow 'arm64' as input.
+    * ubuntu-cloudimg-query: add '--arch' flag
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 06 Feb 2014 15:33:47 +0200
+
+cloud-utils (0.27-0ubuntu6) trusty; urgency=medium
+
+  * sync to trunk at revno 254
+    * growpart: run partx only on block devices (not files)
+    * ubuntu-cloudimg-query: allow 'ppc64el' as input. (LP: #1273769)
+    * ubuntu-cloudimg-query, ubuntu-ec2-run: know about trusty
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 29 Jan 2014 13:44:03 -0500
+
+cloud-utils (0.27-0ubuntu5) trusty; urgency=low
+
+  * sync to trunk at revno 250
+    * cloud-localds: make quiet by default (increase verbosity with '-v')
+    * ubuntu-cloudimg-query: do not fail on no ami id found if no ami id is
+    * necessary for the output requested (ie, allow 'armhf' queries of url)
+    * growpart: fix bug when growing partitions on disks > 2TB. (LP: #1259703)
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 11 Dec 2013 11:39:40 -0500
+
+cloud-utils (0.27-0ubuntu4) saucy; urgency=low
+
+  * Add proper Conflicts/Replaces for the package split to unbreak upgrades.
+    (LP: #1217846)
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Wed, 28 Aug 2013 13:40:31 +0200
+
+cloud-utils (0.27-0ubuntu3) saucy; urgency=low
+
+  * sync to trunk at revno 246
+    * cloud-localds: add man page [Thomas Bechtold]
+    * cloud-localds: only use qemu-img convert if output format is not 'raw'
+    * cloud-localds: add '--hostname' flag to specify local-hostname in
+      meta-data.
+    * cloud-publish-image: add '--architecture' when using 'register'
+    * cloud-publish-image: improvements to '-v' (debugging)
+    * cloud-publish-image: pass through --root-device-name
+    * cloud-run-instances: dropped (obsolete, not recommended)
+    * remove ubuntu-cloud-keyring (replaced in ubuntu by
+      ubuntu-cloudimage-keyring)
+    * mount-image-callback: add utility
+  * split package into cloud-guest-utils and cloud-image-utils.
+  * remove deprecated 'uec-*' commands: uec-publish-tarball, uec-publish-image,
+    uec-run-instances, uec-resize-image.
+  * fix lintian issue with debian/copyright
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 27 Aug 2013 16:23:58 -0400
+
+cloud-utils (0.27-0ubuntu2) saucy; urgency=low
+
+  * sync to trunk at revno 230
+    * ubuntu-cloudimg-query: change default release to 'precise'
+    * growpart: fix some issues in error path reporting
+    * growpart: capture output of 'partx --help' as older versions
+      do not support that flag, and send output to stderr.
+    * add 'vcs-run' utility for easily executing / bootstrapping
+      from a version control system (hg, git, bzr)
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 19 Jun 2013 11:59:32 -0400
+
+cloud-utils (0.27-0ubuntu1) raring; urgency=low
+
+  * New upstream release.
+    * package upstream release.
+    * growpart: essential fix in variable quoting
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 27 Mar 2013 09:40:20 -0400
+
+cloud-utils (0.26-0ubuntu3) raring; urgency=low
+
+  * sync to trunk at revno 219
+    * growpart: support updating mounted partition with partx --update 
+      (LP: #1136936)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 07 Mar 2013 15:45:10 -0500
+
+cloud-utils (0.26-0ubuntu2) raring; urgency=low
+
+  * debian/copyright: fix formatting
+  * sync to trunk at revno 216
+    * support for GPT partitions in growpart via sgdisk (LP: #1087526)
+    * depend on wget and ca-certificates for ubuntu-cloudimg-query 
+      (LP: #1062671)
+    * fix sfdisk parsing (LP: #1007415)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 04 Feb 2013 15:18:49 -0500
+
+cloud-utils (0.26-0ubuntu1) quantal; urgency=low
+
+  * New upstream release.
+    * pull in upstream at 0.26
+    * remove client tools cloudimg-sync and ubuntu-cloudimg-query2
+      (LP: #1059781)
+    * ubuntu-cloudimg-query: add 'serial' to output variables (LP: #974569)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Oct 2012 15:08:43 -0400
+
+cloud-utils (0.25-0ubuntu7) quantal; urgency=low
+
+  * Sync to upstream trunk at revision 195 .
+    * adds cloud-localds utility (LP: #1036312)
+    * growpart: bugfix for nbd and loop devices
+    * awareness of hi1.4xlarge
+    * ubuntu-ec2-run: fix issue with block-device-mappings
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 23 Aug 2012 00:45:35 -0400
+
+cloud-utils (0.25-0ubuntu6) quantal; urgency=low
+
+  * Sync to upstream trunk at revision 188
+    * adds cloudimg-sync and ubuntu-cloudimg-query2 [Ben Howard]
+  * debian/control: run wrap-and-sort 
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 12 Jul 2012 13:38:44 -0400
+
+cloud-utils (0.25-0ubuntu5) precise; urgency=low
+
+  * cloud-publish-tarball, cloud-publish-image: be more quiet
+    when downloading images by using wget --progress=dot:mega
+  * ubuntu-cloudimg-query, ubuntu-ec2-run: support m1.medium ec2 size
+    and do not assume m1.small or c1.medium imply i386.
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 09 Mar 2012 17:02:53 -0500
+
+cloud-utils (0.25-0ubuntu4) precise; urgency=low
+
+  * growpart: invoke sfdisk with '--no-reread' to avoid udev race
+    conditions (LP: #937352)
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 28 Feb 2012 14:40:51 -0500
+
+cloud-utils (0.25-0ubuntu3) precise; urgency=low
+
+  * growpart: allow output of failed sfdisk to get to user
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 22 Feb 2012 15:49:34 -0500
+
+cloud-utils (0.25-0ubuntu2) precise; urgency=low
+
+  * cloud-publish-image: fix issue if ramdisk=none
+    this fixes cloud-publish-tarball for no-ramdisk tarballs
+
+ -- Scott Moser <smoser@ubuntu.com>  Sun, 19 Feb 2012 15:18:26 -0500
+
+cloud-utils (0.25-0ubuntu1) precise; urgency=low
+
+  * New upstream release.
+  * fixes for cloud-publish-ubuntu for clouds other than EC2
+  * better support for "loader" kernels in cloud-publish-image
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 16 Feb 2012 15:36:15 -0500
+
+cloud-utils (0.24-0ubuntu1) precise; urgency=low
+
+  * New upstream release
+  * cloud-publish-tarball, cloud-publish-image now accept urls
+  * cloud-publish-image supports older euca2ools or ec2 tools that
+    do not have a '--name' flag in register
+  * cloud-publish-ubuntu: new tool added for one command population
+    of your cloud from images on cloud-images.ubuntu.com
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 27 Oct 2011 15:10:33 -0400
+
+cloud-utils (0.23-0ubuntu7) oneiric; urgency=low
+
+  * cloud-publish-image: do not fail if arch is other than i386 or x86_64.
+    This is to allow 'arm'. (LP: #849093)
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 13 Sep 2011 16:29:24 -0400
+
+cloud-utils (0.23-0ubuntu6) oneiric; urgency=low
+
+  * cherry pick some fixes from trunk
+  * ubuntu-ec2-run: add block-device-mapping arguments
+  * cloud-publish-image: default to 'image' type rather than auto 
+  * ubuntu-cloudimg-query: hvm instances cannot run on t1.micro
+  * ubuntu-ec2-run: add --help usage, and do not run an instance
+    if no args are given
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 09 Sep 2011 14:33:46 -0700
+
+cloud-utils (0.23-0ubuntu5) oneiric; urgency=low
+
+  * sync with trunk at revision 142
+  * add symlink for legacy name uec-run-instances to cloud-run-instances
+  * ec2metadata: 
+    * use 2009-04-04 version of api, which is present in openstack for the
+      metadata url.
+    * correctly provide prefix (keyname) for each item if dumping all metadata
+  * cloud-run-instances: pass '--key' or '-k' to the underlying command
+  * ubuntu-ec2-run: fix bug where --instance-type would be passed twice
+    if the user set it
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 17 Aug 2011 15:39:12 -0500
+
+cloud-utils (0.23-0ubuntu4) oneiric; urgency=low
+
+  * sync with trunk at revision 136
+  * ubuntu-cloudimg-query add additional format data options
+
+  [Dustin Kirkland]
+  * bin/ubuntu-ec2-run:
+    - karmic is EOL, hardy still supported, note that we *should*
+      use distro-info eventually
+    - default to t1.micro instead of m1.small (least expensive, can do amd64)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 11 Aug 2011 09:22:43 +0100
+
+cloud-utils (0.23-0ubuntu3) oneiric; urgency=low
+
+  * fix for ubuntu-ec2-run, which was broken in previous upload
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 04 Aug 2011 15:24:57 -0400
+
+cloud-utils (0.23-0ubuntu2) oneiric; urgency=low
+
+  * sync with trunk at revision 127
+  * fix to cloud-publish-image when interacting with older eucalyptus
+  * bring in 2 new utilities for getting EC2 ami ids
+    - ubuntu-ec2-query : command line utility for querying
+      http://cloud-images.ubuntu.com/query
+    - ubuntu-ec2-run : lightweight wrapper around ec2-run-instances
+      that utilizes ubuntu-ec2-query
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 04 Aug 2011 14:53:07 -0400
+
+cloud-utils (0.23-0ubuntu1) oneiric; urgency=low
+
+  * New upstream release (first upstream release separate from Ubuntu)
+  * ec2metadata: add '--url' flag for specifying metadata service url
+  * ec2metadata: update to use metadata api version 2011-01-01
+    This adds 'instance-action', 'mac', 'profile'
+  * ec2metadata: use urllib2 and correctly identify HTTPErrors
+  * rename 'uec' prefix to 'cloud'
+    there are symlinks providing backwards compat that will issue warnings
+    - uec-publish-tarball: renamed to cloud-publish-tarball
+    - uec-publish-image: renamed to cloud-publish-image
+    - uec-resize-image: renamed to resize-part-image
+  * uec-query-builds: removed
+
+ -- smoser <smoser@brickies.net>  Tue, 26 Jul 2011 22:15:46 -0400
+
+cloud-utils (0.22ubuntu1) oneiric; urgency=low
+
+  * uec-publish-tarball: accept x86_64 as valid arch input, and pass provided
+    arch un-modified to uec-publish-image rather than always changing to 'i386'
+    (LP: #779812)
+  * uec-publish-image: improve searching for existing image.  Handle searching
+    for either the name or the manifest path, and only search images owned by
+    self.
+  * uec-publish-image: register as bucket/basename rather than basename
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 15 Jul 2011 12:14:21 -0400
+
+cloud-utils (0.21ubuntu1) natty; urgency=low
+
+  * make uec-publish-tarball read TMPDIR. Previously it
+    read 'TEMPDIR' environment variable.  Fall back to using
+    that if TMPDIR is not set.
+  * add utility 'growpart' for rewriting a partition table
+    so that a given partition uses available space (LP: #725127)
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 25 Feb 2011 12:54:46 -0500
+
+cloud-utils (0.20ubuntu1) natty; urgency=low
+
+  * uec-publish-image: use --name in euca-register
+  * uec-publish-image: fix for debug so '-v' will give some info
+    (previously needed -vv)
+  * ec2metadata: fix for ancestor-ami-ids retrieval (LP: #706651)
+  * uec-run-instances: add '--attach-volume'
+
+ -- Scott Moser <smoser@ubuntu.com>  Sat, 19 Feb 2011 01:17:35 -0500
+
+cloud-utils (0.19ubuntu1) natty; urgency=low
+
+  * uec-publish-image: fix using ec2-api-tools and ec2-ami-tools
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 13 Jan 2011 13:56:45 -0500
+
+cloud-utils (0.18ubuntu1) natty; urgency=low
+
+  * include write-mime-multipart into the packaging, with man page
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 11 Jan 2011 19:50:35 -0500
+
+cloud-utils (0.17ubuntu1) natty; urgency=low
+
+  * uec-publish-tarball: add --rename-[kernel,ramdisk,image] flags
+  * add support for shorter syntax in uec-query-builds
+  * fix ec2metadata under Eucalyptus (LP: #676144)
+  * move write-mime-multipart from cloud-init to cloud-init-multipart
+    in cloud-utils
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 11 Jan 2011 09:40:28 -0500
+
+cloud-utils (0.16ubuntu1) maverick; urgency=low
+
+  * uec-run-instances: fix multiple launchpad-ids. (LP: #621473)
+  * uec-run-instances: depend on python-paramiko. (LP: #646823)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 30 Aug 2010 13:56:19 -0400
+
+cloud-utils (0.15ubuntu1) maverick; urgency=low
+
+  * uec-publish-tarball: support --loader flag to use the loader
+    image rather than linux kernel in uec tarballs
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 03 Aug 2010 16:12:47 -0400
+
+cloud-utils (0.14-0ubuntu1) maverick; urgency=low
+
+  * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
+    ssh-import-lp-id, ssh-import-lp-id.1: purge ssh-import* from this
+    source package, now pushed to openssh-server 1:5.5p1-4ubuntu3
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 22 Jul 2010 15:25:41 +0200
+
+cloud-utils (0.13ubuntu1) maverick; urgency=low
+  [ Dustin Kirkland ]
+  * ssh-import-lp-id: handle multi-line ssh public keys in Launchpad,
+    LP: #596938; thanks to Jos Boumans for the elegant snippet of perl that
+    fixes this
+  [ Clint Byrum ]
+  * uec-run-instances: rewritten command with much larger scope
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 24 Jun 2010 20:40:09 -0400
+
+cloud-utils (0.12ubuntu1) maverick; urgency=low
+
+  * ec2metadata: bring in ec2metadata (LP: #547019)
+
+ -- Scott Moser <smoser@ubuntu.com>  Thu, 10 Jun 2010 17:00:22 -0400
+
+cloud-utils (0.11-0ubuntu1) lucid; urgency=low
+
+  * uec-query-builds: do not throw IndexError on no builds available,
+    or Exception on bad usage, LP: #559236
+  * uec-publish-image: remove error trailing '%s' in error message,
+    LP: #559244
+  * uec-publish-tarball: send stdout through on failure of uec-publish-image,
+    LP: #559244
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 09 Apr 2010 10:03:29 -0400
+
+cloud-utils (0.10-0ubuntu1) lucid; urgency=low
+
+  [ Scott Moser ]
+  * ssh-import-lp-id: allow dss keys
+  * uec-publish-tarball: add -q/--quiet flag
+  * uec-publish-image:
+    - remove trailing slash on bucket input which caused failed register
+    - remove trailing tab in output
+    - on error, make sure user sees command output
+    - add -B/--device-block-mapping pass through to euca-bundle-image
+  * uec-resize-image: make quiet by default, add --verbose,-v
+  * uec-query-builds: support querying 'latest-ec2'
+
+  [ Dustin Kirkland ]
+  * debian/install, debian/manpages, uec-run-instances,
+    uec-run-instances.1: add a wrapper for euca-run-instances that
+    can easily/cleanly inject ssh keys from Launchpad.net, LP: #524101
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 25 Mar 2010 21:53:59 -0700
+
+cloud-utils (0.9-0ubuntu1) lucid; urgency=low
+
+  * ssh-import-lp-id:
+    - ensure that authorized_keys gets created with the right permissions
+      if it does not yet exist, LP: #531144
+    - drop the sort -u, as this is actually incorrect behavior (rearranging
+      the order of an existing authorized_keys file, even if to prune
+      duplicate entries, is wrong); this does mean that duplicate entries
+      might creep into the file, but the behavior is the same as
+      ssh-copy-id in this sense, LP: #531145
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 02 Mar 2010 23:53:05 -0600
+
+cloud-utils (0.8-0ubuntu1) lucid; urgency=low
+
+  * uec-publish-image: return to using symbolic link for renaming 
+    (LP: #522292 is fixed)
+  * uec-publish-tarball: fail before extracting tarball if environment
+    is not set up for euca2ools (LP: #526504)
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 01 Mar 2010 12:02:53 -0500
+
+cloud-utils (0.7-0ubuntu1) lucid; urgency=low
+
+  * ssh-import-lp-id: ensure that $HOME is set properly, LP: #528029;
+    add a usage statement
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 25 Feb 2010 16:19:35 -0600
+
+cloud-utils (0.6-0ubuntu1) lucid; urgency=low
+
+  * debian/control, debian/ssh-import.install, debian/ssh-import.manpages,
+    ssh-import-lp-id, ssh-import-lp-id.1:
+    - add a utility and a binary package for conveniently importing
+      public ssh keys from Launchpad by a LP user id, LP: #524226
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 23 Feb 2010 20:32:40 -0600
+
+cloud-utils (0.5-0ubuntu1) lucid; urgency=low
+
+  [ Scott Moser ]
+  * uec-publish-image: use hard link instead of soft, work around
+    euca2ools bug (LP: #522292)
+  * uec-publish-image: remove temp dir if --working-dir is given
+  * uec-publish-image: add --kernel-file, --ramdisk-file flags
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 18 Feb 2010 22:58:33 -0600
+
+cloud-utils (0.4-0ubuntu1) lucid; urgency=low
+
+  * Fix package versioning
+
+ -- Dustin Kirkland < kirkland@ubuntu.com>  Thu, 18 Feb 2010 15:04:39 -0600
+
+cloud-utils (0.3ubuntu1) lucid; urgency=low
+
+  [ Dustin Kirkland ]
+  * Makefile, debian/install: ditch the Makefile in favor of a debhelper
+    install
+  * uec-publish-image, uec-publish-tarball, uec-resize-image: add GPLv3
+    headers to all scripts
+  * uec-publish-image: add a note about bashisms
+  * debian/copyright, uec-query-builds: clean up trailing whitespace
+  * debian/control:
+    - improve the description
+    - depend on python, python-yaml
+  * debian/manpages, uec-publish-tarball.1, uec-query-builds.1,
+    uec-resize-image.1, uec-publish-image.1: add a first cut at manpages
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Wed, 17 Feb 2010 21:00:56 -0600
+
+cloud-utils (0.2ubuntu1) lucid; urgency=low
+
+  * add uec-query-builds for querying uec build data from uec-images.u.c
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 17 Feb 2010 17:34:27 -0500
+
+cloud-utils (0.2) lucid; urgency=low
+
+  * fix version number to represent native package
+
+ -- Scott Moser <smoser@ubuntu.com>  Mon, 08 Feb 2010 10:18:12 -0500
+
+cloud-utils (0.1ubuntu1) lucid; urgency=low
+
+  * Initial release.
+
+ -- Scott Moser <smoser@ubuntu.com>  Fri, 05 Feb 2010 18:37:57 -0500
