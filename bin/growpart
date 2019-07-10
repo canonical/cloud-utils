@@ -264,14 +264,21 @@ resize_sfdisk() {
 		fail "sed failed on dump output"
 
 	dpart="${DISK}${PART}" # disk and partition number
-	if [ -b "${DISK}p${PART}" -a "${DISK%[0-9]}" != "${DISK}" ]; then
-		# for block devices that end in a number (/dev/nbd0)
-		# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
-		dpart="${DISK}p${PART}"
-	elif [ "${DISK#/dev/loop[0-9]}" != "${DISK}" ]; then
-		# for /dev/loop devices, sfdisk output will be <name>p<number>
-		# format also, even though there is not a device there.
-		dpart="${DISK}p${PART}"
+	if [ -b "$DISK" ]; then
+		if [ -b "${DISK}p${PART}" -a "${DISK%[0-9]}" != "${DISK}" ]; then
+			# for block devices that end in a number (/dev/nbd0)
+			# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
+			dpart="${DISK}p${PART}"
+		elif [ "${DISK#/dev/loop[0-9]}" != "${DISK}" ]; then
+			# for /dev/loop devices, sfdisk output will be <name>p<number>
+			# format also, even though there is not a device there.
+			dpart="${DISK}p${PART}"
+		fi
+	else
+		case "$DISK" in
+			# sfdisk for files ending in digit to <disk>p<num>.
+			*[0-9]) dpart="${DISK}p${PART}";;
+		esac
 	fi
 
 	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&

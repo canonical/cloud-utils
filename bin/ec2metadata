@@ -86,7 +86,7 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'instance-action', 'instance-id', 'instance-type',
             'local-hostname', 'local-ipv4', 'kernel-id', 'mac',
             'profile', 'product-codes', 'public-hostname', 'public-ipv4',
-            'public-keys', 'ramdisk-id', 'reserveration-id', 'security-groups',
+            'public-keys', 'ramdisk-id', 'reservation-id', 'security-groups',
             'user-data']
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')

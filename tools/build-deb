@@ -58,7 +58,7 @@ dir="${sourcename}-$uver"
 tarball="${sourcename}_$uver.orig.tar.gz"
 
 myd=$(dirname "$0")
-"$myd/export-tarball" "--output=${TEMP_D}/$tarball" HEAD
+"$myd/make-tarball" "--output=${TEMP_D}/$tarball" HEAD
 echo "created ${tarball}"
 
 cd "${TEMP_D}"
