@@ -1,4 +1,4 @@
-cloud-utils (0.31-3-gfadd07fe-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-3-gfadd07fe-0ubuntu1) eoan; urgency=medium
 
   * New upstream snapshot.
     - growpart: Fix bug when file image ends in a digit.  (LP: #1835124)
