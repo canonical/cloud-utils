@@ -1,3 +1,13 @@
+cloud-utils (0.31-3-gfadd07fe-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - growpart: Fix bug when file image ends in a digit.  (LP: #1835124)
+    - Fix spelling error in ec2metadata (--reserveration-id).
+      (LP: #1810857)
+    - tools: rename export-tarball to make-tarball.
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 10 Jul 2019 14:09:37 -0400
+
 cloud-utils (0.31-0ubuntu1) disco; urgency=medium
 
   * debian/tests/control: add test growpart-start-matches-size.
