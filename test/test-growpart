@@ -25,13 +25,19 @@ clearparts() {
 		echo "delpart $LODEV $part"
 		delpart $LODEV $part
 	done
+	udevadm settle
 }
 cleanup() {
-	[ -z "$MP" ] || { echo "unmount $MP"; umount "$MP"; }
+	if [ -z "$MP" ]; then
+		echo "unmount $MP";
+		umount "$MP";
+		udevadm settle
+	fi
 	if [ -n "$LODEV" ]; then
 		clearparts "$LODEV"
 		echo "losetup --detach $LODEV";
 		losetup --detach "$LODEV";
+		udevadm settle
 	fi
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
