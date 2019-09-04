@@ -1,3 +1,13 @@
+cloud-utils (0.31-5-gef42f6b5-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - test-growpart: fix logic error resulting in test failure.
+      [Scott Moser] (LP: #1842682)
+    - Fix race condition in test-growpart teardown seen on ppc64el.
+      [Scott Moser] (LP: #1836593)
+
+ -- Scott Moser <smoser@ubuntu.com>  Wed, 04 Sep 2019 11:07:42 -0400
+
 cloud-utils (0.31-3-gfadd07fe-0ubuntu1) eoan; urgency=medium
 
   * New upstream snapshot.
