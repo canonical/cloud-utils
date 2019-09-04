@@ -28,7 +28,7 @@ clearparts() {
 	udevadm settle
 }
 cleanup() {
-	if [ -z "$MP" ]; then
+	if [ -n "$MP" ]; then
 		echo "unmount $MP";
 		umount "$MP";
 		udevadm settle
