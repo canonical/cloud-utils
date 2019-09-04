@@ -1,4 +1,4 @@
-cloud-utils (0.31-5-gef42f6b5-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-5-gef42f6b5-0ubuntu1) eoan; urgency=medium
 
   * New upstream snapshot.
     - test-growpart: fix logic error resulting in test failure.
