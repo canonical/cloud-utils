@@ -12,12 +12,6 @@ rq() {
 }
 
 cleanup() {
-	[ -z "$MP" ] || { echo "unmount $MP"; umount "$MP"; }
-	if [ -n "$LODEV" ]; then
-		clearparts "$LODEV"
-		echo "losetup --detach $LODEV";
-		losetup --detach "$LODEV";
-	fi
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
