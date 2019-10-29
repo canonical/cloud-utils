@@ -1,4 +1,4 @@
-cloud-utils (0.31-6-g16916780-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-6-g16916780-0ubuntu1) focal; urgency=medium
 
   * New upstream snapshot.
     - Drop the python2 only cloud-utils-euca package and tools.
