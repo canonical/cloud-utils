@@ -27,6 +27,7 @@ DISK=""
 PART=""
 PT_UPDATE=false
 DRY_RUN=0
+FLOCK_DISK_FD=""
 
 SFDISK_VERSION=""
 SFDISK_2_26="22600"
@@ -73,6 +74,7 @@ cleanup() {
 				error "We seem to have not saved the partition table!"
 			fi
 		fi
+		unlock_disk_and_settle $DISK
 	fi
 	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
@@ -138,6 +140,45 @@ bad_Usage() {
 	exit 2
 }
 
+lock_disk() {
+	local disk="$1"
+	# flock the target disk to protect against udev actions while modifying.
+	# https://systemd.io/BLOCK_DEVICE_LOCKING/
+	[ "${DRY_RUN}" = 0 ] || return
+
+	# only lock block devices, files do not need a lock
+	[ -b "${disk}" ] || return
+
+	# The FD values are hard-coded per /bin/sh requirement for using exec
+	# to open paths with specific fd values; man (1) sh on "Redirections"
+	FLOCK_DISK_FD=9
+	debug 1 "FLOCK: try exec open fd 9, on failure exec exits this program"
+	exec 9<>$disk
+
+	# Do not use --nonblock or --timeout as udev may be already processing
+	# the disk and we must wait until it has released the disk to
+	# proceed.  Failure to obtain exclusive lock is fatal to growpart.
+	rq flock flock --exclusive $FLOCK_DISK_FD ||
+		fail "Error while obtaining exclusive lock on $DISK"
+	debug 1 "FLOCK: $disk: obtained exclusive lock"
+}
+
+unlock_disk_and_settle() {
+	# unlock_disk(disk, settle)
+	local disk="$1"
+	local settle=${2-"1"}
+	# release the lock on a disk if locked.  When a disk is locked,
+	# FLOCK_DISK_FD is set to the hard-coded value of 9.
+	# After unlocking run udevadm settle as the disk has likely been changed.
+	[ "${DRY_RUN}" = 0 ] || return
+	[ -n "${FLOCK_DEVICE_FD}" ] || return
+
+	debug 1 "FLOCK: ${disk}: releasing exclusive lock"
+	exec 9>&-
+	[ "${settle}" = 1 ] && udevadm settle
+	FLOCK_DISK_FD=""
+}
+
 sfdisk_restore_legacy() {
 	sfdisk --no-reread "${DISK}" -I "${MBR_BACKUP}"
 }
@@ -193,6 +234,37 @@ get_sfdisk_version() {
 		*) error "unexpected output in sfdisk --version [$out]"
 			return 1;;
 	esac
+}
+
+get_diskpart_path() {
+	# get_diskpart_path(disk, part_number)
+	# return the path to the partition device on disk
+	#
+	# Convert inputs disk and part into a path to a partition device path
+	# handle both block devices or files.
+	# e.g.  get_diskpart_path /dev/loop0 7 returns /dev/loop0p7
+	local disk="$1"
+	local part="$2"
+	local dpart=""
+
+	dpart="${disk}${part}" # disk and partition number
+	if [ -b "$disk" ]; then
+		if [ -b "${disk}p${part}" -a "${disk%[0-9]}" != "${disk}" ]; then
+			# for block devices that end in a number (/dev/nbd0)
+			# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
+			dpart="${disk}p${part}"
+		elif [ "${disk#/dev/loop[0-9]}" != "${disk}" ]; then
+			# for /dev/loop devices, sfdisk output will be <name>p<number>
+			# format also, even though there is not a device there.
+			dpart="${disk}p${part}"
+		fi
+	else
+		case "$disk" in
+			# sfdisk for files ending in digit to <disk>p<num>.
+			*[0-9]) dpart="${disk}p${part}";;
+		esac
+	fi
+	_RET="$dpart"
 }
 
 resize_sfdisk() {
@@ -263,23 +335,8 @@ resize_sfdisk() {
 		>"${dump_mod}" ||
 		fail "sed failed on dump output"
 
-	dpart="${DISK}${PART}" # disk and partition number
-	if [ -b "$DISK" ]; then
-		if [ -b "${DISK}p${PART}" -a "${DISK%[0-9]}" != "${DISK}" ]; then
-			# for block devices that end in a number (/dev/nbd0)
-			# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
-			dpart="${DISK}p${PART}"
-		elif [ "${DISK#/dev/loop[0-9]}" != "${DISK}" ]; then
-			# for /dev/loop devices, sfdisk output will be <name>p<number>
-			# format also, even though there is not a device there.
-			dpart="${DISK}p${PART}"
-		fi
-	else
-		case "$DISK" in
-			# sfdisk for files ending in digit to <disk>p<num>.
-			*[0-9]) dpart="${DISK}p${PART}";;
-		esac
-	fi
+	get_diskpart_path $DISK $PART
+	dpart="$_RET"
 
 	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&
 		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" <"${dump_mod}") &&
@@ -808,7 +865,9 @@ get_resizer "$format" "$resizer" ||
 	fail "failed to get a resizer for id '$id'"
 resizer=$_RET
 
+lock_disk $DISK
 debug 1 "resizing $PART on $DISK using $resizer"
 "$resizer"
+unlock_disk_and_settle $DISK
 
 # vi: ts=4 noexpandtab
