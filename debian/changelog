@@ -1,3 +1,10 @@
+cloud-utils (0.31-7-gd99b2d76-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - growpart: add flock support to prevent udev races (LP: #1834875)
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Tue, 25 Feb 2020 14:41:21 -0600
+
 cloud-utils (0.31-6-g16916780-0ubuntu1) focal; urgency=medium
 
   * New upstream snapshot.
