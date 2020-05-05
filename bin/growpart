@@ -471,7 +471,16 @@ resize_sgdisk() {
 		fail "${dev}: failed to dump original sgdisk info"
 	RESTORE_HUMAN="${pt_info}"
 
-	sector_size=$(awk '$0 ~ /^Logical sector size:.*bytes/ { print $4 }' \
+	# support reading old format (<1.0.2)
+	#   Logical sector size: <VAL> bytes
+	# and newer format >= 1.0.2
+	#   Sector size (logical): <VAL> bytes
+	#   Sector size (logical/physical): <VAL>/<PVAL> bytes
+	sector_size=$(awk '
+		$0 ~ /^Logical sector size:.*bytes/ { print $4; exit(0); }
+		$0 ~ /^Sector size \(logical\):/ { print $4; exit(0); }
+		$0 ~ /^Sector size \(logical\/physical\):/ {
+		    sub(/\/.*/, "", $4); print $4; exit(0); }' \
 		"$pt_info") && [ -n "$sector_size" ] || {
 		sector_size=512
 		error "WARN: did not find sector size, assuming 512"
