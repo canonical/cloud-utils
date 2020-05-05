@@ -759,7 +759,7 @@ get_resizer() {
 		sgdisk) _RET="resize_sgdisk_$format"; return;;
 		sfdisk) _RET="resize_sfdisk_$format"; return;;
 		auto) :;;
-		*) error "unexpected input: '$user'";;
+		*) error "unexpected value '$user' for growpart resizer"; return 1;;
 	esac
 
 	if [ "$format" = "dos" ]; then
