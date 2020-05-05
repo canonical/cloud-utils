@@ -1,4 +1,4 @@
-cloud-utils (0.31-8-g9619a1ea-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-8-g9619a1ea-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
     - cloud-image-utils: Add depends on fdisk, drop e2fsprogs
