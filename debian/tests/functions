@@ -8,12 +8,14 @@ runtests() {
     local mytest="$1" pt_type resizer
     make_executable "$1"
     for pt_type in gpt dos; do
-        for resizer in auto sfdisk gdisk; do
+        for resizer in auto sfdisk sgdisk; do
+            echo "-- PT_TYPE=$pt_type GROWPART_RESIZER=$resizer --"
             case "$pt_type:$resizer" in
                 # not supported
-                dos:gdisk) continue;;
+                dos:sgdisk)
+                    echo "Skipping resize test for dos/sgdisk. not supported."
+                    continue;;
             esac
-            echo "-- PT_TYPE=$pt_type GROWPART_RESIZER=$resizer --"
             env "PT_TYPE=$pt_type" "GROWPART_RESIZER=$resizer" "$mytest"
             ret=$?
             [ $ret -eq 0 ] || {
