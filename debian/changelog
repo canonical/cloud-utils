@@ -1,3 +1,11 @@
+cloud-utils (0.31-8-g9619a1ea-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - cloud-image-utils: Add depends on fdisk, drop e2fsprogs
+      [Scott Moser] (LP: #1876139)
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Tue, 05 May 2020 16:12:40 -0500
+
 cloud-utils (0.31-7-gd99b2d76-0ubuntu1) focal; urgency=medium
 
   * New upstream snapshot.
