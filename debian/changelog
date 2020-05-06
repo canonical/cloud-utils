@@ -1,3 +1,15 @@
+cloud-utils (0.31-12-g3d6d5128-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - growpart: Do not fail if only sgdisk is available. [Scott Moser]
+    - growpart: Fix reading sector size with newer sgdisk versions.
+      [Scott Moser]
+    - growpart: Fail on unknown values of GROWPART_RESIZER. [Scott Moser]
+    - debian/tests: fix GROWPART_RESIZER value in 'runtests' function.
+      [Scott Moser]
+
+ -- Ryan Harper <ryan.harper@canonical.com>  Wed, 06 May 2020 11:35:00 -0500
+
 cloud-utils (0.31-8-g9619a1ea-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
