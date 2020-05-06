@@ -1,4 +1,4 @@
-cloud-utils (0.31-12-g3d6d5128-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-12-g3d6d5128-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
     - growpart: Do not fail if only sgdisk is available. [Scott Moser]
