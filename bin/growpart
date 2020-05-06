@@ -221,6 +221,10 @@ get_sfdisk_version() {
 	# set SFDISK_VERSION to MAJOR*10000+MINOR*100+MICRO
 	local out oifs="$IFS" ver=""
 	[ -n "$SFDISK_VERSION" ] && return 0
+	[ -n "$SFDISK" ] || {
+		SFDISK_VERSION=0
+		return 0
+	}
 	# expected output: sfdisk from util-linux 2.25.2
 	out=$(sfdisk --version) ||
 		{ error "failed to get sfdisk version"; return 1; }
@@ -471,7 +475,16 @@ resize_sgdisk() {
 		fail "${dev}: failed to dump original sgdisk info"
 	RESTORE_HUMAN="${pt_info}"
 
-	sector_size=$(awk '$0 ~ /^Logical sector size:.*bytes/ { print $4 }' \
+	# support reading old format (<1.0.2)
+	#   Logical sector size: <VAL> bytes
+	# and newer format >= 1.0.2
+	#   Sector size (logical): <VAL> bytes
+	#   Sector size (logical/physical): <VAL>/<PVAL> bytes
+	sector_size=$(awk '
+		$0 ~ /^Logical sector size:.*bytes/ { print $4; exit(0); }
+		$0 ~ /^Sector size \(logical\):/ { print $4; exit(0); }
+		$0 ~ /^Sector size \(logical\/physical\):/ {
+		    sub(/\/.*/, "", $4); print $4; exit(0); }' \
 		"$pt_info") && [ -n "$sector_size" ] || {
 		sector_size=512
 		error "WARN: did not find sector size, assuming 512"
@@ -735,7 +748,20 @@ get_table_format() {
 		return
 	fi
 	_RET="dos"
-	if [ ${SFDISK_VERSION} -lt ${SFDISK_2_26} ] &&
+	if [ -z "$SFDISK" ]; then
+		out=$(LANG=C sgdisk --print "$disk") || {
+			error "Could not determine partition table format of $disk" \
+				"with 'sgdisk --print $disk'"
+			return 1
+		}
+		# looking for a message like:
+		# Found invalid GPT and valid MBR; converting MBR to GPT format
+		case "$out" in
+			*\ valid\ MBR\ *) _RET="dos";;
+			*) _RET="gpt";;
+		esac
+		return
+	elif [ ${SFDISK_VERSION} -lt ${SFDISK_2_26} ] &&
 		out=$(sfdisk --id --force "$disk" 1 2>/dev/null); then
 		if [ "$out" = "ee" ]; then
 			_RET="gpt"
@@ -759,10 +785,14 @@ get_resizer() {
 		sgdisk) _RET="resize_sgdisk_$format"; return;;
 		sfdisk) _RET="resize_sfdisk_$format"; return;;
 		auto) :;;
-		*) error "unexpected input: '$user'";;
+		*) error "unexpected value '$user' for growpart resizer"; return 1;;
 	esac
 
 	if [ "$format" = "dos" ]; then
+		[ -n "$SFDISK" ] || {
+			error "sfdisk is required for resizing dos/MBR partition table."
+			return 1
+		}
 		_RET="resize_sfdisk_dos"
 		return 0
 	fi
@@ -832,10 +862,16 @@ done
 [ -n "${DISK}" ] || bad_Usage "must supply disk and partition-number"
 [ -n "${PART}" ] || bad_Usage "must supply partition-number"
 
-has_cmd "sfdisk" || fail "sfdisk not found"
-get_sfdisk_version || fail
-
 [ -e "${DISK}" ] || fail "${DISK}: does not exist"
+
+# cache the has_cmd return value.
+has_cmd sfdisk && SFDISK=sfdisk || SFDISK=""
+has_cmd sgdisk && SGDISK=sgdisk || SGDISK=""
+
+[ -n "$SGDISK" -o -n "$SFDISK" ] ||
+	fail "Did not have sfdisk or sgdisk in PATH."
+
+get_sfdisk_version || fail
 
 # If $DISK is a symlink, resolve it.
 # This avoids problems due to varying partition device name formats
