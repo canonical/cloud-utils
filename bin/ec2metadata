@@ -120,13 +120,13 @@ class EC2Metadata:
 
     @staticmethod
     def _test_connectivity(addr, port):
-        for i in range(6):
+        for _ in range(6):
             s = socket.socket()
             try:
                 s.connect((addr, port))
                 s.close()
                 return True
-            except socket.error as e:
+            except socket.error:
                 time.sleep(1)
 
         return False
@@ -221,7 +221,7 @@ def main():
         getopt_metaopts = METAOPTS[:]
         getopt_metaopts.append('help')
         getopt_metaopts.append('url=')
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
+        opts, _ = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
     except getopt.GetoptError as e:
         usage(e)
 
