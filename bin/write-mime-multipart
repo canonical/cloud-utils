@@ -101,7 +101,7 @@ def main():
 
         outer.attach(msg)
 
-    if options.output is "-":
+    if options.output == "-":
         if hasattr(sys.stdout, "buffer"):
             # We want to write bytes not strings
             ofile = sys.stdout.buffer
