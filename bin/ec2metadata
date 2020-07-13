@@ -27,7 +27,7 @@ try:
     from urllib import request as urllib_request
     from urllib import error as urllib_error
     from urllib import parse as urllib_parse
-except ImportError as e:
+except ImportError:
     # python2
     import urllib2 as urllib_request
     import urllib2 as urllib_error
@@ -103,7 +103,7 @@ class Error(Exception):
     pass
 
 
-class EC2Metadata:
+class EC2Metadata:  # pylint: disable=R0903
     """Class for querying metadata from EC2"""
 
     def __init__(self, burl=instdata_url):
