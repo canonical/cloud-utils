@@ -9,7 +9,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from optparse import OptionParser
+from optparse import OptionParser  # pylint: disable=W0402
 import gzip
 
 COMMASPACE = ', '
