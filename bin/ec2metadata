@@ -38,6 +38,12 @@ instdata_host = "169.254.169.254"
 instdata_ver = "2009-04-04"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
 
+TOKEN_TTL_SECONDS = 21600
+TOKEN_HEADER = "X-aws-ec2-metadata-token"
+TOKEN_HEADER_TTL = "X-aws-ec2-metadata-token-ttl-seconds"
+
+session_token_url = "http://%s/%s/%s" % (instdata_host, 'latest', 'api/token')
+
 __doc__ = """
 Query and display EC2 metadata.
 
@@ -117,6 +123,7 @@ class EC2Metadata:  # pylint: disable=R0903
         if not self._test_connectivity(addr, port):
             raise Error("could not establish connection to: %s:%s" %
                         (addr, port))
+        self._imdsv2_ensure_token()
 
     @staticmethod
     def _test_connectivity(addr, port):
@@ -131,10 +138,22 @@ class EC2Metadata:  # pylint: disable=R0903
 
         return False
 
+    def _imdsv2_ensure_token(self):
+        # Get IMDSv2 session token
+        request = urllib_request.Request(
+            session_token_url,
+            method='PUT',
+            headers={TOKEN_HEADER_TTL: TOKEN_TTL_SECONDS})
+        resp = urllib_request.urlopen(request)
+        self.session_token = resp.read()
+
     def _get(self, uri, decode=True):
         url = "%s/%s" % (self.burl, uri)
         try:
-            resp = urllib_request.urlopen(urllib_request.Request(url))
+            resp = urllib_request.urlopen(
+                urllib_request.Request(
+                    url,
+                    headers={TOKEN_HEADER: self.session_token}))
             value = resp.read()
             if decode:
                 value = value.decode()
