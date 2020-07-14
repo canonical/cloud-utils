@@ -605,7 +605,7 @@ kver_cmp() {
 	n1="$_RET"
 	kver_to_num "$3"
 	n2="$_RET"
-	[ $n1 $op $n2 ]
+	test $n1 $op $n2
 }
 
 rq() {
@@ -625,7 +625,7 @@ rq() {
 	done
 	cmd=${cmd# }
 
-	debug 2 "$rlabel[$label][$_capture]" "$cmd"
+	debug 2 "${rlabel}[$label][$_capture]" "$cmd"
 	[ "$rlabel" = "would-run" ] && return 0
 
 	if [ "${_capture}" = "erronly" ]; then

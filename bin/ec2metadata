@@ -27,7 +27,7 @@ try:
     from urllib import request as urllib_request
     from urllib import error as urllib_error
     from urllib import parse as urllib_parse
-except ImportError as e:
+except ImportError:
     # python2
     import urllib2 as urllib_request
     import urllib2 as urllib_error
@@ -103,7 +103,7 @@ class Error(Exception):
     pass
 
 
-class EC2Metadata:
+class EC2Metadata:  # pylint: disable=R0903
     """Class for querying metadata from EC2"""
 
     def __init__(self, burl=instdata_url):
@@ -120,13 +120,13 @@ class EC2Metadata:
 
     @staticmethod
     def _test_connectivity(addr, port):
-        for i in range(6):
+        for _ in range(6):
             s = socket.socket()
             try:
                 s.connect((addr, port))
                 s.close()
                 return True
-            except socket.error as e:
+            except socket.error:
                 time.sleep(1)
 
         return False
@@ -221,7 +221,7 @@ def main():
         getopt_metaopts = METAOPTS[:]
         getopt_metaopts.append('help')
         getopt_metaopts.append('url=')
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
+        opts, _ = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
     except getopt.GetoptError as e:
         usage(e)
 
