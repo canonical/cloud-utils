@@ -1,7 +1,0 @@
-#!/bin/sh
-
-my_d=$(dirname "$0")
-. "$my_d/functions" || { echo "failed to source functions" 1>&2; exit 1; }
-
-execute ./test/test-growpart-fsimage-middle
-# vi: ts=4 expandtab
