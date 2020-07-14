@@ -589,14 +589,17 @@ resize_sgdisk() {
 }
 
 kver_to_num() {
-	local kver="$1" maj="" min="" mic="0"
-	kver=${kver%%-*}
-	maj=${kver%%.*}
-	min=${kver#${maj}.}
-	min=${min%%.*}
-	mic=${kver#${maj}.${min}.}
-	[ "$kver" = "$mic" ] && mic=0
-	_RET=$(($maj*1000*1000+$min*1000+$mic))
+	local kver="$1" maj min mic
+
+	# Canonicalize the kernel version
+	kver=${kver%%[!0-9.]*}.0.0
+
+	maj=${kver%%[!0-9]*}
+	kver=${kver#*.}
+	min=${kver%%[!0-9]*}
+	kver=${kver#*.}
+	mic=${kver%%[!0-9]*}
+	_RET=$((maj*1000*1000+min*1000+mic))
 }
 
 kver_cmp() {
