@@ -3,13 +3,26 @@ name: cloud-utils ci
 on: [push, pull_request]
 
 jobs:
-  tox:
+  ci:
     # Run on the oldest supported LTS
     runs-on: ubuntu-16.04
     steps:
       - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
+          sudo snap install shellcheck
       - name: Git checkout
         uses: actions/checkout@v2
       - name: Run tox
         run: tox
+      - name: Run shellcheck
+        run: |
+          shellcheck --severity=error \
+              bin/cloud-localds \
+              bin/cloud-publish-ubuntu \
+              bin/growpart \
+              bin/mount-image-callback \
+              bin/resize-part-image \
+              bin/ubuntu-cloudimg-query \
+              bin/vcs-run \
+              tools/*
