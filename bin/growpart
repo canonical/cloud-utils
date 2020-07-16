@@ -28,6 +28,7 @@ PART=""
 PT_UPDATE=false
 DRY_RUN=0
 FLOCK_DISK_FD=""
+RESIZE_RESULT=""
 
 SFDISK_VERSION=""
 SFDISK_2_26="22600"
@@ -46,18 +47,21 @@ fail() {
 }
 
 nochange() {
+	RESIZE_RESULT="NOCHANGE"
 	echo "NOCHANGE:" "$@"
-	exit 1
+	return 1
 }
 
 changed() {
+	RESIZE_RESULT="CHANGED"
 	echo "CHANGED:" "$@"
-	exit 0
+	return 0
 }
 
 change() {
+	RESIZE_RESULT="CHANGE"
 	echo "CHANGE:" "$@"
-	exit 0
+	return 0
 }
 
 cleanup() {
@@ -382,11 +386,15 @@ resize_sfdisk() {
 
 	debug 1 "max_end=${max_end} tot=${sector_num} pt_end=${pt_end}" \
 		"pt_start=${pt_start} pt_size=${pt_size}"
-	[ $((${pt_end})) -eq ${max_end} ] &&
+	[ $((${pt_end})) -eq ${max_end} ] && {
 		nochange "partition ${PART} is size ${pt_size}. it cannot be grown"
-	[ $((${pt_end}+(${FUDGE}/$sector_size))) -gt ${max_end} ] &&
+		return
+	}
+	[ $((${pt_end}+(${FUDGE}/$sector_size))) -gt ${max_end} ] && {
 		nochange "partition ${PART} could only be grown by" \
-		"$((${max_end}-${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
+			"$((${max_end}-${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
+		return
+	}
 
 	# now, change the size for this partition in ${dump_out} to be the
 	# new size
@@ -437,6 +445,7 @@ resize_sfdisk() {
 	RESTORE_FUNC=""
 
 	changed "${change_info}"
+	return
 
 	# dump_out looks something like:
 	## partition table of /tmp/out.img
@@ -534,11 +543,15 @@ resize_sgdisk() {
 		"pt_size=${pt_size} pt_max=${pt_max} last=${last}"
 
 	# Check if the partition can be grown
-	[ "${pt_end}" -eq "${pt_max}" ] &&
+	[ "${pt_end}" -eq "${pt_max}" ] && {
 		nochange "${dev}: size=${pt_size}, it cannot be grown"
-	[ "$((${pt_end} + ${FUDGE}/${sector_size}))" -gt "${pt_max}" ] &&
+		return
+	}
+	[ "$((${pt_end} + ${FUDGE}/${sector_size}))" -gt "${pt_max}" ] && {
 		nochange "${dev}: could only be grown by" \
-		"$((${pt_max} - ${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
+			"$((${pt_max} - ${pt_end})) [fudge=$((${FUDGE}/$sector_size))]"
+		return
+	}
 
 	# The partition can be grown if we made it here. Get some more info
 	# about it so we can do it properly.
@@ -583,9 +596,13 @@ resize_sgdisk() {
 	}
 
 	# Dry run
-	[ "${DRY_RUN}" -ne 0 ] && change "${change_info}"
+	[ "${DRY_RUN}" -ne 0 ] && {
+		change "${change_info}"
+		return
+	}
 
 	changed "${change_info}"
+	return
 }
 
 kver_to_num() {
@@ -907,6 +924,10 @@ resizer=$_RET
 lock_disk $DISK
 debug 1 "resizing $PART on $DISK using $resizer"
 "$resizer"
+ret=$?
+
 unlock_disk_and_settle $DISK
+
+exit $ret
 
 # vi: ts=4 noexpandtab
