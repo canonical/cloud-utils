@@ -951,7 +951,7 @@ trap cleanup 0 # EXIT - some shells may not like 'EXIT' but are ok with 0
 get_table_format "$DISK" || fail
 format=$_RET
 get_resizer "$format" "$resizer" ||
-	fail "failed to get a resizer for id '$id'"
+	fail "failed to get a resizer for format '$format'"
 resizer=$_RET
 
 lock_disk $DISK
