@@ -91,7 +91,7 @@ grep "${lodev##*/}" /proc/partitions
 
 resize2fs "${lodevpart}"
 
-echo == df ==
+echo "== df =="
 df -h "$mp"
 
 # vi: ts=4 noexpandtab
