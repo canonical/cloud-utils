@@ -1,3 +1,23 @@
+cloud-utils (0.31-22-g37d4e32a-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - Growpart fix undefined variable in growpart error message.
+    - Add test for growpart lvm resize.
+    - Growpart: add support for resizing an lvm pv after growing the
+      partition. (LP: #1799953)
+    - Make resize functions return, so unlock_disk_and_settle is called.
+    - CI: rename the "tip" tox environments to tip-* [Paride Legovini]
+    - CI: pin the shellcheck version and add a shellcheck-tip environment
+      [Paride Legovini]
+    - CI: make shellcheck check tools/* [Paride Legovini]
+    - IMDSv2 session token support (#1) [Paride Legovini] (LP: #1870244)
+    - growpart: parse the kernel version in a more robust way (#2)
+      [Paride Legovini] (LP: #1881014)
+    - Fix some pylint, flake8, shellcheck issues and add basic CI (#4)
+      [Paride Legovini]
+
+ -- Scott Moser <smoser@ubuntu.com>  Tue, 21 Jul 2020 09:39:36 -0400
+
 cloud-utils (0.31-12-g3d6d5128-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
