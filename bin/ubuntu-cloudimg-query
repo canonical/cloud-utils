@@ -295,15 +295,15 @@ CR="
 "
 TAB="	"
 subst "$format" \
-  '\\n' "$CR" '\\t' "$TAB" \
-  '%{ami}' "$ami" \
-  '%{arch}' "$arch" '%{bname}' "$bname" '%{dlpath}' "$dlpath" \
-  '%{ptype}' "$ptype" '%{pubname}' "$pubname" '%{region}' "$region" \
-  '%{release}' "$release" '%{store}' "$store" '%{stream}' "$stream" \
-  '%{url}' "$url" \
-  '%{xarch}' "$xarch" '%{itype}' "${itype}" '%{itypes}' "$itypes" \
-  '%{serial}' "$serial" \
-  '%{summary}' "${region}/${prefix}/${pubname}"
+	'\\n' "$CR" '\\t' "$TAB" \
+	'%{ami}' "$ami" \
+	'%{arch}' "$arch" '%{bname}' "$bname" '%{dlpath}' "$dlpath" \
+	'%{ptype}' "$ptype" '%{pubname}' "$pubname" '%{region}' "$region" \
+	'%{release}' "$release" '%{store}' "$store" '%{stream}' "$stream" \
+	'%{url}' "$url" \
+	'%{xarch}' "$xarch" '%{itype}' "${itype}" '%{itypes}' "$itypes" \
+	'%{serial}' "$serial" \
+	'%{summary}' "${region}/${prefix}/${pubname}"
 
 out=${_RET}
 [ -n "${out}" ] || fail "no ami found matching criteria"

@@ -318,7 +318,7 @@ resize_sfdisk() {
 		# --list first line output:
 		# Disk /dev/vda: 20 GiB, 21474836480 bytes, 41943040 sectors
 		local _x
-		read _x _x _x _x disk_size _x sector_num _x  < "$tmp"
+		read _x _x _x _x disk_size _x sector_num _x < "$tmp"
 		sector_size=$((disk_size/$sector_num))
 		restore_func=sfdisk_restore
 	fi
@@ -332,7 +332,7 @@ resize_sfdisk() {
 	{
 		echo "## sfdisk --unit=S --dump ${DISK}"
 		cat "${dump_out}"
-	}  >"$humanpt"
+	} >"$humanpt"
 
 	[ $? -eq 0 ] || fail "failed to save sfdisk -d output"
 	RESTORE_HUMAN="$humanpt"
@@ -657,7 +657,7 @@ rq() {
 	fi
 	if [ $ret -ne 0 ]; then
 		error "failed [$label:$ret]" "$@"
- 		cat "$efile" 1>&2
+		cat "$efile" 1>&2
 	fi
 	return $ret
 }
@@ -672,7 +672,7 @@ verify_ptupdate() {
 
 	# we can always satisfy 'off'
 	if [ "$input" = "off" ]; then
- 		_RET="false";
+		_RET="false";
 		return 0;
 	fi
 
