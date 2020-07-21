@@ -27,9 +27,9 @@ read_pt_info() {
     cmd=(
         sed
         # delete any other line.
-        -e "/^$fpart[ ]*:/!d"
+        -e "/^${fpart}[ ]*:/!d"
         # match key=<spaces><value>,
-        -e "s/.* $key[ ]*=[ ]*\([^, ]*\).*/\1/"
+        -e "s/.* ${key}[ ]*=[ ]*\([^, ]*\).*/\1/"
     )
     out=$("${cmd[@]}" "$file") ||
         { fail "failed command: ${cmd[*]}"; return 1; }
