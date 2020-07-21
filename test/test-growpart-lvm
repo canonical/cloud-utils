@@ -1,0 +1,147 @@
+#!/bin/bash
+
+set -e
+
+[ "$(id -u)" = "0" ] ||
+	{ echo "sorry, must be root"; exit 1; }
+
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+size=${DISK_SIZE_NEW:-1000M}
+osize=${DISK_SIZE_ORIG:-500M}
+
+PV=""
+VG=""
+MP=""
+LODEV=""
+TEMP_D=""
+
+rqerror() {
+	# run, capture error only. show error on non-zero.
+	# lvm puts non-error output to stderr, (open failed: no medium found)
+	# and can't be told to only show errors (--quiet doesnt work).
+	local err="${TEMP_D}/err" ret=""
+	"$@" 2>"$err"
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		cat "$err" 1>&2
+	fi
+	return $ret
+}
+
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+clearparts() {
+	# read /proc/partitions, clearing any partitions on dev (/dev/loopX)
+	local dev="$1"
+	local short=${dev##*/} parts="" part=""
+	parts=$(awk '$4 ~ m { sub(m,"",$4); print $4 }' \
+		"m=${short}p" /proc/partitions)
+	[ -z "$parts" ] && return
+	echo "clearing parts [$parts] from $dev"
+	for part in $parts; do
+		echo "delpart $LODEV $part"
+		delpart $LODEV $part
+	done
+	udevadm settle
+}
+cleanup() {
+	if [ -n "$MP" ]; then
+		echo "unmount $MP";
+		umount "$MP";
+		udevadm settle
+	fi
+	if [ -n "$VG" ]; then
+		echo "removing vg $VG"
+		rq lvm vgremove --force --yes "$VG"
+	fi
+	if [ -n "$PV" ]; then
+		echo "removing pv $PV"
+		rq lvm pvremove --force --yes "$PV"
+		udevadm settle
+	fi
+	if [ -n "$LODEV" ]; then
+		clearparts "$LODEV"
+		echo "losetup --detach $LODEV";
+		losetup --detach "$LODEV";
+		udevadm settle
+	fi
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+get_vgsize() {
+	local vg="$1" out=""
+	out=$(export LC_ALL=C; rqerror lvm vgs "$vg" --units=m --noheadings --options=vgsize) || return
+	out=$(echo "$out" | sed 's,[ ],,g') # output has extra whitespace
+	out=${out%m} # and of course a unit.
+	out=${out%.*} # and floating point - helpful
+	_RET="$out"
+}
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+img="${TEMP_D}/disk.img"
+mp="${TEMP_D}/mp"
+
+echo "Partitioning $PT_TYPE orig_size=$osize grow_size=$size."
+echo "growpart is $(which growpart)"
+rm -f $img
+[ ! -e $mp ] || rmdir $mp || { echo "failed rmdir $mp"; exit 1; }
+mkdir $mp
+
+truncate --size $osize "$img"
+
+label_flag="--label=${PT_TYPE}"
+echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
+
+truncate --size "$size" "$img"
+
+lodev=$(losetup --show --find "$img")
+LODEV=$lodev
+echo "set up $lodev"
+
+# clear any old ones that might be around (LP: #1136781)
+clearparts "$lodev"
+partx --add $lodev
+lodevpart="${lodev}p1"
+
+vg="testvg-$$"
+rqerror lvm pvcreate --quiet "$lodevpart"
+PV="$lodevpart"
+rqerror lvm vgcreate "$vg" "$lodevpart"
+VG="$vg"
+
+echo "==== before ===="
+get_vgsize "$vg"
+vgsize_before=$_RET
+echo "=== size=${vgsize_before}."
+rqerror lvm vgdisplay "$vg" 2>/dev/null
+
+# uses DM_DISABLE_UDEV to speed things up.
+# otherwise, lvm resize will poll on udev (/run/udev/data/b259:7)
+# things and take some time.  Even lvm pvs --nolocking --readonly.
+DM_DISABLE_UDEV=1 growpart -v -v "$lodev" 1
+
+echo "==== after ===="
+rqerror lvm vgdisplay "$vg" 2>/dev/null
+get_vgsize "$vg"
+echo "=== size=$_RET."
+vgsize_after=$_RET
+
+echo "size before=$vgsize_before after=$vgsize_after"
+if [ "$vgsize_before" -lt "$vgsize_after" ]; then
+	echo "PASS - grew $((vgsize_after-$vgsize_before))MiB"
+else
+	echo "FAIL - didn't grow vg $vg" 1>&2
+	exit 1
+fi
+
+
+# vi: ts=4 noexpandtab
