@@ -61,7 +61,12 @@ Options:
     --ami-manifest-path     display the ami manifest path
     --ancestor-ami-ids      display the ami ancestor id
     --product-codes         display the ami associated product codes
-    --availability-zone     display the ami placement zone
+    --availability-zone     display the ami placement zone name
+    --availability-zone-id  display the ami placement zone id
+    --region                display the ami placement region name
+    --group-name            display the ami placement group name
+    --host-id               display the dedicated host id
+    --partition-number      display the partition instance was launched from
 
     --instance-id           display the instance id
     --instance-type         display the instance type
@@ -93,7 +98,8 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'local-hostname', 'local-ipv4', 'kernel-id', 'mac',
             'profile', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reservation-id', 'security-groups',
-            'user-data']
+            'user-data', 'availability-zone-id', 'region', 'host-id',
+            'group-name', 'partition-number']
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
 
@@ -173,8 +179,15 @@ class EC2Metadata:  # pylint: disable=R0903
         if metaopt not in METAOPTS:
             raise Error('unknown metaopt', metaopt, METAOPTS)
 
-        if metaopt == 'availability-zone':
-            return self._get('meta-data/placement/availability-zone')
+        if metaopt in [
+                'availability-zone',
+                'availability-zone-id',
+                'region',
+                'host-id',
+                'group-name',
+                'partition-number',
+                ]:
+            return self._get('meta-data/placement/' + metaopt)
 
         if metaopt == 'public-keys':
             data = self._get('meta-data/public-keys')
