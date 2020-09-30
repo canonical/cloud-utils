@@ -175,7 +175,7 @@ unlock_disk_and_settle() {
 	# FLOCK_DISK_FD is set to the hard-coded value of 9.
 	# After unlocking run udevadm settle as the disk has likely been changed.
 	[ "${DRY_RUN}" = 0 ] || return
-	[ -n "${FLOCK_DEVICE_FD}" ] || return
+	[ -n "${FLOCK_DISK_FD}" ] || return
 
 	debug 1 "FLOCK: ${disk}: releasing exclusive lock"
 	exec 9>&-
