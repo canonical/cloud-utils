@@ -4,12 +4,16 @@ on: [push, pull_request]
 
 jobs:
   tox:
-    # Run on the oldest supported LTS
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
+      - name: Update apt
+        run: sudo apt-get update -q
       - name: Install dependencies
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install tox lvm2 fdisk gdisk qemu-utils
       - name: Git checkout
         uses: actions/checkout@v2
       - name: Run tox
         run: tox
+      - name: Run tests
+        # SKIP growpart-lvm test that does not work on github c-i
+        run: sudo SKIP=growpart-lvm PATH=$PWD/bin:$PATH ./test/run-all
