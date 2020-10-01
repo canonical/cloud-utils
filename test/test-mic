@@ -1,4 +1,5 @@
 #!/bin/bash
+# NEED_ROOT
 
 set -e
 
