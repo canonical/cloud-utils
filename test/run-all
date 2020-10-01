@@ -1,0 +1,62 @@
+#!/bin/bash
+
+id=$(id -u)
+
+needs_root() {
+    grep -q NEED_ROOT "$1"
+}
+
+
+tests=( )
+for t in ./test/test-*; do
+    [ -x "$t" ] && [ -f "$t" ] && tests[${#tests[@]}]="$t"
+done
+
+if [ "$id" != "0" ]; then
+    echo "not root, (id=$id), only executing subset of tests."
+fi
+
+passes=( )
+skips=( )
+fails=( )
+
+# allow environment to specify , separated list of tests to skip
+skiptests=",$SKIP,"
+
+for t in "${tests[@]}"; do
+    name=${t##*/}
+    short=${name#test-}
+    if [ "$id" != "0" ] && needs_root "$t"; then
+        skips[${#skips[@]}]="$name"
+        echo "$name: SKIP (not root)"
+        continue
+    fi
+    case "$skiptests" in
+        *,$name,*|*,$short,*)
+            echo "$name: SKIP (environ)"
+            skips[${#skips[@]}]="$name"
+            continue
+            ;;
+    esac
+    # send test output to stderr, so it can all be redirected.
+    "$t" 1>&2
+    r=$?
+    if [ $r -eq 0 ]; then
+        echo "$name: PASS"
+        passes[${#passes[@]}]="$name"
+    else
+        echo "$name: FAIL"
+        fails[${#fails[@]}]="$name"
+    fi
+done
+
+echo "== results =="
+echo "${#passes[@]} passed. ${#fails[@]} failed. ${#skips[@]} skipped."
+echo "PASSES: ${passes[*]}"
+echo "FAILS: ${fails[*]}"
+echo "SKIP: ${skips[*]}"
+
+if [ "${#fails[@]}" != "0" ] && [ "${#passes[@]}" != "0" ]; then
+    exit 1
+fi
+exit 0
