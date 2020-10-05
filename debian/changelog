@@ -1,3 +1,16 @@
+cloud-utils (0.31-29-ge0792e3d-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - Fix bad variable use. [Scott Moser] (LP: #1898533)
+    Test/CI changes not touching runtime code:
+    - Use test/run-all under c-i. [Scott Moser]
+    - Add a 'tests/run-all' to easily run all the test/test* files.
+      [Scott Moser]
+    - tox: shellcheck: workaround false positives [Paride Legovini]
+    - tox: add the test/* scripts to the shellcheck run [Paride Legovini]
+
+ -- Paride Legovini <paride.legovini@canonical.com>  Mon, 05 Oct 2020 12:18:40 +0200
+
 cloud-utils (0.31-22-g37d4e32a-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
