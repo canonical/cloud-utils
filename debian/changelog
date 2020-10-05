@@ -1,4 +1,4 @@
-cloud-utils (0.31-29-ge0792e3d-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.31-29-ge0792e3d-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
     - Fix bad variable use. [Scott Moser] (LP: #1898533)
