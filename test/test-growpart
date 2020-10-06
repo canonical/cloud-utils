@@ -1,4 +1,5 @@
 #!/bin/bash
+# NEED_ROOT
 
 set -e
 
@@ -84,7 +85,22 @@ echo "==== before ===="
 grep "${lodev##*/}" /proc/partitions
 sfdisk --list --unit=S "$lodev"
 
-growpart -v -v "$lodev" 1
+errfile="${TEMP_D}/growpart.err"
+growpart -v -v "$lodev" 1 2>"$errfile" || {
+	rc=$?
+	echo "failed [$rc]: growpart -v -v $lodev 1"
+	cat "$errfile" 1>&2
+	exit $rc
+}
+
+out=$(grep "FLOCK:.*releasing exclusive lock" "$errfile") || :
+if [ -z "$out" ]; then
+	echo "ERROR: growpart stderr did not mention releasing lock"
+	exit 1
+fi
+
+echo === growpart stderr ===
+cat "$errfile"
 
 echo "==== after ===="
 grep "${lodev##*/}" /proc/partitions
