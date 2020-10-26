@@ -27,6 +27,10 @@ The package is also available in Apline and Arch as `cloud-utils`.
 * `vcs-run` - obtain a repository and execute a command with arguments
 * `write-mime-multipart` - utilty for creating mime-multipart files, likely for use via user data and cloud-init
 
+## Getting help
+
+If you find a bug or issue please report it on the upstream [Launchpad project](https://bugs.launchpad.net/cloud-utils/+filebug).
+
 ## License
 
 Distributed under the GPLv3 License. See LICENSE for more information.
