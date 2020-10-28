@@ -1,3 +1,51 @@
+0.32
+ - readme: add where to file bugs [Joshua Powers]
+ - README: Add initial readme for project [Joshua Powers]
+ - Support the new ec2metadata fields [Fred Vogt] (LP: #1894344)
+ - Use test/run-all under c-i. [Scott Moser]
+ - Add a 'tests/run-all' to easily run all the test/test* files.
+   [Scott Moser]
+ - Fix bad variable use. [Scott Moser]
+ - tox: shellcheck: workaround false positives [Paride Legovini]
+ - tox: add the test/* scripts to the shellcheck run [Paride Legovini]
+ - Whitespace cleanups. [Scott Moser]
+ - Growpart fix undefined variable in growpart error message. [Scott Moser]
+ - Add test for growpart lvm resize. [Scott Moser]
+ - Growpart: add support for resizing an lvm pv after growing the
+   partition. [Scott Moser] (LP: #1799953)
+ - Make resize functions return, so unlock_disk_and_settle is called.
+   [Scott Moser]
+ - CI: rename the "tip" tox environments to tip-* [Paride Legovini]
+ - CI: pin the shellcheck version and add a shellcheck-tip environment
+   [Paride Legovini]
+ - CI: make shellcheck check tools/* [Paride Legovini]
+ - IMDSv2 session token support (#1) [Paride Legovini] (LP: #1870244)
+ - growpart: parse the kernel version in a more robust way (#2)
+   [Paride Legovini] (LP: #1881014)
+ - Fix some pylint, flake8, shellcheck issues and add basic CI (#4)
+   [Paride Legovini]
+ - growpart: Do not fail if only sgdisk is available. [Scott Moser]
+ - growpart: Fix reading sector size with newer sgdisk versions.
+   [Scott Moser]
+ - growpart: Fail on unknown values of GROWPART_RESIZER. [Scott Moser]
+ - debian/tests: fix GROWPART_RESIZER value in 'runtests' function.
+   [Scott Moser]
+ - cloud-image-utils: Add depends on fdisk, drop e2fsprogs
+   [Scott Moser] (LP: #1876139)
+ - growpart: add flock support to prevent udev races
+   [Ryan Harper] (LP: #1834875)
+ - Drop the python2 only cloud-utils-euca package and tools.
+   [Scott Moser] (LP: #1850257)
+ - test-growpart: fix logic error resulting in test failure.
+   [Scott Moser] (LP: #1842682)
+ - Fix race condition in test-growpart teardown seen on ppc64el.
+   [Scott Moser] (LP: #1836593)
+ - growpart: Fix bug when file image ends in a digit.
+   [Scott Moser] (LP: #1835124)
+ - Fix spelling error in ec2metadata (--reserveration-id).
+   [Scott Moser] (LP: #1810857)
+ - tools: rename export-tarball to make-tarball. [Scott Moser]
+
 0.31
  - mount-image-callback: mount with -o 'rw' or -o 'ro' (LP: #1663722)
  - mount-image-callback: run blockdev and udevadm settle on nbd devices.

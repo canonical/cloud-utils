@@ -1,3 +1,13 @@
+cloud-utils (0.32-0ubuntu1) hirsute; urgency=medium
+
+  * New upstream release.
+    - Update changelog for 0.32 [Paride Legovini]
+    - readme: add where to file bugs [Joshua Powers]
+    - README: Add initial readme for project [Joshua Powers]
+    - Support the new ec2metadata fields [Fred Vogt] (LP: #1894344)
+
+ -- Paride Legovini <paride.legovini@canonical.com>  Wed, 28 Oct 2020 16:51:43 +0100
+
 cloud-utils (0.31-29-ge0792e3d-0ubuntu1) groovy; urgency=medium
 
   * New upstream snapshot.
