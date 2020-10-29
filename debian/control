@@ -1,13 +1,12 @@
 Source: cloud-utils
 Section: admin
-Priority: extra
+Priority: optional
 Maintainer: Scott Moser <smoser@ubuntu.com>
 Build-Depends: debhelper-compat (= 13), dh-python, python3-all
 Standards-Version: 4.5.0
 XS-Testsuite: autopkgtest
 
 Package: cloud-utils
-Priority: extra
 Section: admin
 Architecture: all
 Depends: cloud-guest-utils, cloud-image-utils, ${misc:Depends}
