@@ -2,7 +2,7 @@ Source: cloud-utils
 Section: admin
 Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: debhelper (>= 7), dh-python, python3-all
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all
 Standards-Version: 4.5.0
 XS-Testsuite: autopkgtest
 
