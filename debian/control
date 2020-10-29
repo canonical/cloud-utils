@@ -6,6 +6,7 @@ Build-Depends: debhelper-compat (= 13), dh-python, python3-all
 Standards-Version: 4.5.0
 XS-Testsuite: autopkgtest
 Rules-Requires-Root: no
+Homepage: https://launchpad.net/cloud-utils
 
 Package: cloud-utils
 Architecture: all
