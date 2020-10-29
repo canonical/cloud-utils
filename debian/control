@@ -7,7 +7,6 @@ Standards-Version: 4.5.0
 XS-Testsuite: autopkgtest
 
 Package: cloud-utils
-Section: admin
 Architecture: all
 Depends: cloud-guest-utils, cloud-image-utils, ${misc:Depends}
 Description: metapackage for installation of upstream cloud-utils source
