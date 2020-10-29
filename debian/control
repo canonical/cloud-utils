@@ -2,7 +2,7 @@ Source: cloud-utils
 Section: admin
 Priority: optional
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: debhelper-compat (= 13), dh-python, python3-all
+Build-Depends: debhelper-compat (= 13), dh-python, python3
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Homepage: https://launchpad.net/cloud-utils
