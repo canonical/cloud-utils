@@ -3,7 +3,6 @@ Section: admin
 Priority: extra
 Maintainer: Scott Moser <smoser@ubuntu.com>
 Build-Depends: debhelper (>= 7), dh-python, python3-all
-XS-Python-Version: >= 2.6
 Standards-Version: 3.9.8
 XS-Testsuite: autopkgtest
 
