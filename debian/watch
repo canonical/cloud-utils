@@ -1,2 +1,4 @@
-version=3
-https://launchpad.net/cloud-utils/+download/ https://launchpad.net/cloud-utils/.*/cloud-utils-([\d\.]+)\.tar\.gz
+version=4
+opts="filenamemangle=s%(?:.*?)?v?(\d[\d.]*)\.tar\.gz%cloud-utils-$1.tar.gz%" \
+    https://github.com/canonical/cloud-utils/tags \
+    (?:.*?/)?v?(\d[\d.]*)\.tar\.gz debian uupdate
