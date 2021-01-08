@@ -6,6 +6,8 @@ Build-Depends: debhelper-compat (= 13), dh-python, python3
 Standards-Version: 4.5.0
 Rules-Requires-Root: no
 Homepage: https://launchpad.net/cloud-utils
+Vcs-Browser: https://github.com/canonical/cloud-utils
+Vcs-Git: https://github.com/canonical/cloud-utils.git
 
 Package: cloud-utils
 Architecture: all
