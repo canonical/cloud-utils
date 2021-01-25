@@ -1,3 +1,30 @@
+cloud-utils (0.32-17-g8f3d478f-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - d/watch: update to match hosting on github [Christian Ehrhardt]
+    - d/control: update VCS to match hosting on github [Christian Ehrhardt]
+    - growpart test: use losetup --partscan/--detach to handle the lodev parts
+      [Paride Legovini]
+    - d/control: Build-Depend on python3 instead of python3-all
+      [Paride Legovini]
+    - d/control: remove unnecessary XS-Testsuite field [Paride Legovini]
+    - d/control: add Homepage field (points to the LP project)
+      [Paride Legovini]
+    - d/control: set Rules-Requires-Root: no [Paride Legovini]
+    - d/copyright: bump copyright years [Paride Legovini]
+    - d/copyright: use secure copyright format URI [Paride Legovini]
+    - d/control: remote hyphen in package description [Paride Legovini]
+    - d/control: remove duplicate Section control field [Paride Legovini]
+    - d/control: replace Priority: extra with Priority: optional
+      [Paride Legovini]
+    - Install the manpages using dh_installman [Paride Legovini]
+    - d/control: switch to debhelper 13 via debhelper-compat [Paride Legovini]
+    - d/control: update Standards-Version to version 4.5.0 [Paride Legovini]
+    - d/control: drop unneeded XS-Python-Version field [Paride Legovini]
+    - Tidy up unrequired files and references. [Dermot Bradley]
+
+ -- Paride Legovini <paride.legovini@canonical.com>  Mon, 25 Jan 2021 12:41:02 +0100
+
 cloud-utils (0.32-0ubuntu1) hirsute; urgency=medium
 
   * New upstream release.
