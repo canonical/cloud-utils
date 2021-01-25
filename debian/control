@@ -1,19 +1,19 @@
 Source: cloud-utils
 Section: admin
-Priority: extra
+Priority: optional
 Maintainer: Scott Moser <smoser@ubuntu.com>
-Build-Depends: debhelper (>= 7), dh-python, python3-all
-XS-Python-Version: >= 2.6
-Standards-Version: 3.9.8
-XS-Testsuite: autopkgtest
+Build-Depends: debhelper-compat (= 13), dh-python, python3
+Standards-Version: 4.5.0
+Rules-Requires-Root: no
+Homepage: https://launchpad.net/cloud-utils
+Vcs-Browser: https://github.com/canonical/cloud-utils
+Vcs-Git: https://github.com/canonical/cloud-utils.git
 
 Package: cloud-utils
-Priority: extra
-Section: admin
 Architecture: all
 Depends: cloud-guest-utils, cloud-image-utils, ${misc:Depends}
 Description: metapackage for installation of upstream cloud-utils source
- This meta-package will depend on all sub-packages built by the
+ This metapackage will depend on all sub-packages built by the
  upstream cloud-utils source.
 
 Package: cloud-guest-utils

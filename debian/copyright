@@ -1,10 +1,10 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: cloud-utils
 Source: https://code.launchpad.net/cloud-utils
 Upstream-Contact: Scott Moser <scott.moser@canonical.com>
 
 Files: *
-Copyright: 2010-2016, Canonical Ltd.
+Copyright: 2010-2020, Canonical Ltd.
            2013, Hewlett-Packard Development Company, L.P.
 License: GPL-3
 

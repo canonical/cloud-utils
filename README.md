@@ -13,12 +13,11 @@ sudo apt install cloud-utils
 
 Red Hat based distributions offer the `cloud-utils` package with a subset of binaries and `cloud-utils-growpart` for growpart.
 
-The package is also available in Apline and Arch as `cloud-utils`.
+The package is also available in Alpine and Arch as `cloud-utils`.
 
 ## Usage
 
 * `cloud-localds` - create a disk for cloud-init to utilize the nocloud datasource
-* `cloud-publish-ubuntu` - import a cloud image to your local cloud
 * `ec2metadata` - query and display AWS EC2 metadata
 * `growpart` - rewrite partition table so that partition takes up all the space it can
 * `mount-image-callback` - mount a file to a temporary mount point and then invoke the provided cmd with args
