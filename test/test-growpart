@@ -51,6 +51,7 @@ truncate --size "$size" "$img"
 
 lodev=$(losetup --show --find --partscan "$img")
 LODEV=$lodev
+udevadm settle
 echo "set up $lodev"
 lodevpart="${lodev}p1"
 
