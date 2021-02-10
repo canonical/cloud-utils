@@ -1,3 +1,11 @@
+cloud-utils (0.32-18-g5b59de87-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream snapshot.
+    - test-growpart: udevadm settle after setting up the loop device
+      [Paride Legovini]
+
+ -- Paride Legovini <paride.legovini@ubuntu.com>  Wed, 10 Feb 2021 15:43:41 +0100
+
 cloud-utils (0.32-17-g8f3d478f-0ubuntu1) hirsute; urgency=medium
 
   * New upstream snapshot.
