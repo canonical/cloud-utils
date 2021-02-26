@@ -292,7 +292,7 @@ resize_sfdisk() {
 	local pt_start pt_size pt_end max_end new_size change_info dpart
 	local sector_num sector_size disk_size tot out
 
-	rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
+	LANG=C rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
 		fail "failed: sfdisk --list $DISK"
 	if [ "${SFDISK_VERSION}" -lt ${SFDISK_2_26} ]; then
 		# exected output contains: Units: sectors of 512 bytes, ...
