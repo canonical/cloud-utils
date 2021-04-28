@@ -162,7 +162,7 @@ lock_disk() {
 	# Do not use --nonblock or --timeout as udev may be already processing
 	# the disk and we must wait until it has released the disk to
 	# proceed.  Failure to obtain exclusive lock is fatal to growpart.
-	rq flock flock --exclusive $FLOCK_DISK_FD ||
+	rq flock flock -x $FLOCK_DISK_FD ||
 		fail "Error while obtaining exclusive lock on $DISK"
 	debug 1 "FLOCK: $disk: obtained exclusive lock"
 }
