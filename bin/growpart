@@ -230,7 +230,7 @@ get_sfdisk_version() {
 		return 0
 	}
 	# expected output: sfdisk from util-linux 2.25.2
-	out=$(sfdisk --version) ||
+	out=$(LANG=C sfdisk --version) ||
 		{ error "failed to get sfdisk version"; return 1; }
 	set -- $out
 	ver=$4
