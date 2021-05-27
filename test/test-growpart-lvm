@@ -34,25 +34,10 @@ rq() {
 	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
 }
 
-clearparts() {
-	# read /proc/partitions, clearing any partitions on dev (/dev/loopX)
-	local dev="$1"
-	local short=${dev##*/} parts="" part=""
-	parts=$(awk '$4 ~ m { sub(m,"",$4); print $4 }' \
-		"m=${short}p" /proc/partitions)
-	[ -z "$parts" ] && return
-	echo "clearing parts [$parts] from $dev"
-	for part in $parts; do
-		echo "delpart $LODEV $part"
-		delpart $LODEV $part
-	done
-	udevadm settle
-}
 cleanup() {
 	if [ -n "$MP" ]; then
 		echo "unmount $MP";
 		umount "$MP";
-		udevadm settle
 	fi
 	if [ -n "$VG" ]; then
 		echo "removing vg $VG"
@@ -61,13 +46,10 @@ cleanup() {
 	if [ -n "$PV" ]; then
 		echo "removing pv $PV"
 		rq lvm pvremove --force --yes "$PV"
-		udevadm settle
 	fi
 	if [ -n "$LODEV" ]; then
-		clearparts "$LODEV"
 		echo "losetup --detach $LODEV";
 		losetup --detach "$LODEV";
-		udevadm settle
 	fi
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
@@ -104,13 +86,10 @@ echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
 
 truncate --size "$size" "$img"
 
-lodev=$(losetup --show --find "$img")
+lodev=$(losetup --show --find --partscan "$img")
 LODEV=$lodev
+udevadm settle
 echo "set up $lodev"
-
-# clear any old ones that might be around (LP: #1136781)
-clearparts "$lodev"
-partx --add $lodev
 lodevpart="${lodev}p1"
 
 vg="testvg-$$"
