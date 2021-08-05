@@ -1,4 +1,4 @@
-cloud-utils (0.32-22-g45fe84a5-0ubuntu1) UNRELEASED; urgency=medium
+cloud-utils (0.32-22-g45fe84a5-0ubuntu1) impish; urgency=medium
 
   * New upstream snapshot.
     - Merge test changes from test-growpart to test-growpart-lvm
