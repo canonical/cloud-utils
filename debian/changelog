@@ -1,3 +1,17 @@
+cloud-utils (0.32-22-g45fe84a5-0ubuntu1) impish; urgency=medium
+
+  * New upstream snapshot.
+    - Merge test changes from test-growpart to test-growpart-lvm
+      [Dan Bungert] (LP: #1929885)
+    - Fix issue LP: #1928167 growpart doesn't work when LANG=cs_CZ.UTF-8
+      [Amy Chen]
+    - growpart: change flock call to use short option for Busybox
+      compatibility [Dermot Bradley]
+    - growpart: Use LANG=C to parse sfdisk output [Nicolas Chauvet]
+      (LP: #1860479)
+
+ -- Paride Legovini <paride@ubuntu.com>  Thu, 05 Aug 2021 11:58:37 +0200
+
 cloud-utils (0.32-18-g5b59de87-0ubuntu1) hirsute; urgency=medium
 
   * New upstream snapshot.
