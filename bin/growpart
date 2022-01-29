@@ -762,7 +762,8 @@ resize_sfdisk_dos() {
 
 get_table_format() {
 	local out="" disk="$1"
-	if has_cmd blkid && out=$(blkid -o value -s PTTYPE "$disk") &&
+	if has_cmd blkid && blkid --version | grep -q util-linux &&
+		out=$(blkid -o value -s PTTYPE "$disk") &&
 		[ "$out" = "dos" -o "$out" = "gpt" ]; then
 		_RET="$out"
 		return
