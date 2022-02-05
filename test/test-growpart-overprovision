@@ -1,0 +1,112 @@
+#!/bin/bash
+# NEED_ROOT
+
+set -e
+
+[ "$(id -u)" = "0" ] ||
+	{ echo "sorry, must be root"; exit 1; }
+
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+size=${DISK_SIZE_NEW:-100M}
+osize=${DISK_SIZE_ORIG:-50M}
+freepercent=${OVER_PROVISION_PERCENT:-10}
+
+LODEV=""
+TEMP_D=""
+
+clearparts() {
+	# read /proc/partitions, clearing any partitions on dev (/dev/loopX)
+	local dev="$1"
+	local short=${dev##*/} parts="" part=""
+	parts=$(awk '$4 ~ m { sub(m,"",$4); print $4 }' \
+		"m=${short}p" /proc/partitions)
+	[ -z "$parts" ] && return
+	echo "clearing parts [$parts] from $dev"
+	for part in $parts; do
+		echo "delpart $LODEV $part"
+		delpart $LODEV $part
+	done
+	udevadm settle
+}
+cleanup() {
+	if [ -n "$LODEV" ]; then
+		clearparts "$LODEV"
+		echo "losetup --detach $LODEV";
+		losetup --detach "$LODEV";
+		udevadm settle
+	fi
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+img="${TEMP_D}/disk.img"
+
+echo "Partitioning $PT_TYPE orig_size=$osize grow_size=$size, overprovisioning=$freepercent%."
+echo "growpart is $(which growpart)"
+rm -f $img
+
+truncate --size $osize "$img"
+
+label_flag="--label=${PT_TYPE}"
+echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
+
+truncate --size "$size" "$img"
+
+lodev=$(losetup --show --find "$img")
+LODEV=$lodev
+echo "set up $lodev"
+
+# clear any old ones that might be around (LP: #1136781)
+clearparts "$lodev"
+partx --add $lodev
+lodevpart="${lodev}p1"
+
+echo "==== before ===="
+grep "${lodev##*/}" /proc/partitions
+sfdisk --list --unit=S "$lodev"
+
+errfile="${TEMP_D}/growpart.err"
+growpart -v -v --free-percent "$freepercent" "$lodev" 1 2>"$errfile" || {
+	rc=$?
+	echo "failed [$rc]: growpart -v -v --free-percent $freepercent $lodev 1"
+	cat "$errfile" 1>&2
+	exit $rc
+}
+
+out=$(grep "FLOCK:.*releasing exclusive lock" "$errfile") || :
+if [ -z "$out" ]; then
+	echo "ERROR: growpart stderr did not mention releasing lock"
+	exit 1
+fi
+
+echo === growpart stderr ===
+cat "$errfile"
+
+echo "==== after ===="
+grep "${lodev##*/}" /proc/partitions
+sfdisk --list --unit=S "$lodev"
+
+enddevice=$(grep "${lodev##*/}" /proc/partitions|grep -v "${lodevpart##*/}"|awk '{print $3}')
+endpart=$(grep "${lodevpart##*/}" /proc/partitions|awk '{print $3}')
+# Subtract the following from disk image end:
+#   - required percentage of overprovisioning
+#   - 1024 MiB (the partition start, 2048 sectors of 512 bytes)
+#   - 17 MiB (rounded up value of MBR padding of 33 sectors for GPT conversion)
+# to calculate the expected end of resized partition.
+expectedendpart=$((enddevice-(enddevice/100*freepercent)-1024-17))
+echo
+if [ $endpart = $expectedendpart ]; then
+	echo "Final partition size matches expected partition size"
+	echo
+else
+	echo "ERROR: final partition size of $endpart is different than expected size of $expectedendpart"
+	exit 1
+fi
+
+# vi: ts=4 noexpandtab
