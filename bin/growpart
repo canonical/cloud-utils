@@ -360,7 +360,7 @@ resize_sfdisk() {
 	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&
 		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" <"${dump_mod}") &&
 		[ -n "${pt_start}" -a -n "${pt_size}" ] &&
-		pt_end=$((${pt_size}+${pt_start})) ||
+		pt_end=$((${pt_size} + ${pt_start} - 1)) ||
 		fail "failed to get start and end for ${dpart} in ${DISK}"
 
 	# find the minimal starting location that is >= pt_end
@@ -369,6 +369,8 @@ resize_sfdisk() {
 		min=${sector_num} pt_end=${pt_end} "${dump_mod}") &&
 		[ -n "${max_end}" ] ||
 		fail "failed to get max_end for partition ${PART}"
+	# As sector numbering starts from 0 need to reduce value by 1.
+	max_end=$((max_end - 1))
 
 	if [ "$format" = "gpt" ]; then
 		# sfdisk respects 'last-lba' in input, and complains about
@@ -388,11 +390,11 @@ resize_sfdisk() {
 
 	local gpt_second_size="33"
 	if [ "${max_end}" -gt "$((${sector_num}-${gpt_second_size}))" ]; then
-		# if mbr allow subsequent conversion to gpt without shrinking the
-		# partition.  safety net at cost of 33 sectors, seems reasonable.
-		# if gpt, we can't write there anyway.
+		# if MBR, allow subsequent conversion to GPT without shrinking
+		# the partition and safety net at cost of 33 sectors seems
+		# reasonable. If GPT, we can't write there anyway.
 		debug 1 "padding ${gpt_second_size} sectors for gpt secondary header"
-		max_end=$((${sector_num}-${gpt_second_size}))
+		max_end=$((${sector_num} - ${gpt_second_size} - 1))
 	fi
 
 	if [ -n "${free_percent}" ]; then
@@ -410,30 +412,30 @@ resize_sfdisk() {
 				# If only some of the overprovisioning sectors
 				# are over the 2TB boundary then reduce max_end
 				# by the remaining number of overprovisioning
-				# sectors
+				# sectors.
 				excess_sectors=$((sector_num-mbr_max_512))
-				remaining_free_sectors=$((free_percent_sectors-excess_sectors))
+				remaining_free_sectors=$((free_percent_sectors - excess_sectors))
 				debug 1 "reserving ${remaining_free_sectors} sectors from MBR maximum for overprovisioning"
-				max_end=$((max_end-renaming_free_sectors))
+				max_end=$((max_end - remaining_free_sectors))
 			else
 				# Shrink max_end to keep X% of whole disk unused
-				# (for overprovisioning)
+				# (for overprovisioning).
 				debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
 				max_end=$((max_end-free_percent_sectors))
 			fi
 
-			if [ $max_end -lt $pt_end ]; then
+			if [ ${max_end} -lt ${pt_end} ]; then
 				nochange "partition ${PART} could not be grown while leaving" \
 					"${free_percent}% (${free_percent_sectors} sectors) free on device"
 				return
 			fi
 		else
 			# Shrink max_end to keep X% of whole disk unused
-			# (for overprovisioning)
-			if [ $max_end -lt $((sector_num-free_percent_sectors)) ]; then
-				debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
-				max_end=$((max_end-free_percent_sectors))
-			else
+			# (for overprovisioning).
+			debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
+			max_end=$((max_end-free_percent_sectors))
+
+			if [ ${max_end} -lt ${pt_end} ]; then
 				nochange "partition ${PART} could not be grown while leaving" \
 					"${free_percent}% (${free_percent_sectors} sectors) free on device"
 				return
@@ -453,9 +455,9 @@ resize_sfdisk() {
 		return
 	}
 
-	# now, change the size for this partition in ${dump_out} to be the
-	# new size
-	new_size=$((${max_end}-${pt_start}))
+	# Now, change the size for this partition in ${dump_out} to be the
+	# new size.
+	new_size=$((${max_end} - ${pt_start} + 1))
 	sed "\|^\s*${dpart} |s/\(.*\)${pt_size},/\1${new_size},/" "${dump_out}" \
 		>"${new_out}" ||
 		fail "failed to change size in output"
@@ -581,18 +583,17 @@ resize_sgdisk() {
 	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") &&
 		[ -n "${pt_end}" ] ||
 		fail "${dev}: failed to get end sector"
-	# sgdisk start and end are inclusive.  start 2048 length 10 ends at 2057.
-	pt_end=$((pt_end+1))
-	pt_size="$((${pt_end} - ${pt_start}))"
+	# Start and end are inclusive, start 2048 end 2057 is length 10.
+	pt_size="$((${pt_end} - ${pt_start} + 1))"
 
 	# Get the last usable sector
 	last=$(awk '/last usable sector is/ { print $NF }' \
 		"${pt_pretend}") && [ -n "${last}" ] ||
 		fail "${dev}: failed to get last usable sector"
 
-	# Find the minimal start sector that is >= pt_end
+	# Find the maximal end sector that is >= pt_end
 	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
-		{ print min }' min="${last}" pt_end="${pt_end}" \
+		{ print min-1 }' min="${last}" pt_end="${pt_end}" \
 		"${pt_data}") && [ -n "${pt_max}" ] ||
 		fail "${dev}: failed to find max end sector"
 
@@ -625,7 +626,7 @@ resize_sgdisk() {
 	[ "$DRY_RUN" -ne 0 ] && wouldrun="would-run"
 
 	# Calculate the new size of the partition
-	new_size=$((${pt_max} - ${pt_start}))
+	new_size=$((${pt_max} - ${pt_start} + 1))
 	change_info="partition=${PART} start=${pt_start}"
 	change_info="${change_info} old: size=${pt_size} end=${pt_end}"
 	change_info="${change_info} new: size=${new_size} end=${pt_max}"
