@@ -75,6 +75,10 @@ umount_r() {
 
 bad_Usage() { Usage 1>&2; [ $# -eq 0 ] || error "$@"; exit 1; }
 
+has_cmd() {
+	command -v "$1" >/dev/null 2>&1
+}
+
 disconnect_qemu() {
 	[ -n "$QEMU_DISCONNECT" ] || return 0
 	local out="" nbd="$QEMU_DISCONNECT"
@@ -206,7 +210,7 @@ assert_nbd_support() {
 	if [ ! -e /sys/block/nbd0 ] && ! grep -q nbd /proc/modules; then
 		debug 1 "trying to load nbd module"
 		modprobe nbd >/dev/null 2>&1
-		udevadm settle >/dev/null 2>&1
+		has_cmd udevadm && udevadm settle >/dev/null 2>&1
 	fi
 	[ -e /sys/block/nbd0 ] || {
 		error "Cannot use nbd: no nbd kernel support."
@@ -268,7 +272,7 @@ connect_nbd() {
 	# it happens for where it doesnt happen automatically (LP: #1741300)
 	out=$(blockdev --rereadpt "$nbd" 2>&1) ||
 		debug 1 "blockdev rereadpt $nbd failed"
-	udevadm settle
+	has_cmd udevadm && udevadm settle
 
 	i=0
 	while i=$(($i+1)); do
