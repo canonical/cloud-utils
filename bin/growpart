@@ -173,13 +173,14 @@ unlock_disk_and_settle() {
 	local settle=${2-"1"}
 	# release the lock on a disk if locked.  When a disk is locked,
 	# FLOCK_DISK_FD is set to the hard-coded value of 9.
-	# After unlocking run udevadm settle as the disk has likely been changed.
+	# After unlocking run udevadm settle (if installed) as the disk has
+	# likely been changed.
 	[ "${DRY_RUN}" = 0 ] || return
 	[ -n "${FLOCK_DISK_FD}" ] || return
 
 	debug 1 "FLOCK: ${disk}: releasing exclusive lock"
 	exec 9>&-
-	[ "${settle}" = 1 ] && udevadm settle
+	[ "${settle}" = 1 ] && has_cmd udevadm && udevadm settle
 	FLOCK_DISK_FD=""
 }
 
