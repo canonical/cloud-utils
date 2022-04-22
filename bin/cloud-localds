@@ -67,8 +67,8 @@ has_cmd() {
 short_opts="hH:i:d:f:m:N:o:V:v"
 long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,"
 long_opts="${long_opts}network-config:,output:,vendor-data:,verbose"
-getopt_out=$(getopt --name "${0##*/}" \
-	--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+getopt_out=$(getopt -n "${0##*/}" \
+	-o "${short_opts}" -l "${long_opts}" -- "$@") &&
 	eval set -- "${getopt_out}" ||
 	bad_Usage
 
@@ -237,7 +237,7 @@ case "$filesystem" in
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
 		;;
 	vfat)
-		truncate --size 128K "$img" || fail "failed truncate image"
+		truncate -s 128K "$img" || fail "failed truncate image"
 		out=$(mkfs.vfat -n cidata "$img" 2>&1) ||
 			{ error "failed: mkfs.vfat -n cidata $img"; error "$out"; }
 		mcopy -oi "$img" "${files[@]}" :: ||

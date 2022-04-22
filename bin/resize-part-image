@@ -57,7 +57,7 @@ xtruncate() {
 		truncate "${@}"
 	else
 		local size=${1} file=${2} blk=""
-		size=${size#--size=}
+		size=${size#-s }
 		# this is a poor mans truncate supporting whatever human2bytes supports
 		human2bytes "${size}" && blk=$((${_RET}/512)) &&
 			dd if=/dev/zero of="${file}" obs=512 seek=${blk} count=0 2>/dev/null
@@ -135,14 +135,14 @@ runcmd "${verbose}" e2fsck -fp "${new}" ||
 	fail "failed to fsck ${new}"
 
 if [ "${old_size}" -lt "${new_size}" ]; then
-	xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
+	xtruncate "-s $size" "$new" || fail "failed to change size of ${new}"
 fi
 
 runcmd "${verbose}" resize2fs "$new" "$size" ||
 	fail "failed to resize ${new} -> ${size}"
 
 if [ "${old_size}" -gt "${new_size}" ]; then
-	xtruncate "--size=$size" "$new" || fail "failed to change size of ${new}"
+	xtruncate "-s $size" "$new" || fail "failed to change size of ${new}"
 fi
 
 echo "resized ${new} to ${size}"

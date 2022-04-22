@@ -352,8 +352,8 @@ mount_callback_umount() {
 
 	short_opts="Cdhm:P:psSv"
 	long_opts="cd-mountpoint,dev,help,format:,mountpoint:,overlay,partition:,proc,read-only,sys,system-mounts,system-resolvconf,verbose"
-	getopt_out=$(getopt --name "${0##*/}" \
-		--options "${short_opts}" --long "${long_opts}" -- "$@") &&
+	getopt_out=$(getopt -n "${0##*/}" \
+		-o "${short_opts}" -l "${long_opts}" -- "$@") &&
 		eval set -- "${getopt_out}" ||
 		{ bad_Usage; return 1; }
 
@@ -508,7 +508,7 @@ mount_callback_umount() {
 
 	if ${system_resolvconf}; then
 		local rcf="$mp/etc/resolv.conf"
-		cmp --quiet "/etc/resolv.conf" "$rcf" >/dev/null ||
+		cmp -s "/etc/resolv.conf" "$rcf" >/dev/null ||
 			error "WARN: /etc/resolv.conf changed in image!"
 		rm "$rcf" &&
 			{ [ -z "$ORIG_RESOLVCONF" ] || mv "$ORIG_RESOLVCONF" "$rcf"; } ||
