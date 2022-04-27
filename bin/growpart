@@ -119,22 +119,32 @@ Usage() {
 ${0##*/} disk partition
    rewrite partition table so that partition takes up all the space it can
    options:
-    -h | --help       print Usage and exit
-         --fudge F    if part could be resized, but change would be
-                      less than 'F' bytes, do not resize (default: ${FUDGE})
-    -N | --dry-run    only report what would be done, show new 'sfdisk -d'
-    -v | --verbose    increase verbosity / debug
-    -u | --update  R  update the the kernel partition table info after growing
-                      this requires kernel support and 'partx --update'
-                      R is one of:
-                       - 'auto'  : [default] update partition if possible
-                       - 'force' : try despite sanity checks (fail on failure)
-                       - 'off'   : do not attempt
-                       - 'on'    : fail if sanity checks indicate no support
+    -h | --help            print Usage and exit
+         --free-percent F  resize so that specified percentage F of the disk is
+                           not used in total (not just by this partition). This
+                           is useful for consumer SSD or SD cards where a small
+                           percentage unallocated can improve device lifetime.
+         --fudge F         if part could be resized, but change would be less
+                           than 'F' bytes, do not resize (default: ${FUDGE})
+    -N | --dry-run         only report what would be done, show new 'sfdisk -d'
+    -v | --verbose         increase verbosity / debug
+    -u | --update  R       update the the kernel partition table info after
+                           growing this requires kernel support and
+                           'partx --update'
+                           R is one of:
+                            - 'auto'  : [default] update partition if possible
+                            - 'force' : try despite sanity checks (fail on
+                                        failure)
+                            - 'off'   : do not attempt
+                            - 'on'    : fail if sanity checks indicate no
+                                        support
 
    Example:
     - ${0##*/} /dev/sda 1
       Resize partition 1 on /dev/sda
+
+    - ${0##*/} --free-percent=10 /dev/sda 1
+      Resize partition 1 on /dev/sda so that 10% of the disk is unallocated
 EOF
 }
 
@@ -292,6 +302,7 @@ resize_sfdisk() {
 
 	local pt_start pt_size pt_end max_end new_size change_info dpart
 	local sector_num sector_size disk_size tot out
+	local excess_sectors free_percent_sectors remaining_free_sectors
 
 	LANG=C rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
 		fail "failed: sfdisk --list $DISK"
@@ -350,7 +361,7 @@ resize_sfdisk() {
 	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&
 		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" <"${dump_mod}") &&
 		[ -n "${pt_start}" -a -n "${pt_size}" ] &&
-		pt_end=$((${pt_size}+${pt_start})) ||
+		pt_end=$((${pt_size} + ${pt_start} - 1)) ||
 		fail "failed to get start and end for ${dpart} in ${DISK}"
 
 	# find the minimal starting location that is >= pt_end
@@ -359,6 +370,8 @@ resize_sfdisk() {
 		min=${sector_num} pt_end=${pt_end} "${dump_mod}") &&
 		[ -n "${max_end}" ] ||
 		fail "failed to get max_end for partition ${PART}"
+	# As sector numbering starts from 0 need to reduce value by 1.
+	max_end=$((max_end - 1))
 
 	if [ "$format" = "gpt" ]; then
 		# sfdisk respects 'last-lba' in input, and complains about
@@ -378,11 +391,57 @@ resize_sfdisk() {
 
 	local gpt_second_size="33"
 	if [ "${max_end}" -gt "$((${sector_num}-${gpt_second_size}))" ]; then
-		# if mbr allow subsequent conversion to gpt without shrinking the
-		# partition.  safety net at cost of 33 sectors, seems reasonable.
-		# if gpt, we can't write there anyway.
+		# if MBR, allow subsequent conversion to GPT without shrinking
+		# the partition and safety net at cost of 33 sectors seems
+		# reasonable. If GPT, we can't write there anyway.
 		debug 1 "padding ${gpt_second_size} sectors for gpt secondary header"
-		max_end=$((${sector_num}-${gpt_second_size}))
+		max_end=$((${sector_num} - ${gpt_second_size} - 1))
+	fi
+
+	if [ -n "${free_percent}" ]; then
+		free_percent_sectors=$((sector_num/100*free_percent))
+
+		if [ "$format" = "dos" ]; then
+			if [ $(($disk_size/512)) -ge $((mbr_max_512+free_percent_sectors)) ]; then
+				# If MBR partitioned disk larger than 2TB and
+				# remaining space over 2TB boundary is greater
+				# than the requested overprovisioning sectors
+				# then do not change max_end.
+				debug 1 "WARNING: Additional unused space on MBR/dos partitioned disk" \
+					"is larger than requested percent of overprovisioning."
+			elif [ $sector_num -gt $mbr_max_512 ]; then
+				# If only some of the overprovisioning sectors
+				# are over the 2TB boundary then reduce max_end
+				# by the remaining number of overprovisioning
+				# sectors.
+				excess_sectors=$((sector_num-mbr_max_512))
+				remaining_free_sectors=$((free_percent_sectors - excess_sectors))
+				debug 1 "reserving ${remaining_free_sectors} sectors from MBR maximum for overprovisioning"
+				max_end=$((max_end - remaining_free_sectors))
+			else
+				# Shrink max_end to keep X% of whole disk unused
+				# (for overprovisioning).
+				debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
+				max_end=$((max_end-free_percent_sectors))
+			fi
+
+			if [ ${max_end} -lt ${pt_end} ]; then
+				nochange "partition ${PART} could not be grown while leaving" \
+					"${free_percent}% (${free_percent_sectors} sectors) free on device"
+				return
+			fi
+		else
+			# Shrink max_end to keep X% of whole disk unused
+			# (for overprovisioning).
+			debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
+			max_end=$((max_end-free_percent_sectors))
+
+			if [ ${max_end} -lt ${pt_end} ]; then
+				nochange "partition ${PART} could not be grown while leaving" \
+					"${free_percent}% (${free_percent_sectors} sectors) free on device"
+				return
+			fi
+		fi
 	fi
 
 	debug 1 "max_end=${max_end} tot=${sector_num} pt_end=${pt_end}" \
@@ -397,9 +456,9 @@ resize_sfdisk() {
 		return
 	}
 
-	# now, change the size for this partition in ${dump_out} to be the
-	# new size
-	new_size=$((${max_end}-${pt_start}))
+	# Now, change the size for this partition in ${dump_out} to be the
+	# new size.
+	new_size=$((${max_end} - ${pt_start} + 1))
 	sed "\|^\s*${dpart} |s/\(.*\)${pt_size},/\1${new_size},/" "${dump_out}" \
 		>"${new_out}" ||
 		fail "failed to change size in output"
@@ -525,18 +584,17 @@ resize_sgdisk() {
 	pt_end=$(awk '$1 == '"${PART}"' { print $3 }' "${pt_data}") &&
 		[ -n "${pt_end}" ] ||
 		fail "${dev}: failed to get end sector"
-	# sgdisk start and end are inclusive.  start 2048 length 10 ends at 2057.
-	pt_end=$((pt_end+1))
-	pt_size="$((${pt_end} - ${pt_start}))"
+	# Start and end are inclusive, start 2048 end 2057 is length 10.
+	pt_size="$((${pt_end} - ${pt_start} + 1))"
 
 	# Get the last usable sector
 	last=$(awk '/last usable sector is/ { print $NF }' \
 		"${pt_pretend}") && [ -n "${last}" ] ||
 		fail "${dev}: failed to get last usable sector"
 
-	# Find the minimal start sector that is >= pt_end
+	# Find the maximal end sector that is >= pt_end
 	pt_max=$(awk '{ if ($2 >= pt_end && $2 < min) { min = $2 } } END \
-		{ print min }' min="${last}" pt_end="${pt_end}" \
+		{ print min-1 }' min="${last}" pt_end="${pt_end}" \
 		"${pt_data}") && [ -n "${pt_max}" ] ||
 		fail "${dev}: failed to find max end sector"
 
@@ -569,7 +627,7 @@ resize_sgdisk() {
 	[ "$DRY_RUN" -ne 0 ] && wouldrun="would-run"
 
 	# Calculate the new size of the partition
-	new_size=$((${pt_max} - ${pt_start}))
+	new_size=$((${pt_max} - ${pt_start} + 1))
 	change_info="partition=${PART} start=${pt_start}"
 	change_info="${change_info} old: size=${pt_size} end=${pt_end}"
 	change_info="${change_info} new: size=${new_size} end=${pt_max}"
@@ -873,6 +931,19 @@ while [ $# -ne 0 ]; do
 		-h|--help)
 			Usage
 			exit 0
+			;;
+		--free-percent|--free-percent=*)
+			if [ "${cur#--free-percent=}" != "$cur" ]; then
+				next="${cur#--free-percent=}"
+			else
+				shift
+			fi
+			if [ "$next" -gt 0 ] 2>/dev/null &&
+				[ "$next" -lt 100 ] 2>/dev/null; then
+				free_percent=$next
+			else
+				fail "unknown/invalid --free-percent option: $next"
+			fi
 			;;
 		--fudge)
 			FUDGE=${next}

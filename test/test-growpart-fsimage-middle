@@ -39,8 +39,8 @@ cleanup() {
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
 trap cleanup EXIT
 
-expected="CHANGED: partition=3 start=731136 old: size=819200 end=1550336"
-expected="${expected} new: size=3330048 end=4061184"
+expected="CHANGED: partition=3 start=731136 old: size=819200 end=1550335"
+expected="${expected} new: size=3330048 end=4061183"
 CR='
 '
 for resizer in sfdisk sgdisk; do

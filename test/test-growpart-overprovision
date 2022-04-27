@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# Just create an image in the filesystem, then grow it.
+
+set -e
+
+PT_TYPE="${PT_TYPE:-dos}" # dos or gpt
+size=${DISK_SIZE_NEW:-100M}
+osize=${DISK_SIZE_ORIG:-50M}
+freepercent=${OVER_PROVISION_PERCENT:-10}
+
+TEMP_D=""
+
+cleanup() {
+	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+}
+rq() {
+   local out="${TEMP_D}/out"
+	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
+trap cleanup EXIT
+
+img="${TEMP_D}/disk.img"
+
+echo "Partitioning $PT_TYPE orig_size=$osize grow_size=$size, overprovisioning=$freepercent%."
+echo "growpart is $(which growpart)"
+rm -f $img
+
+truncate --size $osize "$img"
+
+label_flag="--label=${PT_TYPE}"
+echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
+
+truncate --size "$size" "$img"
+
+echo "==== before ===="
+sfdisk --list --unit=S "$img"
+
+err="${TEMP_D}/gp.err"
+out="${TEMP_D}/gp.out"
+if ! growpart -v -v --free-percent "$freepercent" "$img" 1 2>"$err" > "$out"; then
+	cat "$err" "$out"
+	echo "failed"
+	exit 1
+fi
+echo "==== growpart-stderr ===="
+cat "$err"
+echo "==== growpart-stdout ===="
+cat "$out"
+grep -q "^CHANGED:" "$out" ||
+	{ echo "did not find 'CHANGED'"; exit 1; }
+
+echo "==== after ===="
+sfdisk --list --unit=S "$img"
+
+enddevice=$(sfdisk --list --unit=S "$img" | grep "Disk $img:" | awk '{print $7}')
+endpart=$(sfdisk --list --unit=S "$img" | grep "$img" | grep -v "Disk" | awk '{print $3}')
+# Subtract the following from disk image end in sectors:
+#   - required number of overprovisioning sectors to leave unused
+#   - 33 sectors (MBR padding for GPT conversion)
+#   - 1 (as sector numbers start from 0)
+# to calculate the expected end of resized partition in sectors.
+expectedendpart=$((enddevice-(enddevice/100*freepercent)-33-1))
+echo
+if [ $endpart = $expectedendpart ]; then
+	echo "Final partition size matches expected partition size"
+	echo
+else
+	echo "ERROR: final partition size of $endpart is different than expected size of $expectedendpart"
+	exit 1
+fi
+
+# vi: ts=4 noexpandtab

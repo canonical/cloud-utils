@@ -92,4 +92,4 @@ trap cleanup EXIT
 # the sfdisk and sgdisk resizers result in slightly different output,
 # because of course they do.
 test_resize sfdisk 1026048 3168223
-test_resize sgdisk 1026048 3166208
+test_resize sgdisk 1026048 3166207
