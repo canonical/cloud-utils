@@ -78,8 +78,8 @@ echo "partition 2" > "$pt2_d/info.txt"
 ## Create 2 un-partitioned images, put a filesystem on them.
 ## And then mount them write a file, and then mount and
 ## read the file to verify its there.
-truncate "--size=$pt1_size" "$pt1"
-truncate "--size=$pt2_size" "$pt2"
+truncate -s "$pt1_size" "$pt1"
+truncate -s "$pt2_size" "$pt2"
 rq mkfs.ext4 -F "${pt1}"
 rq mkfs.ext4 -F "${pt2}"
 
@@ -160,8 +160,8 @@ mount-image-callback --read-only --cd -- "$pt1" sh -c '
 ## Stage 2
 ## Create a full disk image with those 2 partition images inside
 ## and a partition table that points to them.  Do one for MBR and GPT.
-truncate "--size=$prept_size" "$prept"
-truncate "--size=$postpt_size" "$postpt"
+truncate -s "$prept_size" "$prept"
+truncate -s "$postpt_size" "$postpt"
 
 msg "writing hunks to disk image ${img_mbr}"
 for hunk in "$prept" "$pt1" "$pt2" "$postpt"; do

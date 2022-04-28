@@ -62,7 +62,7 @@ test_resize () {
         cd ${TEMP_D}
         echo "$expected" > partitions.expected
 
-        rq truncate "--size=2G" disk.img
+        rq truncate -s 2G disk.img
         rq setup_image || fail "setup image $img"
 
         sfdisk --dump disk.img > partitions.before
