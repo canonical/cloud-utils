@@ -120,12 +120,11 @@ do_umounts() {
 cleanup() {
 	if [ "${#UMOUNTS[@]}" -ne 0 ]; then
 		debug 2 "umounts: ${UMOUNTS[*]}"
-		do_umounts "${UMOUNTS[@]}"
+		do_umounts "${UMOUNTS[@]}" ||
+			{ error "failed cleaning up mounts"; return 1; }
 	fi
 	disconnect_qemu
-	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] ||
-		rm --one-file-system -Rf "${TEMP_D}" ||
-		error "removal of temp dir failed!"
+	rm -Rf "$TEMP_D" || error "removal of temp dir failed!"
 }
 
 debug() {

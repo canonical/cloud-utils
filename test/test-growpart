@@ -20,14 +20,18 @@ cleanup() {
 		umount "$MP";
 	fi
 	if [ -n "$LODEV" ]; then
-		echo "losetup --detach $LODEV";
-		losetup --detach "$LODEV";
+		echo "losetup -d $LODEV";
+		losetup -d "$LODEV";
 	fi
 	[ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 rq() {
    local out="${TEMP_D}/out"
 	"$@" > "$out" 2>&1 || { echo "FAILED:" "$@"; cat "$out"; return 1; }
+}
+
+has_cmd() {
+	command -v "${1}" >/dev/null 2>&1
 }
 
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
@@ -42,16 +46,17 @@ rm -f $img
 [ ! -e $mp ] || rmdir $mp || { echo "failed rmdir $mp"; exit 1; }
 mkdir $mp
 
-truncate --size $osize "$img"
+truncate -s $osize "$img"
 
 label_flag="--label=${PT_TYPE}"
 echo "2048," | rq sfdisk $label_flag --force --unit=S "$img"
 
-truncate --size "$size" "$img"
+truncate -s "$size" "$img"
 
-lodev=$(losetup --show --find --partscan "$img")
+lodev=$(losetup -f)
+losetup -P "$lodev" "$img"
 LODEV=$lodev
-udevadm settle
+! has_cmd udevadm || udevadm settle
 echo "set up $lodev"
 lodevpart="${lodev}p1"
 
