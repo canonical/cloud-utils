@@ -1,3 +1,45 @@
+0.33
+ - CI: run tox and tests in separate jobs [Paride Legovini]
+ - CI: run tests against minimal BusyBox environment [Paride Legovini]
+ - More busybox compatibility changes [Paride Legovini]
+ - busybox compatibility changes [Dermot Bradley]
+ - growpart: Add support for overprovisioning (#35) [dermotbradley]
+ - mount-image-callback: do not rely on udevadm [Dermot Bradley]
+ - growpart: only run `udevadm` if it exists (#36) [oittaa]
+ - growpart: detect whether blkid is util-linux version and act accordingly
+   [Dermot Bradley]
+ - d/control: set Maintainer to Ubuntu Developers [Paride Legovini]
+ - Merge test changes from test-growpart to test-growpart-lvm
+   [Dan Bungert] (LP: #1929885)
+ - Fix issue LP: #1928167 growpart doesn't work when LANG=cs_CZ.UTF-8
+   [Amy Chen]
+ - growpart: change flock call to use short option for Busybox
+   compatibility [Dermot Bradley]
+ - growpart: Use LANG=C to parse sfdisk output [Nicolas Chauvet]
+ - test-growpart: udevadm settle after setting up the loop device
+   [Paride Legovini]
+ - d/watch: update to match hosting on github [Christian Ehrhardt]
+ - d/control: update VCS to match hosting on github [Christian Ehrhardt]
+ - growpart test: use losetup --partscan/--detach to handle the lodev parts
+   [Paride Legovini]
+ - d/control: Build-Depend on python3 instead of python3-all
+   [Paride Legovini]
+ - d/control: remove unnecessary XS-Testsuite field [Paride Legovini]
+ - d/control: add Homepage field (points to the LP project)
+   [Paride Legovini]
+ - d/control: set Rules-Requires-Root: no [Paride Legovini]
+ - d/copyright: bump copyright years [Paride Legovini]
+ - d/copyright: use secure copyright format URI [Paride Legovini]
+ - d/control: remote hyphen in package description [Paride Legovini]
+ - d/control: remove duplicate Section control field [Paride Legovini]
+ - d/control: replace Priority: extra with Priority: optional
+   [Paride Legovini]
+ - Install the manpages using dh_installman [Paride Legovini]
+ - d/control: switch to debhelper 13 via debhelper-compat [Paride Legovini]
+ - d/control: update Standards-Version to version 4.5.0 [Paride Legovini]
+ - d/control: drop unneeded XS-Python-Version field [Paride Legovini]
+ - Tidy up unrequired files and references. [Dermot Bradley]
+
 0.32
  - readme: add where to file bugs [Joshua Powers]
  - README: Add initial readme for project [Joshua Powers]
