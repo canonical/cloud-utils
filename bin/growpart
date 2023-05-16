@@ -71,7 +71,7 @@ cleanup() {
 			error "***** Restore appears to have gone OK ****"
 		else
 			error "***** Restore FAILED! ******"
-			if [ -n "${RESTORE_HUMAN}" -a -f "${RESTORE_HUMAN}" ]; then
+			if [ -n "${RESTORE_HUMAN}" ] && [ -f "${RESTORE_HUMAN}" ]; then
 				error "**** original table looked like: ****"
 				cat "${RESTORE_HUMAN}" 1>&2
 			else
@@ -80,7 +80,7 @@ cleanup() {
 		fi
 		unlock_disk_and_settle $DISK
 	fi
-	[ -z "${TEMP_D}" -o ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
+	[ -z "${TEMP_D}" ] || [ ! -d "${TEMP_D}" ] || rm -Rf "${TEMP_D}"
 }
 
 debug() {
@@ -268,7 +268,7 @@ get_diskpart_path() {
 
 	dpart="${disk}${part}" # disk and partition number
 	if [ -b "$disk" ]; then
-		if [ -b "${disk}p${part}" -a "${disk%[0-9]}" != "${disk}" ]; then
+		if [ -b "${disk}p${part}" ] && [ "${disk%[0-9]}" != "${disk}" ]; then
 			# for block devices that end in a number (/dev/nbd0)
 			# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
 			dpart="${disk}p${part}"
@@ -360,7 +360,7 @@ resize_sfdisk() {
 
 	pt_start=$(awk '$1 == pt { print $4 }' "pt=${dpart}" <"${dump_mod}") &&
 		pt_size=$(awk '$1 == pt { print $6 }' "pt=${dpart}" <"${dump_mod}") &&
-		[ -n "${pt_start}" -a -n "${pt_size}" ] &&
+		[ -n "${pt_start}" ] && [ -n "${pt_size}" ] &&
 		pt_end=$((${pt_size} + ${pt_start} - 1)) ||
 		fail "failed to get start and end for ${dpart} in ${DISK}"
 
@@ -623,7 +623,7 @@ resize_sgdisk() {
 	guid=$(awk '/^Partition unique GUID:/ { print $4 }' "${pt_info}")
 	name=$(awk '/^Partition name:/ { gsub(/'"'"'/, "") ; \
 		if (NF >= 3) print substr($0, index($0, $3)) }' "${pt_info}")
-	[ -n "${code}" -a -n "${guid}" ] ||
+	[ -n "${code}" ] && [ -n "${guid}" ] ||
 		fail "${dev}: failed to parse sgdisk details"
 
 	debug 1 "${dev}: code=${code} guid=${guid} name='${name}'"
@@ -703,7 +703,7 @@ rq() {
 
 	local cmd="" x=""
 	for x in "$@"; do
-		[ "${x#* }" != "$x" -o "${x#* \"}" != "$x" ] && x="'$x'"
+		[ "${x#* }" != "$x" ] || [ "${x#* \"}" != "$x" ] && x="'$x'"
 		cmd="$cmd $x"
 	done
 	cmd=${cmd# }
@@ -827,7 +827,7 @@ get_table_format() {
 	local out="" disk="$1"
 	if has_cmd blkid && blkid --version | grep -q util-linux &&
 		out=$(blkid -o value -s PTTYPE "$disk") &&
-		[ "$out" = "dos" -o "$out" = "gpt" ]; then
+		[ "$out" = "dos" ] || [ "$out" = "gpt" ]; then
 		_RET="$out"
 		return
 	fi
@@ -998,7 +998,7 @@ done
 has_cmd sfdisk && SFDISK=sfdisk || SFDISK=""
 has_cmd sgdisk && SGDISK=sgdisk || SGDISK=""
 
-[ -n "$SGDISK" -o -n "$SFDISK" ] ||
+[ -n "$SGDISK" ] || [ -n "$SFDISK" ] ||
 	fail "Did not have sfdisk or sgdisk in PATH."
 
 get_sfdisk_version || fail
@@ -1038,7 +1038,7 @@ ret=$?
 
 unlock_disk_and_settle $DISK
 
-if [ "$RESIZE_RESULT" = "CHANGED" -o "$RESIZE_RESULT" = "CHANGE" ]; then
+if [ "$RESIZE_RESULT" = "CHANGED" ] || [ "$RESIZE_RESULT" = "CHANGE" ]; then
 	maybe_lvm_resize "$DISK" "$PART" || fail "lvm resize failed."
 fi
 
