@@ -35,7 +35,8 @@ except ImportError:
 
 
 instdata_host = "169.254.169.254"
-instdata_ver = "2009-04-04"
+#instdata_ver = "2009-04-04"
+instdata_ver = "latest"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
 
 TOKEN_TTL_SECONDS = 21600
@@ -87,7 +88,11 @@ Options:
     --public-keys           display the openssh public keys
     --user-data             display the user data (not actually metadata)
 
+    --tags                  dispaly the instance tags if enabled
+
     -u | --url URL          use URL (default: %s)
+
+    -t | --tag TAGNAME      display a specific instance tag
 
 """ % instdata_url
 
@@ -99,7 +104,7 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'profile', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reservation-id', 'security-groups',
             'user-data', 'availability-zone-id', 'region', 'host-id',
-            'group-name', 'partition-number']
+            'group-name', 'partition-number', 'tags']
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
 
@@ -118,8 +123,9 @@ class Error(Exception):
 class EC2Metadata:  # pylint: disable=R0903
     """Class for querying metadata from EC2"""
 
-    def __init__(self, burl=instdata_url):
+    def __init__(self, burl=instdata_url, tagvalue=''):
         self.burl = burl
+        self.tagvalue = tagvalue
 
         s = urllib_parse.urlsplit(burl)
         addr = s.netloc.split(":")[0]
@@ -176,6 +182,30 @@ class EC2Metadata:  # pylint: disable=R0903
     def get(self, metaopt):
         """return value of metaopt"""
 
+        if metaopt in ['tags', 'tag']:
+            if metaopt == 'tags':
+                data = self._get('meta-data/tags/instance')
+
+                if data is None:
+                    return None
+
+                splitlines = data.splitlines()
+
+                tagKeyValues = []
+
+                if len(splitlines) % 2 > 0:
+                    splitlines.append('')
+
+                for idx in range(0, len(splitlines), 2):
+                    tagKeyValues.append(f'{splitlines[idx]}={splitlines[idx+1]}')
+
+                return '\n'.join(tagKeyValues)
+            else:
+                data = self._get('meta-data/tags/instance/%s' % self.tagvalue)
+
+                return data
+
+
         if metaopt not in METAOPTS:
             raise Error('unknown metaopt', metaopt, METAOPTS)
 
@@ -216,10 +246,10 @@ def get(metaopt):
     return m.get(metaopt)
 
 
-def display(metaopts, burl, prefix=False):
+def display(metaopts, burl, prefix=False, tagvalue=''):
     """primitive: display metaopts (list) values with optional prefix"""
 
-    m = EC2Metadata(burl)
+    m = EC2Metadata(burl, tagvalue)
     for metaopt in metaopts:
         value = m.get(metaopt)
         if not value:
@@ -253,11 +283,13 @@ def main():
         getopt_metaopts = METAOPTS[:]
         getopt_metaopts.append('help')
         getopt_metaopts.append('url=')
+        getopt_metaopts.append('tag=')
         opts, _ = getopt.gnu_getopt(sys.argv[1:], "hu:", getopt_metaopts)
     except getopt.GetoptError as e:
         usage(e)
 
     burl = instdata_url
+    tagvalue = ''
 
     metaopts = []
     prefix = False
@@ -267,6 +299,8 @@ def main():
         if opt in ('-u', '--url'):
             burl = val
             continue
+        if opt in ('-t', '--tag'):
+            tagvalue = val
 
         metaopts.append(opt.replace('--', ''))
 
@@ -274,7 +308,7 @@ def main():
         prefix = True
         metaopts = METAOPTS
 
-    display(metaopts, burl, prefix)
+    display(metaopts, burl, prefix, tagvalue)
 
 
 if __name__ == "__main__":
