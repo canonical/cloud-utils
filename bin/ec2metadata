@@ -191,20 +191,18 @@ class EC2Metadata:  # pylint: disable=R0903
 
                 splitlines = data.splitlines()
 
-                tagKeyValues = []
+                tag_key_values = []
 
-                if len(splitlines) % 2 > 0:
-                    splitlines.append('')
+                tag_key_values = []
+                for tag_name in data.splitlines():
+                    uri = 'meta-data/tags/instance/%s' % tag_name
+                    tag_key_values.append("%s=" % tag_name + self._get(uri).rstrip())
 
-                for idx in range(0, len(splitlines), 2):
-                    tagKeyValues.append(f'{splitlines[idx]}={splitlines[idx+1]}')
-
-                return '\n'.join(tagKeyValues)
+                return '\n'.join(tag_key_values)
             else:
                 data = self._get('meta-data/tags/instance/%s' % self.tagvalue)
 
                 return data
-
 
         if metaopt not in METAOPTS:
             raise Error('unknown metaopt', metaopt, METAOPTS)
