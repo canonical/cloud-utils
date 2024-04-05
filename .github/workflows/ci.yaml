@@ -4,25 +4,25 @@ on: [push, pull_request]
 
 jobs:
   tox:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Install dependencies
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Run tox
         run: tox
   test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Install dependencies
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install lvm2 fdisk gdisk qemu-utils busybox
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Run tests
         # SKIP growpart-lvm test that does not work on github c-i
         run: sudo SKIP=growpart-lvm PATH=$PWD/bin:$PATH ./test/run-all
