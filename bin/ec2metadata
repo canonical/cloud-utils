@@ -35,7 +35,7 @@ except ImportError:
 
 
 instdata_host = "169.254.169.254"
-instdata_ver = "2009-04-04"
+instdata_ver = "latest"
 instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
 
 TOKEN_TTL_SECONDS = 21600
@@ -84,6 +84,8 @@ Options:
     --profile               display the instance profile
     --instance-action       display the instance-action
 
+    --tags                  display the instance tags (if allowed in metadata)
+
     --public-keys           display the openssh public keys
     --user-data             display the user data (not actually metadata)
 
@@ -99,7 +101,7 @@ METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
             'profile', 'product-codes', 'public-hostname', 'public-ipv4',
             'public-keys', 'ramdisk-id', 'reservation-id', 'security-groups',
             'user-data', 'availability-zone-id', 'region', 'host-id',
-            'group-name', 'partition-number']
+            'group-name', 'partition-number', 'tags']
 
 binstdout = os.fdopen(sys.stdout.fileno(), 'wb')
 
@@ -188,6 +190,20 @@ class EC2Metadata:  # pylint: disable=R0903
                 'partition-number',
                 ]:
             return self._get('meta-data/placement/' + metaopt)
+
+        if metaopt == 'tags':
+            data = self._get('meta-data/tags/instance/')
+            if data is None:
+                return None
+
+            tagids = [line.rstrip() for line in data.splitlines()]
+
+            tags = {}
+            for tagid in tagids:
+                uri = 'meta-data/tags/instance/%s' % tagid
+                tags[tagid]=self._get(uri).rstrip()
+
+            return tags
 
         if metaopt == 'public-keys':
             data = self._get('meta-data/public-keys')
