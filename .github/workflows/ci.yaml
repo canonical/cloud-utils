@@ -31,6 +31,4 @@ jobs:
           mkdir /tmp/busybox-bin
           busybox --install -s /tmp/busybox-bin
           ln -s $(command -v flock mkfs.ext4 qemu-img qemu-nbd resize2fs sfdisk sgdisk) /tmp/busybox-bin
-          # Skip growpart: needs BusyBox >= 1.31, not available in Ubuntu yet.
-          # Skip mic: needs BusyBox >= 1.31, not available in Ubuntu yet.
-          sudo SKIP=mic,growpart,growpart-lvm PATH=$PWD/bin:/tmp/busybox-bin ./test/run-all
+          sudo PATH=$PWD/bin:/tmp/busybox-bin ./test/run-all
