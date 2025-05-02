@@ -128,8 +128,8 @@ ${0##*/} disk partition
                            than 'F' bytes, do not resize (default: ${FUDGE})
     -N | --dry-run         only report what would be done, show new 'sfdisk -d'
     -v | --verbose         increase verbosity / debug
-    -u | --update  R       update the the kernel partition table info after
-                           growing this requires kernel support and
+    -u | --update  R       update the kernel partition table info after growing
+                           this requires kernel support and
                            'partx --update'
                            R is one of:
                             - 'auto'  : [default] update partition if possible
