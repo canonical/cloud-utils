@@ -32,7 +32,7 @@ Architecture: all
 Depends: ca-certificates,
          e2fsprogs (>=1.4),
          file,
-         genisoimage,
+         xorriso,
          qemu-utils,
          wget,
          ${misc:Depends},
