@@ -141,9 +141,11 @@ ${0##*/} disk partition
 
    Example:
     - ${0##*/} /dev/sda 1
+    - ${0##*/} /dev/sda1
       Resize partition 1 on /dev/sda
 
     - ${0##*/} --free-percent=10 /dev/sda 1
+    - ${0##*/} --free-percent=10 /dev/sda1
       Resize partition 1 on /dev/sda so that 10% of the disk is unallocated
 EOF
 }
@@ -979,17 +981,29 @@ while [ $# -ne 0 ]; do
 			;;
 		*)
 			if [ -z "${DISK}" ]; then
-				DISK=${cur}
+				case "$cur" in
+					*[0-9]p[0-9]*) PART=${cur##*p} DISK=${cur%"p$PART"} ;;
+					*[!0-9][0-9]*) if [ -n "$next" ] && [ -z "$PART" ]; then
+								   	  	DISK=$cur
+								   else
+									   	PART=${cur##*[!0-9]} DISK=${cur%"$PART"}
+								   fi ;;
+					*) DISK=$cur ;;
+				esac
 			else
-				[ -z "${PART}" ] || fail "confused by arg ${cur}"
-				PART=${cur}
+				if [ -z "${PART}" ]; then
+					PART=$cur
+				fi
 			fi
 			;;
 	esac
 	shift
 done
 
-[ -n "${DISK}" ] || bad_Usage "must supply disk and partition-number"
+case "$DISK" in
+  *[!0-9]*) ;;
+  *) bad_Usage "must supply disk and partition-number" ;;
+esac
 [ -n "${PART}" ] || bad_Usage "must supply partition-number"
 
 [ -e "${DISK}" ] || fail "${DISK}: does not exist"
