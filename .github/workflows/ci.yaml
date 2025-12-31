@@ -27,8 +27,9 @@ jobs:
         # SKIP growpart-lvm test that does not work on github c-i
         run: sudo SKIP=growpart-lvm PATH=$PWD/bin:$PATH ./test/run-all
       - name: Run tests against BusyBox-based minimal environment
+        # SKIP growpart-lvm test as LVM tools are not available in BusyBox
         run: |
           mkdir /tmp/busybox-bin
           busybox --install -s /tmp/busybox-bin
           ln -s $(command -v flock mkfs.ext4 qemu-img qemu-nbd resize2fs sfdisk sgdisk) /tmp/busybox-bin
-          sudo PATH=$PWD/bin:/tmp/busybox-bin ./test/run-all
+          sudo SKIP=growpart-lvm PATH=$PWD/bin:/tmp/busybox-bin ./test/run-all
