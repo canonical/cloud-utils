@@ -398,6 +398,12 @@ resize_sfdisk() {
 		max_end=$((${sector_num} - ${gpt_second_size} - 1))
 	fi
 
+	# make partition sizes always even units of $align bytes.
+	local align=$((1024*1024))
+	local sectors_per_align=$((align/sector_size)) max_size_align=""
+	max_size_align=$((((max_end+1-pt_start)/sectors_per_align)*sectors_per_align))
+	max_end=$((max_size_align+pt_start-1))
+
 	if [ -n "${free_percent}" ]; then
 		free_percent_sectors=$((sector_num/100*free_percent))
 
@@ -601,6 +607,12 @@ resize_sgdisk() {
 		fail "${dev}: failed to find max end sector"
 
 	pt_size_bytes=$((${pt_size}*${sector_size}))
+
+	# make partition sizes always even units of $align bytes.
+	local align=$((1024*1024))
+	local sectors_per_align=$((align/sector_size)) max_size_align=""
+	max_size_align=$((((pt_max+1-pt_start)/sectors_per_align)*sectors_per_align))
+	pt_max=$((max_size_align+pt_start-1))
 
 	debug 1 "${dev}: pt_start=${pt_start} pt_end=${pt_end}" \
 		"pt_size=${pt_size} pt_max=${pt_max} last=${last} pt_size_bytes=${pt_size_bytes}"
