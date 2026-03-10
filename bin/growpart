@@ -661,7 +661,7 @@ resize_sgdisk() {
 	#  - set the partition GUID
 	#  - set the partition name
 	rq sgdisk_mod $wouldrun sgdisk --move-second-header "--delete=${PART}" \
-		"--new=${PART}:${pt_start}:$((pt_max-1))" \
+		"--new=${PART}:${pt_start}:${pt_max}" \
 		"--typecode=${PART}:${code}" \
 		"--partition-guid=${PART}:${guid}" \
 		"--change-name=${PART}:${name}" "${DISK}" &&
