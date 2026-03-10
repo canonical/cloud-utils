@@ -430,6 +430,7 @@ resize_sfdisk() {
 				debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
 				max_end=$((max_end-free_percent_sectors))
 			fi
+			max_end=$((((max_end/sectors_per_align)*sectors_per_align)-1))
 
 			if [ ${max_end} -lt ${pt_end} ]; then
 				nochange "partition ${PART} could not be grown while leaving" \
@@ -441,6 +442,7 @@ resize_sfdisk() {
 			# (for overprovisioning).
 			debug 1 "reserving ${free_percent_sectors} sectors (${free_percent}%) for overprovisioning"
 			max_end=$((max_end-free_percent_sectors))
+			max_end=$((((max_end/sectors_per_align)*sectors_per_align)-1))
 
 			if [ ${max_end} -lt ${pt_end} ]; then
 				nochange "partition ${PART} could not be grown while leaving" \

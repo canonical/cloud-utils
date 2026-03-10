@@ -57,7 +57,7 @@ sfdisk --list --unit=S "$img"
 
 enddevice=$(sfdisk --list --unit=S "$img" | grep "Disk $img:" | awk '{print $7}')
 endpart=$(sfdisk --list --unit=S "$img" | grep "$img" | grep -v "Disk" | awk '{print $3}')
-expectedendpart=182271
+expectedendpart=180223
 if [ $endpart = $expectedendpart ]; then
 	echo "Final partition size matches expected partition size"
 	echo
