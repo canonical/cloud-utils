@@ -940,6 +940,7 @@ maybe_lvm_resize() {
 
 pt_update="auto"
 resizer=${GROWPART_RESIZER:-"auto"}
+free_percent=""
 while [ $# -ne 0 ]; do
 	cur=${1}
 	next=${2}
@@ -1042,6 +1043,9 @@ format=$_RET
 get_resizer "$format" "$resizer" ||
 	fail "failed to get a resizer for format '$format'"
 resizer=$_RET
+if [ -n "$free_percent" ] && [ "$resizer" = "sgdisk" ]; then
+	fail "--free-percent is not supported with sgdisk resizer"
+fi
 
 lock_disk $DISK
 debug 1 "resizing $PART on $DISK using $resizer"
