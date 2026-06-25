@@ -1,5 +1,5 @@
 This is the cloud-utils ubuntu packaging branch.  It comes from:
- git clone https://git.launchpad.net/cloud-utils
+ git clone https://github.com/canonical/cloud-utils
 
 The upstream (master) branch does not include debian/changelog but it
 can built with ./tools/build-deb.

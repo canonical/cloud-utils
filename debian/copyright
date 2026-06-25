@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: cloud-utils
-Source: https://code.launchpad.net/cloud-utils
+Source: https://github.com/canonical/cloud-utils
 Upstream-Contact: Scott Moser <scott.moser@canonical.com>
 
 Files: *
