@@ -24,7 +24,7 @@ The package is also available in Alpine and Arch as `cloud-utils`.
 * `resize-part-image` - resize a partition image and contained filesystem to a new size
 * `ubuntu-cloudimage-query` - get the latest Ubuntu AWS AMI meeting certain criteria
 * `vcs-run` - obtain a repository and execute a command with arguments
-* `write-mime-multipart` - utilty for creating mime-multipart files, likely for use via user data and cloud-init
+* `write-mime-multipart` - utility for creating mime-multipart files, likely for use via user data and cloud-init
 
 ## Getting help
 

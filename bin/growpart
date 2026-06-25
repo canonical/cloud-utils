@@ -107,7 +107,7 @@ debugcat() {
 }
 
 mktemp_d() {
-	# just a mktemp -d that doens't need mktemp if its not there.
+	# just a mktemp -d that does not need mktemp if its not there.
 	_RET=$(mktemp -d "${TMPDIR:-/tmp}/${0##*/}.XXXXXX" 2>/dev/null) &&
 		return
 	_RET=$(umask 077 && t="${TMPDIR:-/tmp}/${0##*/}.$$" &&
@@ -309,7 +309,7 @@ resize_sfdisk() {
 	LANG=C rqe sfd_list sfdisk --list --unit=S "$DISK" >"$tmp" ||
 		fail "failed: sfdisk --list $DISK"
 	if [ "${SFDISK_VERSION}" -lt "${SFDISK_2_26}" ]; then
-		# exected output contains: Units: sectors of 512 bytes, ...
+		# expected output contains: Units: sectors of 512 bytes, ...
 		out=$(awk '$1 == "Units:" && $5 ~ /bytes/ { print $4 }' "$tmp") ||
 			fail "failed to read sfdisk output"
 		if [ -z "$out" ]; then
