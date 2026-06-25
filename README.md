@@ -28,7 +28,7 @@ The package is also available in Alpine and Arch as `cloud-utils`.
 
 ## Getting help
 
-If you find a bug or issue please report it on the upstream [Launchpad project](https://bugs.launchpad.net/cloud-utils/+filebug).
+If you find a bug or issue please report it on the upstream [GitHub project](https://github.com/canonical/cloud-utils).
 
 ## License
 
