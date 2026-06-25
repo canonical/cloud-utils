@@ -1,0 +1,11 @@
+---
+# Extend the default conf by adjusting some options.
+extends: default
+
+rules:
+  indentation:
+    spaces: 2
+  line-length:
+    max: 180
+  document-start: disable
+  truthy: disable
