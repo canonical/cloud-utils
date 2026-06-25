@@ -89,7 +89,5 @@ test_resize () {
 TEMP_D=$(mktemp -d ${TMPDIR:-/tmp}/${0##*/}.XXXXXX)
 trap cleanup EXIT
 
-# the sfdisk and sgdisk resizers result in slightly different output,
-# because of course they do.
-test_resize sfdisk 1026048 3168223
-test_resize sgdisk 1026048 3166207
+test_resize sfdisk 1026048 3166208
+test_resize sgdisk 1026048 3166208

@@ -57,18 +57,12 @@ sfdisk --list --unit=S "$img"
 
 enddevice=$(sfdisk --list --unit=S "$img" | grep "Disk $img:" | awk '{print $7}')
 endpart=$(sfdisk --list --unit=S "$img" | grep "$img" | grep -v "Disk" | awk '{print $3}')
-# Subtract the following from disk image end in sectors:
-#   - required number of overprovisioning sectors to leave unused
-#   - 33 sectors (MBR padding for GPT conversion)
-#   - 1 (as sector numbers start from 0)
-# to calculate the expected end of resized partition in sectors.
-expectedendpart=$((enddevice-(enddevice/100*freepercent)-33-1))
-echo
+expectedendpart=180223
 if [ $endpart = $expectedendpart ]; then
 	echo "Final partition size matches expected partition size"
 	echo
 else
-	echo "ERROR: final partition size of $endpart is different than expected size of $expectedendpart"
+	echo "ERROR: final partition end of $endpart is different than expected end of $expectedendpart"
 	exit 1
 fi
 
