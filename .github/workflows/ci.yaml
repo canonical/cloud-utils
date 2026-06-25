@@ -3,6 +3,17 @@ name: cloud-utils ci
 on: [push, pull_request]
 
 jobs:
+  pre-commit:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run pre-commit checks
+        uses: pre-commit/action@v3.0.0
   tox:
     runs-on: ubuntu-26.04
     steps:
