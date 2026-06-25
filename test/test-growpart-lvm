@@ -19,7 +19,7 @@ TEMP_D=""
 rqerror() {
 	# run, capture error only. show error on non-zero.
 	# lvm puts non-error output to stderr, (open failed: no medium found)
-	# and can't be told to only show errors (--quiet doesnt work).
+	# and can't be told to only show errors (--quiet does not work).
 	local err="${TEMP_D}/err" ret=""
 	"$@" 2>"$err"
 	ret=$?

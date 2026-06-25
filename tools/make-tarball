@@ -11,8 +11,8 @@ trap cleanup EXIT
 
 Usage() {
     cat <<EOF
-Usage: ${0##*/} [commitish]
-    create a tarball of commitish(default HEAD)
+Usage: ${0##*/} [committish]
+    create a tarball of committish(default HEAD)
 
     options:
       -h | --help		print usage
@@ -54,7 +54,7 @@ if [ -z "$output" ]; then
 fi
 
 # when building an archiving from HEAD, ensure that there aren't any
-# uncomitted changes in the working directory (because these would not
+# uncommitted changes in the working directory (because these would not
 # end up in the archive).
 if [ "$rev" = HEAD ] && ! git diff-index --quiet HEAD --; then
     cat 1>&2 <<EOF

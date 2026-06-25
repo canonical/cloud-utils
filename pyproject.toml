@@ -1,0 +1,5 @@
+[project]
+requires-python = ">= 3.12"
+
+[tool.codespell]
+ignore-words-list = "workd"
