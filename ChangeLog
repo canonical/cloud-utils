@@ -1,3 +1,18 @@
+0.34
+ - Drop ubuntu-cloudimg-query (#49) (#50) [Thomas Bechtold]
+ - growpart: use pt_size_bytes when partition cannot be grown
+   [Xiao Liang]
+ - Fix growpart error with older blkid versions (#54) [Dávid Balatoni]
+ - growpart - align on 1MiB (#68) [Scott Moser]
+ - Update repository location (Launchpad -> GitHub) (#74)
+ - Various CI and automation improvements:
+   - ci: add pre-commit job (#73)
+   - ci: run tests on Ubuntu 26.04 (#72)
+   - tox: bump pinned pylint version to 4.0.6 (#70)
+   - pre-commit: add hook and apply fixes (#71)
+   - Make GH Actions work again (#57) [Dávid Balatoni]
+   - Update runner image to 24.04 (#59) [Dávid Balatoni]
+
 0.33
  - CI: run tox and tests in separate jobs [Paride Legovini]
  - CI: run tests against minimal BusyBox environment [Paride Legovini]
