@@ -36,15 +36,15 @@ except ImportError:
 
 instdata_host = "169.254.169.254"
 instdata_ver = "2009-04-04"
-instdata_url = "http://%s/%s" % (instdata_host, instdata_ver)
+instdata_url = f"http://{instdata_host}/{instdata_ver}"
 
 TOKEN_TTL_SECONDS = 21600
 TOKEN_HEADER = "X-aws-ec2-metadata-token"
 TOKEN_HEADER_TTL = "X-aws-ec2-metadata-token-ttl-seconds"
 
-session_token_url = "http://%s/%s/%s" % (instdata_host, 'latest', 'api/token')
+session_token_url = f"http://{instdata_host}/latest/api/token"
 
-__doc__ = """
+__doc__ = f"""
 Query and display EC2 metadata.
 
 If no options are provided, all options will be displayed
@@ -87,9 +87,9 @@ Options:
     --public-keys           display the openssh public keys
     --user-data             display the user data (not actually metadata)
 
-    -u | --url URL          use URL (default: %s)
+    -u | --url URL          use URL (default: {instdata_url})
 
-""" % instdata_url
+"""
 
 
 METAOPTS = ['ami-id', 'ami-launch-index', 'ami-manifest-path',
@@ -127,8 +127,7 @@ class EC2Metadata:  # pylint: disable=R0903
         if s.port is None:
             port = 80
         if not self._test_connectivity(addr, port):
-            raise Error("could not establish connection to: %s:%s" %
-                        (addr, port))
+            raise Error(f"could not establish connection to: {addr}:{port}")
         self._imdsv2_ensure_token()
 
     @staticmethod
@@ -154,7 +153,7 @@ class EC2Metadata:  # pylint: disable=R0903
         self.session_token = resp.read()
 
     def _get(self, uri, decode=True):
-        url = "%s/%s" % (self.burl, uri)
+        url = f"{self.burl}/{uri}"
         try:
             resp = urllib_request.urlopen(
                 urllib_request.Request(
@@ -198,7 +197,7 @@ class EC2Metadata:  # pylint: disable=R0903
 
             public_keys = []
             for keyid in keyids:
-                uri = 'meta-data/public-keys/%d/openssh-key' % int(keyid)
+                uri = f'meta-data/public-keys/{int(keyid)}/openssh-key'
                 public_keys.append(self._get(uri).rstrip())
 
             return public_keys
@@ -226,7 +225,7 @@ def display(metaopts, burl, prefix=False):
             value = "unavailable"
 
         if prefix:
-            print("%s: %s" % (metaopt, value))
+            print(f"{metaopt}: {value}")
         elif metaopt == "user-data":
             # We want to avoid binary blob corruption while printing as string
             print_binary(value)
@@ -239,8 +238,8 @@ def usage(s=None):
 
     msg = ""
     if s:
-        msg = "Error: %s\n" % s
-    msg += "Syntax: %s [options]\n" % sys.argv[0]
+        msg = f"Error: {s}\n"
+    msg += f"Syntax: {sys.argv[0]} [options]\n"
     msg += __doc__
     sys.stderr.write(msg + "\n")
     sys.exit(1)

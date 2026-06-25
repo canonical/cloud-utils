@@ -83,15 +83,13 @@ def main():
 
         maintype, subtype = mtype.split('/', 1)
         if maintype == 'text':
-            fp = open(path)
-            # Note: we should handle calculating the charset
-            msg = MIMEText(fp.read(), _subtype=subtype)
-            fp.close()
+            with open(path, encoding='utf-8') as fp:
+                # Note: we should handle calculating the charset
+                msg = MIMEText(fp.read(), _subtype=subtype)
         else:
-            fp = open(path, 'rb')
-            msg = MIMEBase(maintype, subtype)
-            msg.set_payload(fp.read())
-            fp.close()
+            with open(path, 'rb') as fp:
+                msg = MIMEBase(maintype, subtype)
+                msg.set_payload(fp.read())
             # Encode the payload using Base64
             encoders.encode_base64(msg)
 
@@ -107,17 +105,19 @@ def main():
             ofile = sys.stdout.buffer
         else:
             ofile = sys.stdout
+        _write_output(ofile, outer, options)
     else:
-        ofile = open(options.output, "wb")
+        with open(options.output, "wb") as ofile:
+            _write_output(ofile, outer, options)
 
+
+def _write_output(ofile, outer, options):
+    """Write the MIME message to the output file."""
     if options.compress:
-        gfile = gzip.GzipFile(fileobj=ofile, filename=options.output)
-        gfile.write(outer.as_string().encode())
-        gfile.close()
+        with gzip.GzipFile(fileobj=ofile, filename=options.output) as gfile:
+            gfile.write(outer.as_string().encode())
     else:
         ofile.write(outer.as_string().encode())
-
-    ofile.close()
 
 
 if __name__ == '__main__':

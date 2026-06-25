@@ -84,7 +84,7 @@ if [ -z "$out" ]; then
 	exit 1
 fi
 
-echo === growpart stderr ===
+echo "=== growpart stderr ==="
 cat "$errfile"
 
 echo "==== after ===="
