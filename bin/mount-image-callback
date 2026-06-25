@@ -368,7 +368,7 @@ mount_callback_umount() {
 			   --overlay) overlay=true;;
 			-p|--proc) bmounts="${bmounts:+${bmounts} }/proc";;
 			-s|--sys) bmounts="${bmounts:+${bmounts} }/sys";;
-			-S|--system-mounts) bmounts="/dev /proc /sys";;
+			-S|--system-mounts) bmounts="/dev /proc /sys /dev/pts";;
 			   --system-resolvconf) system_resolvconf=true;;
 			-v|--verbose) VERBOSITY=$((${VERBOSITY}+1));;
 			   --opts) opts="${opts} $next"; shift;;
