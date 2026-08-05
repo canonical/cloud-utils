@@ -4,6 +4,7 @@ VERBOSITY=0
 TEMP_D=""
 DEF_DISK_FORMAT="raw"
 DEF_FILESYSTEM="iso9660"
+DEF_FSLABEL="cidata"
 CR="
 "
 
@@ -18,11 +19,12 @@ Usage: ${0##*/} [ options ] output user-data [meta-data]
 
    options:
      -h | --help             show usage
-     -d | --disk-format D    disk format to output. default: raw
+     -d | --disk-format D    disk format to output. default: $DEF_DISK_FORMAT
                              can be anything supported by qemu-img or
                              tar, tar-seed-local, tar-seed-net
      -H | --hostname    H    set hostname in metadata to H
-     -f | --filesystem  F    filesystem format (vfat or iso), default: iso9660
+     -f | --filesystem  F    filesystem format (vfat or iso), default: $DEF_FILESYSTEM
+     -l | --label  L         filesystem label, default: $DEF_FSLABEL
 
      -i | --interfaces  F    write network interfaces file into metadata
      -N | --network-config F write network config file to local datasource
@@ -64,8 +66,8 @@ has_cmd() {
 	command -v "$1" >/dev/null 2>&1
 }
 
-short_opts="hH:i:d:f:m:N:o:V:v"
-long_opts="disk-format:,dsmode:,filesystem:,help,hostname:,interfaces:,"
+short_opts="hH:i:d:f:l:m:N:o:V:v"
+long_opts="disk-format:,dsmode:,filesystem:label:,help,hostname:,interfaces:,"
 long_opts="${long_opts}network-config:,output:,vendor-data:,verbose"
 getopt_out=$(getopt -n "${0##*/}" \
 	-o "${short_opts}" -l "${long_opts}" -- "$@") &&
@@ -78,6 +80,7 @@ userdata=""
 metadata=""
 vendordata=""
 filesystem=""
+fslabel=""
 diskformat=$DEF_DISK_FORMAT
 interfaces=_unset
 dsmode=""
@@ -91,6 +94,7 @@ while [ $# -ne 0 ]; do
 		-h|--help) Usage ; exit 0;;
 		-d|--disk-format) diskformat=$next; shift;;
 		-f|--filesystem) filesystem=$next; shift;;
+		-l|--label) fslabel=$next; shift;;
 		-H|--hostname) hostname=$next; shift;;
 		-i|--interfaces) interfaces=$next; shift;;
 		-N|--network-config) netcfg=$next; shift;;
@@ -131,6 +135,10 @@ esac
 if [ -z "$filesystem" ]; then
 	filesystem="$DEF_FILESYSTEM"
 fi
+if [ -z "$fslabel" ]; then
+	filesystem="$DEF_FSLABEL"
+fi
+fslabel
 if [ "$filesystem" = "iso" ]; then
 	filesystem="iso9660"
 fi
@@ -232,14 +240,14 @@ case "$filesystem" in
 			fail "failed to create tarball with $path"
 		;;
 	iso9660)
-		genisoimage -output "$img" -volid cidata \
+		genisoimage -output "$img" -volid "$fslabel" \
 			-joliet -rock "${files[@]}" > "$TEMP_D/err" 2>&1 ||
 			{ cat "$TEMP_D/err" 1>&2; fail "failed to genisoimage"; }
 		;;
 	vfat)
 		truncate -s 128K "$img" || fail "failed truncate image"
-		out=$(mkfs.vfat -n cidata "$img" 2>&1) ||
-			{ error "failed: mkfs.vfat -n cidata $img"; error "$out"; }
+		out=$(mkfs.vfat -n "$fslabel" "$img" 2>&1) ||
+			{ error "failed: mkfs.vfat -n $fslabel $img"; error "$out"; }
 		mcopy -oi "$img" "${files[@]}" :: ||
 			fail "failed to copy user-data, meta-data to img"
 		;;
