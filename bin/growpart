@@ -258,6 +258,70 @@ get_sfdisk_version() {
 	esac
 }
 
+get_dm_diskpart_path() {
+	# get_dm_diskpart_path(disk, part_number)
+	# return the path to the partition device of a device-mapper disk
+	#
+	# Partitions of a device-mapper device (/dev/dm-0) are device-mapper
+	# devices themselves, created by kpartx/udev.  They are not named
+	# "<disk><part>" (/dev/dm-01), but are reachable through
+	# /dev/mapper/<name> where <name> is the name of the parent map with
+	# the partition number appended ('p' is inserted first if the parent
+	# name ends in a digit).  That is also the name sfdisk prints for
+	# them, as libfdisk canonicalizes /dev/dm-N to /dev/mapper/<name>.
+	#
+	# e.g. get_dm_diskpart_path /dev/dm-0 1 returns /dev/mapper/mpatha1
+	# returns 1 if 'disk' is not a device-mapper device.
+	local disk="$1"
+	local part="$2"
+	local real="" syspath="" name="" uuid="" sep=""
+	local holder="" hname="" huuid=""
+
+	_RET=""
+	real=$(readlink -f "$disk") || return 1
+	case "$real" in
+		/dev/dm-[0-9]*) :;;
+		*) return 1;;
+	esac
+
+	syspath="/sys/class/block/${real#/dev/}"
+	[ -r "${syspath}/dm/name" ] || return 1
+	read name <"${syspath}/dm/name" || return 1
+	[ -n "$name" ] || return 1
+	if [ -r "${syspath}/dm/uuid" ]; then
+		read uuid <"${syspath}/dm/uuid" || uuid=""
+	fi
+
+	case "$name" in
+		*[0-9]) sep="p";;
+	esac
+
+	# prefer an existing partition device.  kpartx gives those a dm uuid
+	# of "part<num>-<uuid of the parent map>" and they show up as
+	# holders of the parent device.
+	for holder in "${syspath}/holders/"*; do
+		[ -r "${holder}/dm/name" ] || continue
+		read hname <"${holder}/dm/name" || continue
+		huuid=""
+		if [ -r "${holder}/dm/uuid" ]; then
+			read huuid <"${holder}/dm/uuid" || huuid=""
+		fi
+		if [ -n "$uuid" ] && [ "$huuid" = "part${part}-${uuid}" ]; then
+			_RET="/dev/mapper/${hname}"
+			return 0
+		fi
+		if [ "$hname" = "${name}${sep}${part}" ]; then
+			_RET="/dev/mapper/${hname}"
+			return 0
+		fi
+	done
+
+	# the partition device does not exist (yet).  fall back to the name
+	# sfdisk would use for it.
+	_RET="/dev/mapper/${name}${sep}${part}"
+	return 0
+}
+
 get_diskpart_path() {
 	# get_diskpart_path(disk, part_number)
 	# return the path to the partition device on disk
@@ -268,6 +332,11 @@ get_diskpart_path() {
 	local disk="$1"
 	local part="$2"
 	local dpart=""
+
+	if [ -b "$disk" ] && get_dm_diskpart_path "$disk" "$part"; then
+		# device-mapper partitions are not named "<disk><part>"
+		return 0
+	fi
 
 	dpart="${disk}${part}" # disk and partition number
 	if [ -b "$disk" ]; then
