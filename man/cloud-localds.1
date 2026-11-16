@@ -3,7 +3,7 @@
 .\" License: GPL-3
 .\"
 
-.TH cloud-localds 1 "July 2013" cloud\-utils "cloud\-utils"
+.TH cloud-localds 1 "November 2026" cloud\-utils "cloud\-utils"
 .SH NAME
 cloud-localds \- create a disk for cloud-init to utilize nocloud
 .SH SYNOPSIS
@@ -19,11 +19,15 @@ user-data can contain everything which is supported by
 .
 .SH OPTIONS
 .TP
-.BR \-d ", " \-\-disk_format =\fIDISKFORMAT\fR
+.BR \-d ", " \-\-disk\-format =\fIDISKFORMAT\fR
 Disk format to output. See
 .BR qemu-img (1)
 for allowed disk formats.
 Default is raw.
+
+.TP
+.BR \-H ", " \-\-hostname =\fIHOSTNAME\fR
+Set hostname in metadata.
 
 .TP
 .BR \-f ", " \-\-filesystem =\fIFORMAT\fR
@@ -35,8 +39,12 @@ Default is iso9660.
 Show usage.
 
 .TP
-.BR \-i ", " \-\-interfaces
+.BR \-i ", " \-\-interfaces =\fIINTERFACESFILE\fR
 Write network interfaces file into metadata.
+
+.TP
+.BR \-N ", " \-\-network\-config =\fINETWORKCONFIGFILE\fR
+Write network config file to local datasource.
 
 .TP
 .BR \-m ", " \-\-dsmode =\fIMODE\fR
@@ -44,6 +52,14 @@ Add dsmode to the metadata. Allowed are local or net.
 Default in
 .BR cloud-init (1)
 is net.
+
+.TP
+.BR \-V ", " \-\-vendor\-data =\fIVENDORDATAFILE\fR
+Add vendor data.
+
+.TP
+.BR \-v ", " \-\-verbose
+Increase verbosity.
 
 .SH EXAMPLES
 This example creates a disk image with user-data which can be used to start a cloud image which supports
